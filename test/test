@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # This file:
 #
-#  - First version of testing BASH4 Boilerplate
+#  - First version of testing BASH3 Boilerplate
 #
 # Usage:
 #
@@ -128,54 +128,23 @@ function help () {
   exit 1
 }
 
-# User functions
-# Test case 01: Test source use, reading variables
-# This test case testing b3bp behavior when it sourced by an other sript
-# Acceptance: sourcing b3bp and read every non-local, non-changeable variables
-test_case_01(){
-  info "Test source use, reading variables"
-  notice "Accept test, when every variable is readable from sourced script"
 
-  local result=0
-  # If run all test case, only first sourcing b3bp with specified language
-  if [[ -z "${arg_t}" ]]; then
-    # Change localization for proper testing
-    LANGUAGE=en_US source b3bp
-  else
-    source b3bp
-  fi
-
-  local vars=( __b3bp_srcd __b3bp_dir __b3bp_file __b3bp_base __b3bp_srcdir 
-    __b3bp_srcfile __b3bp_srcbase __b3bp_name __b3bp_short_name
-    __b3bp_short_description __b3bp_long_description __b3bp_version 
-    __b3bp_revision __b3bp_date __b3bp_license __b3bp_creator __b3bp_publisher
-    __b3bp_link __b3bp_usage )
-
-  for var in "${vars[@]}"; do
-    debug "${var}: ${!var:-}"
-    if [[ -z "${!var:-}" ]]; then
-      result=1
-      error "Variable ${var} not readable!"
-    fi  
-  done
-  return "${result}"
-}
 
 # Test case 02: Test source use, writing variables
-# This test case testing b3bp behavior when it sourced by an other sript
-# Acceptance: sourcing b3bp and write every non-local, non-changeable variables
+# This test case testing b4bp behavior when it sourced by an other sript
+# Acceptance: sourcing b4bp and write every non-local, non-changeable variables
 test_case_02() {
   info "Test source use, writing variables"
   notice "Accept test, when every variable is writable from sourced script"
 
   local result=0
-  [[ -n "${arg_t}" ]] && source b3bp
+  [[ -n "${arg_t}" ]] && source b4bp
 
-  local vars=( __b3bp_srcd __b3bp_dir __b3bp_file __b3bp_base __b3bp_srcdir 
-    __b3bp_srcfile __b3bp_srcbase __b3bp_name __b3bp_short_name
-    __b3bp_short_description __b3bp_long_description __b3bp_version 
-    __b3bp_revision __b3bp_date __b3bp_license __b3bp_creator __b3bp_publisher
-    __b3bp_link __b3bp_usage )
+  local vars=( __b4bp_srcd __b4bp_dir __b4bp_file __b4bp_base __b4bp_srcdir 
+    __b4bp_srcfile __b4bp_srcbase __b4bp_name __b4bp_short_name
+    __b4bp_short_description __b4bp_long_description __b4bp_version 
+    __b4bp_revision __b4bp_date __b4bp_license __b4bp_creator __b4bp_publisher
+    __b4bp_link __b4bp_usage )
 
   for var in "${vars[@]}"; do
     debug "${var}: ${!var:-}"
@@ -192,8 +161,8 @@ test_case_02() {
 }
 
 # Test case 03: Test direct call
-# Test b3bp behaviour when calling directly from script or cmd.
-# Acceptance: calling b3bp and echoing main function's content
+# Test b4bp behaviour when calling directly from script or cmd.
+# Acceptance: calling b4bp and echoing main function's content
 # Side-effect: testing localization, change language
 test_case_03(){
   info "Test direct call, reading variables"
@@ -201,7 +170,7 @@ test_case_03(){
 
   local result=0
   # Change localization for proper testing
-  local var=$(LANGUAGE=en_US ./b3bp)
+  local var=$(LANGUAGE=en_US ./b4bp)
   debug "${var}"
   if [[ "${var}" != *"Hello, world"* ]]; then
     result=1
@@ -220,7 +189,7 @@ test_case_04() {
 
   local result=0
   # Change localization for proper testing
-  [[ -n "${arg_t}" ]] && LANGUAGE=en_US source b3bp
+  [[ -n "${arg_t}" ]] && LANGUAGE=en_US source b4bp
 
   local var=$(main)
   debug "${var}"
@@ -241,7 +210,7 @@ test_case_05() {
 
   local result=0
 
-  local var=$(./b3bp)
+  local var=$(./b4bp)
   debug "${var}"
   if [[ "${var}" != *$"Hello, world"* ]]; then
     result=1
@@ -251,16 +220,16 @@ test_case_05() {
 }
 
 # Test case 06: Set usage string externally
-# Testing how to set __b3bp_usage string externally and call the script
+# Testing how to set __b4bp_usage string externally and call the script
 # Acceptance: call the script and using the externally specified usage string
 test_case_06(){
   info "Test externally set usage string"
-  notice "Accept test, if __b3bp_usage is the earlier set value"
+  notice "Accept test, if __b4bp_usage is the earlier set value"
 
   local result=0
   
 read -r -d '' test_usage <<-'EOF' || true
-b3bp [ARGUMENTS] [PARAMETERS]
+b4bp [ARGUMENTS] [PARAMETERS]
 Available arguments:
   -a  Alpha
   -b  Bravo
@@ -300,13 +269,13 @@ Available arguments:
   -9  Nine
 EOF
 
-  __b3bp_usage="${test_usage}"
+  __b4bp_usage="${test_usage}"
   # Change localization for proper testing
-  [[ -n "${arg_t}" ]] && LANGUAGE=en_US source b3bp
+  [[ -n "${arg_t}" ]] && LANGUAGE=en_US source b4bp
 
-  debug "${__b3bp_usage}"
+  debug "${__b4bp_usage}"
   # When source a script, LANGUAGE environmental variable 
-  if [[ "${__b3bp_usage}" != "${test_usage}" ]]; then
+  if [[ "${__b4bp_usage}" != "${test_usage}" ]]; then
     result=1
     error "Usage string externally not writable!"
   fi
@@ -318,12 +287,12 @@ EOF
 # Acceptance: call the script and using the externally specified usage string
 test_case_07(){
   info "Test long and short arguments "
-  notice "Accept test, if __b3bp_usage is the earlier set value"
+  notice "Accept test, if __b4bp_usage is the earlier set value"
 
   local result=0
   
 read -r -d '' test_usage <<-'EOF' || true
-b3bp [ARGUMENTS] [PARAMETERS]
+b4bp [ARGUMENTS] [PARAMETERS]
 Available arguments:
   -a  --alpha  Alpha
   --b  Bravo
@@ -333,30 +302,30 @@ Available arguments:
   /foxtrot  Foxtrott
 EOF
 
-  __b3bp_usage="${test_usage}"
+  __b4bp_usage="${test_usage}"
   # Change localization for proper testing
-  [[ -n "${arg_t}" ]] && LANGUAGE=en_US source b3bp
+  [[ -n "${arg_t}" ]] && LANGUAGE=en_US source b4bp
 
-  debug "${__b3bp_usage}"
-  debug "__b3bp_arg_a: ${__b3bp_arg_a}"
-  debug "__b3bp_arg_b: ${__b3bp_arg_b}"
-  debug "__b3bp_arg_c: ${__b3bp_arg_c}"
+  debug "${__b4bp_usage}"
+  debug "__b4bp_arg_a: ${__b4bp_arg_a}"
+  debug "__b4bp_arg_b: ${__b4bp_arg_b}"
+  debug "__b4bp_arg_c: ${__b4bp_arg_c}"
   # When source a script, LANGUAGE environmental variable 
-  if [[ "${__b3bp_usage}" != "${test_usage}" ]]; then
+  if [[ "${__b4bp_usage}" != "${test_usage}" ]]; then
     result=1
     error "Usage string externally not writable!"
   fi
-  if [[ "${__b3bp_arg_a}" != 0 ]]; then
+  if [[ "${__b4bp_arg_a}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_a don't created!"
+    error "Argument-variable __b4bp_arg_a don't created!"
   fi
-  if [[ "${__b3bp_arg_b}" != 0 ]]; then
+  if [[ "${__b4bp_arg_b}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_b don't created!"
+    error "Argument-variable __b4bp_arg_b don't created!"
   fi
-  if [[ "${__b3bp_arg_c}" != 0 ]]; then
+  if [[ "${__b4bp_arg_c}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_c don't created!"
+    error "Argument-variable __b4bp_arg_c don't created!"
   fi
   return "${result}"
 }
@@ -367,12 +336,12 @@ EOF
 # Acceptance: call the script and using the externally specified usage string
 test_case_08(){
   info "Test long and short arguments "
-  notice "Accept test, if __b3bp_usage is the earlier set value"
+  notice "Accept test, if __b4bp_usage is the earlier set value"
 
   local result=0
   
 read -r -d '' test_usage <<-'EOF' || true
-b3bp [ARGUMENTS] [PARAMETERS]
+b4bp [ARGUMENTS] [PARAMETERS]
 Available arguments:
   -a  Alpha
   -b  Bravo
@@ -413,211 +382,204 @@ Available arguments:
 EOF
 
 
-  __b3bp_usage="${test_usage}"
+  __b4bp_usage="${test_usage}"
   # Change localization for proper testing
-  [[ -n "${arg_t}" ]] && LANGUAGE=en_US source b3bp
+  [[ -n "${arg_t}" ]] && LANGUAGE=en_US source b4bp
 
-  debug "${__b3bp_usage}"
-  debug "__b3bp_arg_a: ${__b3bp_arg_a}"
-  debug "__b3bp_arg_b: ${__b3bp_arg_b}"
-  debug "__b3bp_arg_c: ${__b3bp_arg_c}"
-  debug "__b3bp_arg_d: ${__b3bp_arg_d}"
-  debug "__b3bp_arg_e: ${__b3bp_arg_e}"
-  debug "__b3bp_arg_f: ${__b3bp_arg_f}"
-  debug "__b3bp_arg_g: ${__b3bp_arg_g}"
-  debug "__b3bp_arg_h: ${__b3bp_arg_h}"
-  debug "__b3bp_arg_i: ${__b3bp_arg_i}"
-  debug "__b3bp_arg_j: ${__b3bp_arg_j}"
-  debug "__b3bp_arg_k: ${__b3bp_arg_k}"
-  debug "__b3bp_arg_l: ${__b3bp_arg_l}"
-  debug "__b3bp_arg_m: ${__b3bp_arg_m}"
-  debug "__b3bp_arg_n: ${__b3bp_arg_n}"
-  debug "__b3bp_arg_o: ${__b3bp_arg_o}"
-  debug "__b3bp_arg_p: ${__b3bp_arg_p}"
-  debug "__b3bp_arg_q: ${__b3bp_arg_q}"
-  debug "__b3bp_arg_r: ${__b3bp_arg_r}"
-  debug "__b3bp_arg_s: ${__b3bp_arg_s}"
-  debug "__b3bp_arg_t: ${__b3bp_arg_t}"
-  debug "__b3bp_arg_u: ${__b3bp_arg_u}"
-  debug "__b3bp_arg_v: ${__b3bp_arg_v}"
-  debug "__b3bp_arg_w: ${__b3bp_arg_w}"
-  debug "__b3bp_arg_x: ${__b3bp_arg_x}"
-  debug "__b3bp_arg_y: ${__b3bp_arg_y}"
-  debug "__b3bp_arg_z: ${__b3bp_arg_z}"
-  debug "__b3bp_arg_0: ${__b3bp_arg_0}"
-  debug "__b3bp_arg_1: ${__b3bp_arg_1}"
-  debug "__b3bp_arg_2: ${__b3bp_arg_2}"
-  debug "__b3bp_arg_3: ${__b3bp_arg_3}"
-  debug "__b3bp_arg_4: ${__b3bp_arg_4}"
-  debug "__b3bp_arg_5: ${__b3bp_arg_5}"
-  debug "__b3bp_arg_6: ${__b3bp_arg_6}"
-  debug "__b3bp_arg_7: ${__b3bp_arg_7}"
-  debug "__b3bp_arg_8: ${__b3bp_arg_8}"
-  debug "__b3bp_arg_9: ${__b3bp_arg_9}"
+  debug "${__b4bp_usage}"
+  debug "__b4bp_arg_a: ${__b4bp_arg_a}"
+  debug "__b4bp_arg_b: ${__b4bp_arg_b}"
+  debug "__b4bp_arg_c: ${__b4bp_arg_c}"
+  debug "__b4bp_arg_d: ${__b4bp_arg_d}"
+  debug "__b4bp_arg_e: ${__b4bp_arg_e}"
+  debug "__b4bp_arg_f: ${__b4bp_arg_f}"
+  debug "__b4bp_arg_g: ${__b4bp_arg_g}"
+  debug "__b4bp_arg_h: ${__b4bp_arg_h}"
+  debug "__b4bp_arg_i: ${__b4bp_arg_i}"
+  debug "__b4bp_arg_j: ${__b4bp_arg_j}"
+  debug "__b4bp_arg_k: ${__b4bp_arg_k}"
+  debug "__b4bp_arg_l: ${__b4bp_arg_l}"
+  debug "__b4bp_arg_m: ${__b4bp_arg_m}"
+  debug "__b4bp_arg_n: ${__b4bp_arg_n}"
+  debug "__b4bp_arg_o: ${__b4bp_arg_o}"
+  debug "__b4bp_arg_p: ${__b4bp_arg_p}"
+  debug "__b4bp_arg_q: ${__b4bp_arg_q}"
+  debug "__b4bp_arg_r: ${__b4bp_arg_r}"
+  debug "__b4bp_arg_s: ${__b4bp_arg_s}"
+  debug "__b4bp_arg_t: ${__b4bp_arg_t}"
+  debug "__b4bp_arg_u: ${__b4bp_arg_u}"
+  debug "__b4bp_arg_v: ${__b4bp_arg_v}"
+  debug "__b4bp_arg_w: ${__b4bp_arg_w}"
+  debug "__b4bp_arg_x: ${__b4bp_arg_x}"
+  debug "__b4bp_arg_y: ${__b4bp_arg_y}"
+  debug "__b4bp_arg_z: ${__b4bp_arg_z}"
+  debug "__b4bp_arg_0: ${__b4bp_arg_0}"
+  debug "__b4bp_arg_1: ${__b4bp_arg_1}"
+  debug "__b4bp_arg_2: ${__b4bp_arg_2}"
+  debug "__b4bp_arg_3: ${__b4bp_arg_3}"
+  debug "__b4bp_arg_4: ${__b4bp_arg_4}"
+  debug "__b4bp_arg_5: ${__b4bp_arg_5}"
+  debug "__b4bp_arg_6: ${__b4bp_arg_6}"
+  debug "__b4bp_arg_7: ${__b4bp_arg_7}"
+  debug "__b4bp_arg_8: ${__b4bp_arg_8}"
+  debug "__b4bp_arg_9: ${__b4bp_arg_9}"
   # When source a script, LANGUAGE environmental variable 
-  if [[ "${__b3bp_usage}" != "${test_usage}" ]]; then
+  if [[ "${__b4bp_usage}" != "${test_usage}" ]]; then
     result=1
     error "Usage string externally not writable!"
   fi
-  if [[ "${__b3bp_arg_a}" != 0 ]]; then
+  if [[ "${__b4bp_arg_a}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_a don't created!"
+    error "Argument-variable __b4bp_arg_a don't created!"
   fi
-  if [[ "${__b3bp_arg_b}" != 0 ]]; then
+  if [[ "${__b4bp_arg_b}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_b don't created!"
+    error "Argument-variable __b4bp_arg_b don't created!"
   fi
-  if [[ "${__b3bp_arg_c}" != 0 ]]; then
+  if [[ "${__b4bp_arg_c}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_c don't created!"
+    error "Argument-variable __b4bp_arg_c don't created!"
   fi
-  if [[ "${__b3bp_arg_d}" != 0 ]]; then
+  if [[ "${__b4bp_arg_d}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_d don't created!"
+    error "Argument-variable __b4bp_arg_d don't created!"
   fi
-  if [[ "${__b3bp_arg_e}" != 0 ]]; then
+  if [[ "${__b4bp_arg_e}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_e don't created!"
+    error "Argument-variable __b4bp_arg_e don't created!"
   fi
-  if [[ "${__b3bp_arg_f}" != 0 ]]; then
+  if [[ "${__b4bp_arg_f}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_f don't created!"
+    error "Argument-variable __b4bp_arg_f don't created!"
   fi
-  if [[ "${__b3bp_arg_g}" != 0 ]]; then
+  if [[ "${__b4bp_arg_g}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_g don't created!"
+    error "Argument-variable __b4bp_arg_g don't created!"
   fi
-  if [[ "${__b3bp_arg_h}" != 0 ]]; then
+  if [[ "${__b4bp_arg_h}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_h don't created!"
+    error "Argument-variable __b4bp_arg_h don't created!"
   fi
-  if [[ "${__b3bp_arg_i}" != 0 ]]; then
+  if [[ "${__b4bp_arg_i}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_i don't created!"
+    error "Argument-variable __b4bp_arg_i don't created!"
   fi
-  if [[ "${__b3bp_arg_j}" != 0 ]]; then
+  if [[ "${__b4bp_arg_j}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_j don't created!"
+    error "Argument-variable __b4bp_arg_j don't created!"
   fi
-  if [[ "${__b3bp_arg_k}" != 0 ]]; then
+  if [[ "${__b4bp_arg_k}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_k don't created!"
+    error "Argument-variable __b4bp_arg_k don't created!"
   fi
-  if [[ "${__b3bp_arg_l}" != 0 ]]; then
+  if [[ "${__b4bp_arg_l}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_l don't created!"
+    error "Argument-variable __b4bp_arg_l don't created!"
   fi
-  if [[ "${__b3bp_arg_m}" != 0 ]]; then
+  if [[ "${__b4bp_arg_m}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_m don't created!"
+    error "Argument-variable __b4bp_arg_m don't created!"
   fi
-  if [[ "${__b3bp_arg_n}" != 0 ]]; then
+  if [[ "${__b4bp_arg_n}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_n don't created!"
+    error "Argument-variable __b4bp_arg_n don't created!"
   fi
-  if [[ "${__b3bp_arg_o}" != 0 ]]; then
+  if [[ "${__b4bp_arg_o}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_o don't created!"
+    error "Argument-variable __b4bp_arg_o don't created!"
   fi
-  if [[ "${__b3bp_arg_p}" != 0 ]]; then
+  if [[ "${__b4bp_arg_p}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_p don't created!"
+    error "Argument-variable __b4bp_arg_p don't created!"
   fi
-  if [[ "${__b3bp_arg_q}" != 0 ]]; then
+  if [[ "${__b4bp_arg_q}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_q don't created!"
+    error "Argument-variable __b4bp_arg_q don't created!"
   fi
-  if [[ "${__b3bp_arg_r}" != 0 ]]; then
+  if [[ "${__b4bp_arg_r}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_r don't created!"
+    error "Argument-variable __b4bp_arg_r don't created!"
   fi
-  if [[ "${__b3bp_arg_s}" != 0 ]]; then
+  if [[ "${__b4bp_arg_s}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_s don't created!"
+    error "Argument-variable __b4bp_arg_s don't created!"
   fi
-  if [[ "${__b3bp_arg_t}" != 0 ]]; then
+  if [[ "${__b4bp_arg_t}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_t don't created!"
+    error "Argument-variable __b4bp_arg_t don't created!"
   fi
-  if [[ "${__b3bp_arg_u}" != 0 ]]; then
+  if [[ "${__b4bp_arg_u}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_u don't created!"
+    error "Argument-variable __b4bp_arg_u don't created!"
   fi
-  if [[ "${__b3bp_arg_v}" != 0 ]]; then
+  if [[ "${__b4bp_arg_v}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_v don't created!"
+    error "Argument-variable __b4bp_arg_v don't created!"
   fi
-  if [[ "${__b3bp_arg_w}" != 0 ]]; then
+  if [[ "${__b4bp_arg_w}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_w don't created!"
+    error "Argument-variable __b4bp_arg_w don't created!"
   fi
-  if [[ "${__b3bp_arg_x}" != 0 ]]; then
+  if [[ "${__b4bp_arg_x}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_x don't created!"
+    error "Argument-variable __b4bp_arg_x don't created!"
   fi
-  if [[ "${__b3bp_arg_y}" != 0 ]]; then
+  if [[ "${__b4bp_arg_y}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_y don't created!"
+    error "Argument-variable __b4bp_arg_y don't created!"
   fi
-  if [[ "${__b3bp_arg_z}" != 0 ]]; then
+  if [[ "${__b4bp_arg_z}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_z don't created!"
+    error "Argument-variable __b4bp_arg_z don't created!"
   fi
-  if [[ "${__b3bp_arg_0}" != 0 ]]; then
+  if [[ "${__b4bp_arg_0}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_0 don't created!"
+    error "Argument-variable __b4bp_arg_0 don't created!"
   fi
-  if [[ "${__b3bp_arg_1}" != 0 ]]; then
+  if [[ "${__b4bp_arg_1}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_1 don't created!"
+    error "Argument-variable __b4bp_arg_1 don't created!"
   fi
-  if [[ "${__b3bp_arg_2}" != 0 ]]; then
+  if [[ "${__b4bp_arg_2}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_2 don't created!"
+    error "Argument-variable __b4bp_arg_2 don't created!"
   fi
-  if [[ "${__b3bp_arg_3}" != 0 ]]; then
+  if [[ "${__b4bp_arg_3}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_3 don't created!"
+    error "Argument-variable __b4bp_arg_3 don't created!"
   fi
-  if [[ "${__b3bp_arg_4}" != 0 ]]; then
+  if [[ "${__b4bp_arg_4}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_4 don't created!"
+    error "Argument-variable __b4bp_arg_4 don't created!"
   fi
-  if [[ "${__b3bp_arg_5}" != 0 ]]; then
+  if [[ "${__b4bp_arg_5}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_5 don't created!"
+    error "Argument-variable __b4bp_arg_5 don't created!"
   fi
-  if [[ "${__b3bp_arg_6}" != 0 ]]; then
+  if [[ "${__b4bp_arg_6}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_6 don't created!"
+    error "Argument-variable __b4bp_arg_6 don't created!"
   fi
-  if [[ "${__b3bp_arg_7}" != 0 ]]; then
+  if [[ "${__b4bp_arg_7}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_7 don't created!"
+    error "Argument-variable __b4bp_arg_7 don't created!"
   fi
-  if [[ "${__b3bp_arg_8}" != 0 ]]; then
+  if [[ "${__b4bp_arg_8}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_8 don't created!"
+    error "Argument-variable __b4bp_arg_8 don't created!"
   fi
-  if [[ "${__b3bp_arg_9}" != 0 ]]; then
+  if [[ "${__b4bp_arg_9}" != 0 ]]; then
     result=0
-    error "Argument-variable __b3bp_arg_9 don't created!"
+    error "Argument-variable __b4bp_arg_9 don't created!"
   fi
   return "${result}"
 }
 
 running_testcase(){
-  if [[ -n "$(type -t ${1})" ]] && [[ "$(type -t ${1})" = function ]]; then
-    info "${1} started"
-    echo "====================================================================="
-    time {
-      if ${1}; then
-        info "${1} OK!"
-      else
-        error "${1} FAIL!"
-      fi
-    }
-    echo "====================================================================="
+  local file="${1}"
+  if [[ -f "${file}" ]]; then
+    info "${file} started"
+    time "${file}"
   else
     warning "No such test case: ${1}!"
   fi
@@ -643,7 +605,7 @@ EOF
 
 # shellcheck disable=SC2015
 [[ "${__helptext+x}" ]] || read -r -d '' __helptext <<-'EOF' || true # exits non-zero when EOF encountered
-  Acceptance test-script for BASH4 Boilerplate.
+  Acceptance test-script for BASH3 Boilerplate.
 EOF
 
 # Translate usage string -> getopts arguments, and set $arg_<flag> defaults
@@ -858,18 +820,12 @@ fi
 ##############################################################################
 # Starting testcases
 if [[ -z "${arg_t}" ]]; then
-  info "Running all test cases"
-  echo "======================================================================="
-  for ((i=1; i<=10; i++ )) ;do  
-    printf -v "num" '%02d\n' "$i"
-    test_case="test_case_${num}" 
-    if [[ -n "$(type -t ${test_case})" ]] && [[ "$(type -t ${test_case})" = function ]]; then
-      running_testcase "${test_case}"
-    fi
-  done
+  files=(*)
 else
-  test_cases=( ${arg_t//,/ } )
-  for test_case in "${test_cases[@]}"; do
-    running_testcase "${test_case}"
-  done
+  files=( ${arg_t//,/ } )
 fi
+for file in "${files[@]}";do
+  if [[ "${file}" != "${__base}" ]]; then 
+    running_testcase "${file}"
+  fi
+done
