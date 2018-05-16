@@ -576,10 +576,10 @@ EOF
 }
 
 running_testcase(){
-  local file="${1}"
-  if [[ -f "${file}" ]]; then
+  local file="${1}.sh"
+  if [[ -f "${file}" ]]; then	  
     info "${file} started"
-    time "${file}"
+    time "./${file}"
   else
     warning "No such test case: ${1}!"
   fi
@@ -820,6 +820,7 @@ fi
 ##############################################################################
 # Starting testcases
 if [[ -z "${arg_t}" ]]; then
+  warning "No specified testcase, runnning all!"
   files=(*)
 else
   files=( ${arg_t//,/ } )
