@@ -4,16 +4,9 @@ set -o errexit
 set -o nounset
 # set -o xtrace
 
-# Set magic variables for current file, directory, os, etc.
-__dir="$(cd "$(dirname "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")" && pwd)"
-__file="${__dir}/$(basename "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")"
-__base="$(basename "${__file}" .sh)"
-
-
 # Define the environment variables (and their defaults) that this script depends on
 export LOG_LEVEL=7
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
-
 
 ### Functions
 ##############################################################################
@@ -73,14 +66,17 @@ info "This test case testing b3bp behavior when it sourced by an other sript"
 notice "Acceptance: sourcing b3bp and read every non-local, non-changeable variables"
 
 result=0
-source ../b3bp -f test
-local vars=( __b3bp_srcd __b3bp_dir __b3bp_file __b3bp_base __b3bp_usage )
-
+source ../b3bp 
+echo "Vége"
+vars=( __b3bp_srcd __b3bp_dir __b3bp_file __b3bp_base __b3bp_usage )
+echo "vége után"
 for var in "${vars[@]}"; do
+  echo "${var}"
   debug "${var}: ${!var:-}"
   if [[ -z "${!var:-}" ]]; then
     result=1
     error "Variable ${var} not readable!"
   fi  
 done
+
 return "${result}"
