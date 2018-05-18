@@ -580,6 +580,7 @@ running_testcase(){
   if [[ -f "${file}" ]]; then	  
     info "${file} started"
     time "./${file}"
+    #"./${file}"
   else
     warning "No such test case: ${1}!"
   fi
