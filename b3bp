@@ -46,6 +46,13 @@ __b3bp_dir="$(cd "$(dirname "${BASH_SOURCE[${__b3bp_srcd}]}")" && pwd)"
 __b3bp_file="${__b3bp_dir}/$(basename "${BASH_SOURCE[${__b3bp_srcd}]}")"
 __b3bp_base="$(basename "${__b3bp_file}" .sh)"
 
+if [[ "${__b3bp_srcd}" == 1 ]]; then 
+  [[ "${__b3bp_usage+x}" ]] && __b3bp_external_usage=1
+else
+  [[ "${__b3bp_usage+x}" ]] && unset -v __b3bp_usage
+  [[ "${__b3bp_helptext+x}" ]] && unset -v __b3bp_helptext
+fi
+
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 
@@ -56,7 +63,7 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 #-------------------------------------------------------------------------------
 # Usage 
 #-------------------------------------------------------------------------------
-read -r -d '' __b3bp_usage <<-'EOF' || true # exits non-zero when EOF encountered
+[[ "${__b3bp_usage+x}" ]] || read -r -d '' __b3bp_usage <<-'EOF' || true
   -f --file  [arg] Filename to process. Required.
   -t --temp  [arg] Location of tempfile. Default="/tmp/bar"
   -v               Enable verbose mode, print script as it is executed
@@ -66,7 +73,7 @@ read -r -d '' __b3bp_usage <<-'EOF' || true # exits non-zero when EOF encountere
   -1 --one         Do just one thing
 EOF
 
-read -r -d '' __b3bp_helptext <<-'EOF' || true # exits non-zero when EOF encountered
+[[ "${__b3bp_helptext+x}" ]] || read -r -d '' __b3bp_helptext <<-'EOF' || true
  This is Bash3 Boilerplate's help text. Feel free to add any description of your
  program or elaborate more on command-line arguments. This section is not
  parsed and will be added as-is to the help.
@@ -124,6 +131,31 @@ function warning ()   { [[ "${LOG_LEVEL:-0}" -ge 4 ]] && __b3bp_log warning "${@
 function notice ()    { [[ "${LOG_LEVEL:-0}" -ge 5 ]] && __b3bp_log notice "${@}"; true; }
 function info ()      { [[ "${LOG_LEVEL:-0}" -ge 6 ]] && __b3bp_log info "${@}"; true; }
 function debug ()     { [[ "${LOG_LEVEL:-0}" -ge 7 ]] && __b3bp_log debug "${@}"; true; }
+
+function main() {
+  info "__b3bp_srcd: ${__b3bp_srcd}"
+  info "__b3bp_file: ${__b3bp_file}"
+  info "__b3bp_dir: ${__b3bp_dir}"
+  info "__b3bp_base: ${__b3bp_base}"
+  info "OSTYPE: ${OSTYPE}"
+
+  info "__b3bp_arg_f: ${__b3bp_arg_f}"
+  info "__b3bp_arg_d: ${__b3bp_arg_d}"
+  info "__b3bp_arg_v: ${__b3bp_arg_v}"
+  info "__b3bp_arg_h: ${__b3bp_arg_h}"
+
+  info "$(echo -e "multiple lines example - line #1\\nmultiple lines example - line #2\\nimagine logging the output of 'ls -al /path/'")"
+
+  # All of these go to STDERR, so you can use STDOUT for piping machine readable information to other software
+  debug "Info useful to developers for debugging the application, not useful during operations."
+  info "Normal operational messages - may be harvested for reporting, measuring throughput, etc. - no action required."
+  notice "Events that are unusual but not error conditions - might be summarized in an email to developers or admins to spot potential problems - no immediate action required."
+  warning "Warning messages, not an error, but indication that an error will occur if action is not taken, e.g. file system 85% full - each item must be resolved within a given time. This is a debug message"
+  error "Non-urgent failures, these should be relayed to developers or admins; each item must be resolved within a given time."
+  critical "Should be corrected immediately, but indicates failure in a primary system, an example is a loss of a backup ISP connection."
+  alert "Should be corrected immediately, therefore notify staff who can fix the problem. An example would be the loss of a primary ISP connection."
+  #emergency "A \"panic\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call."
+}
 
 function help () {
   echo "" 1>&2
@@ -312,6 +344,14 @@ done
 unset -v __tmp_varname
 
 #-------------------------------------------------------------------------------
+# Externally supplied __b3bp_usage. Nothing else to do here
+#-------------------------------------------------------------------------------
+if [[ "${__b3bp_external_usage:-}" == 1 ]]; then
+  unset -v __b3bp_external_usage
+  return
+fi
+
+#-------------------------------------------------------------------------------
 # Call internal functions
 #-------------------------------------------------------------------------------
 # debug mode
@@ -341,35 +381,17 @@ fi
 #-------------------------------------------------------------------------------
 # Validate required arguments
 #-------------------------------------------------------------------------------
-[[ "${__b3bp_arg_f:-}" ]]     || help      "Setting a filename with -f or --file is required"
+[[ "${__b3bp_arg_f:-}" ]] || help "Setting a filename with -f or --file is required"
 [[ "${LOG_LEVEL:-}" ]] || emergency "Cannot continue without LOG_LEVEL. "
 
 #-------------------------------------------------------------------------------
 # Runtime
 #-------------------------------------------------------------------------------
 echo "BASH3 Boilerplate"
-info "__b3bp_srcd: ${__b3bp_srcd}"
-info "__b3bp_file: ${__b3bp_file}"
-info "__b3bp_dir: ${__b3bp_dir}"
-info "__b3bp_base: ${__b3bp_base}"
-info "OSTYPE: ${OSTYPE}"
 
-info "__b3bp_arg_f: ${__b3bp_arg_f}"
-info "__b3bp_arg_d: ${__b3bp_arg_d}"
-info "__b3bp_arg_v: ${__b3bp_arg_v}"
-info "__b3bp_arg_h: ${__b3bp_arg_h}"
-
-info "$(echo -e "multiple lines example - line #1\\nmultiple lines example - line #2\\nimagine logging the output of 'ls -al /path/'")"
-
-# All of these go to STDERR, so you can use STDOUT for piping machine readable information to other software
-debug "Info useful to developers for debugging the application, not useful during operations."
-info "Normal operational messages - may be harvested for reporting, measuring throughput, etc. - no action required."
-notice "Events that are unusual but not error conditions - might be summarized in an email to developers or admins to spot potential problems - no immediate action required."
-warning "Warning messages, not an error, but indication that an error will occur if action is not taken, e.g. file system 85% full - each item must be resolved within a given time. This is a debug message"
-error "Non-urgent failures, these should be relayed to developers or admins; each item must be resolved within a given time."
-critical "Should be corrected immediately, but indicates failure in a primary system, an example is a loss of a backup ISP connection."
-alert "Should be corrected immediately, therefore notify staff who can fix the problem. An example would be the loss of a primary ISP connection."
-#emergency "A \"panic\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call."
+if [[ "${__b3bp_srcd:-}" == 0 ]]; then
+  main
+fi
 
 #===============================================================================
 # END OF FILE
