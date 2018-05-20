@@ -803,7 +803,7 @@ else
 fi
 
 for file in "${files[@]}";do
-  if [[ "${file}" != "${__base}" ]]; then 
+  if [[ "${file}" != "${__base}" || "${file}" != "testcase-template.sh" ]]; then 
     running_testcase "${file}"
   fi
 done
