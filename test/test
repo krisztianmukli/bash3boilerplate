@@ -130,35 +130,6 @@ function help () {
 
 
 
-# Test case 02: Test source use, writing variables
-# This test case testing b4bp behavior when it sourced by an other sript
-# Acceptance: sourcing b4bp and write every non-local, non-changeable variables
-test_case_02() {
-  info "Test source use, writing variables"
-  notice "Accept test, when every variable is writable from sourced script"
-
-  local result=0
-  [[ -n "${arg_t}" ]] && source b4bp
-
-  local vars=( __b4bp_srcd __b4bp_dir __b4bp_file __b4bp_base __b4bp_srcdir 
-    __b4bp_srcfile __b4bp_srcbase __b4bp_name __b4bp_short_name
-    __b4bp_short_description __b4bp_long_description __b4bp_version 
-    __b4bp_revision __b4bp_date __b4bp_license __b4bp_creator __b4bp_publisher
-    __b4bp_link __b4bp_usage )
-
-  for var in "${vars[@]}"; do
-    debug "${var}: ${!var:-}"
-    # Generate random 32 character alphanumeric string (upper and lowercase)
-    local NEW_UUID=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 32 | head -n 1)
-    printf -v "${var}" '%s' "${NEW_UUID}"
-    debug "${var}: ${!var}"
-    if [[ "${!var}" != "${NEW_UUID}" ]]; then
-      result=1
-      error "Variable ${var} not writable!"
-    fi  
-  done
-  return "${result}"
-}
 
 # Test case 03: Test direct call
 # Test b4bp behaviour when calling directly from script or cmd.
@@ -576,11 +547,15 @@ EOF
 }
 
 running_testcase(){
-  local file="${1}.sh"
+  local file="${1}"
+
+  if [[ "${file:0-3}" != ".sh" ]]; then
+    file="${file}.sh"
+  fi
+
   if [[ -f "${file}" ]]; then	  
     info "${file} started"
     time "./${file}"
-    #"./${file}"
   else
     warning "No such test case: ${1}!"
   fi
@@ -821,11 +796,12 @@ fi
 ##############################################################################
 # Starting testcases
 if [[ -z "${arg_t}" ]]; then
-  warning "No specified testcase, runnning all!"
+  warning "No specified testcase, running all!"
   files=(*)
 else
   files=( ${arg_t//,/ } )
 fi
+
 for file in "${files[@]}";do
   if [[ "${file}" != "${__base}" ]]; then 
     running_testcase "${file}"

@@ -3,6 +3,7 @@ set -o pipefail
 set -o errexit
 set -o nounset
 # set -o xtrace
+LOG_LEVEL="${LOG_LEVEL:-7}" # 7 = debug -> 0 = emergency
 
 # Test case description
 printf "%80s\n" | tr " " "-"
@@ -13,7 +14,7 @@ echo "Acceptance: sourcing b3bp and read every non-local, non-changeable variabl
 printf "%80s\n" | tr " " "-"
 echo "Start testcase"
 printf "%80s\n" | tr " " "-"
-#echo "${line// /-}"
+
 result=0
 source ../b3bp -f test
 
