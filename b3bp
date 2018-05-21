@@ -44,8 +44,9 @@ set -o pipefail
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
   __b3bp_srcd=1
   if [[ "${__b3bp_usage+x}" ]]; then
-    [[ "${BASH_SOURCE[0]}" = "${0}" ]] && __b3bp_srcd=0
+    [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __b3bp_srcd=0
     __b3bp_external_usage=1
+    __b3bp_tmp_surce_idx=1
   fi 
 else
   __b3bp_srcd=0
@@ -53,8 +54,8 @@ else
   [[ "${__b3bp_helptext+x}" ]] && unset -v __b3bp_helptext
 fi
 #__b3bp_srcd=$([[ "${BASH_SOURCE[0]:-}" != "${0}" ]] && echo 1 || echo 0)
-__b3bp_dir="$(cd "$(dirname "${BASH_SOURCE[${__b3bp_srcd}]}")" && pwd)"
-__b3bp_file="${__b3bp_dir}/$(basename "${BASH_SOURCE[${__b3bp_srcd}]}")"
+__b3bp_dir="$(cd "$(dirname "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")" && pwd)"
+__b3bp_file="${__b3bp_dir}/$(basename "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")"
 __b3bp_base="$(basename "${__b3bp_file}" .sh)"
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
@@ -63,25 +64,31 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 #-------------------------------------------------------------------------------
 # Localization
 #-------------------------------------------------------------------------------
+if [[ -d "${__b3bp_dir}/locale" ]]; then
+  TEXTDOMAINDIR="${__b3bp_dir}/locale"
+elif [[ -d "${HOME}/.local/share/locale" ]]; then
+  TEXTDOMAINDIR="${HOME}/.local/share/locale" 
+else
+  TEXTDOMAINDIR="/usr/share/locale"
+fi
+TEXTDOMAIN="${__b3bp_base}"
 
 #-------------------------------------------------------------------------------
 # Usage 
 #-------------------------------------------------------------------------------
-[[ "${__b3bp_usage+x}" ]] || read -r -d '' __b3bp_usage <<-'EOF' || true
-  -f --file  [arg] Filename to process. Required.
-  -t --temp  [arg] Location of tempfile. Default="/tmp/bar"
+[[ "${__b3bp_usage+x}" ]] || __b3bp_usage=$"-f --file  [arg] Filename to process. Required.
+  -t --temp  [arg] Location of tempfile. Default=\"/tmp/bar\"
   -v               Enable verbose mode, print script as it is executed
   -d --debug       Enables debug mode
   -h --help        This page
   -n --no-color    Disable color output
-  -1 --one         Do just one thing
-EOF
+  -1 --one         Do just one thing"
 
-[[ "${__b3bp_helptext+x}" ]] || read -r -d '' __b3bp_helptext <<-'EOF' || true
- This is Bash3 Boilerplate's help text. Feel free to add any description of your
+[[ "${__b3bp_helptext+x}" ]] || __b3bp_helptext=$"This is Bash3 Boilerplate's help text. Feel free to add any description of your
  program or elaborate more on command-line arguments. This section is not
- parsed and will be added as-is to the help.
-EOF
+ parsed and will be added as-is to the help."
+__b3bp_defaulttext=$"Default"
+__b3bp_requiredtext=$"Required"
 
 #===============================================================================
 # Functions section
@@ -147,21 +154,22 @@ function main() {
   info "__b3bp_arg_d: ${__b3bp_arg_d}"
   info "__b3bp_arg_v: ${__b3bp_arg_v}"
   info "__b3bp_arg_h: ${__b3bp_arg_h}"
+  info "__b3bp_arg_t: ${__b3bp_arg_t}"
 
-  info "$(echo -e "multiple lines example - line #1\\nmultiple lines example - line #2\\nimagine logging the output of 'ls -al /path/'")"
+  info "$(echo -e $"multiple lines example - line #1\\nmultiple lines example - line #2\\nimagine logging the output of 'ls -al /path/'")"
 
   # All of these go to STDERR, so you can use STDOUT for piping machine readable information to other software
-  debug "Info useful to developers for debugging the application, not useful during operations."
-  info "Normal operational messages - may be harvested for reporting, measuring throughput, etc. - no action required."
-  notice "Events that are unusual but not error conditions - might be summarized in an email to developers or admins to spot potential problems - no immediate action required."
-  warning "Warning messages, not an error, but indication that an error will occur if action is not taken, e.g. file system 85% full - each item must be resolved within a given time. This is a debug message"
-  error "Non-urgent failures, these should be relayed to developers or admins; each item must be resolved within a given time."
-  critical "Should be corrected immediately, but indicates failure in a primary system, an example is a loss of a backup ISP connection."
-  alert "Should be corrected immediately, therefore notify staff who can fix the problem. An example would be the loss of a primary ISP connection."
+  debug $"Info useful to developers for debugging the application, not useful during operations."
+  info $"Normal operational messages - may be harvested for reporting, measuring throughput, etc. - no action required."
+  notice $"Events that are unusual but not error conditions - might be summarized in an email to developers or admins to spot potential problems - no immediate action required."
+  warning $"Warning messages, not an error, but indication that an error will occur if action is not taken, e.g. file system 85% full - each item must be resolved within a given time. This is a debug message"
+  error $"Non-urgent failures, these should be relayed to developers or admins; each item must be resolved within a given time."
+  critical $"Should be corrected immediately, but indicates failure in a primary system, an example is a loss of a backup ISP connection."
+  alert $"Should be corrected immediately, therefore notify staff who can fix the problem. An example would be the loss of a primary ISP connection."
   if [[ "${__b3bp_arg_f}" == "test" ]]; then
-    echo "BASH3 Boilerplate by krisztianmukli"  
+    echo $"BASH3 Boilerplate by krisztianmukli"  
   else
-    emergency "A \"panic\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call."
+    emergency $"A \"panic\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call."
   fi
 }
 
@@ -181,7 +189,7 @@ function help () {
 }
 
 function __b3bp_cleanup_before_exit () {
-  info "Cleaning up. Done"
+  info $"Cleaning up. Done"
 }
 trap __b3bp_cleanup_before_exit EXIT
 
@@ -189,7 +197,7 @@ trap __b3bp_cleanup_before_exit EXIT
 __b3bp_err_report() {
     local error_code
     error_code=${?}
-    error "Error in ${__file} in function ${1} on line ${2}"
+    error $"Error in ${__file} in function ${1} on line ${2}"
     exit ${error_code}
 }
 # Uncomment the following line for always providing an error backtrace
@@ -239,12 +247,12 @@ while read -r __b3bp_tmp_line; do
 
   [[ "${__b3bp_tmp_opt:-}" ]] || continue
 
-  if [[ "${__b3bp_tmp_line}" =~ ^Default= ]] || [[ "${__b3bp_tmp_line}" =~ \.\ *Default= ]]; then
+  if [[ "${__b3bp_tmp_line}" =~ ^"${__b3bp_defaulttext}"= ]] || [[ "${__b3bp_tmp_line}" =~ \.\ *"${__b3bp_defaulttext}"= ]]; then
     # ignore default value if option does not have an argument
     __b3bp_tmp_varname="__b3bp_tmp_has_arg_${__b3bp_tmp_opt:0:1}"
 
     if [[ "${!__b3bp_tmp_varname}" != "0" ]]; then
-      __b3bp_tmp_init="${__b3bp_tmp_line##*Default=}"
+      __b3bp_tmp_init="${__b3bp_tmp_line##*${__b3bp_defaulttext}=}"
       __b3bp_tmp_re='^"(.*)"$'
       if [[ "${__b3bp_tmp_init}" =~ ${__b3bp_tmp_re} ]]; then
         __b3bp_tmp_init="${BASH_REMATCH[1]}"
@@ -257,7 +265,7 @@ while read -r __b3bp_tmp_line; do
     fi
   fi
 
-  if [[ "${__b3bp_tmp_line}" =~ ^Required\. ]] || [[ "${__b3bp_tmp_line}" =~ \.\ *Required\. ]]; then
+  if [[ "${__b3bp_tmp_line}" =~ ^"${__b3bp_requiredtext}"\. ]] || [[ "${__b3bp_tmp_line}" =~ \.\ *"${__b3bp_requiredtext}"\. ]]; then
     # remember that this option requires an argument
     printf -v "__b3bp_tmp_has_arg_${__b3bp_tmp_opt:0:1}" '%s' "2"
   fi
@@ -339,7 +347,7 @@ for __b3bp_tmp_varname in ${!__b3bp_tmp_has_arg_*}; do
   printf -v "__b3bp_tmp_opt_long" '%s' "${!__b3bp_tmp_varname}"
   [[ "${__b3bp_tmp_opt_long:-}" ]] && __b3bp_tmp_opt_long=" (--${__b3bp_tmp_opt_long//_/-})"
 
-  help "Option -${__b3bp_tmp_opt_short}${__b3bp_tmp_opt_long:-} requires an argument"
+  help $"Option -${__b3bp_tmp_opt_short}${__b3bp_tmp_opt_long:-} requires an argument"
 done
 
 #-------------------------------------------------------------------------------
@@ -389,8 +397,8 @@ fi
 #-------------------------------------------------------------------------------
 # Validate required arguments
 #-------------------------------------------------------------------------------
-[[ "${__b3bp_arg_f:-}" ]] || help "Setting a filename with -f or --file is required"
-[[ "${LOG_LEVEL:-}" ]] || emergency "Cannot continue without LOG_LEVEL. "
+[[ "${__b3bp_arg_f:-}" ]] || help $"Setting a filename with -f or --file is required"
+[[ "${LOG_LEVEL:-}" ]] || emergency $"Cannot continue without LOG_LEVEL. "
 
 #-------------------------------------------------------------------------------
 # Runtime

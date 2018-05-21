@@ -109,7 +109,7 @@ EOF
 
 __b3bp_usage="${test_usage}"
 # Change localization for proper testing
-LANGUAGE=en_US source ../b3bp -f test
+source ../b3bp -f test
 
 # Start validation
 printf "%80s\n" | tr " " "-"
