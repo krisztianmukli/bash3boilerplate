@@ -23,10 +23,10 @@ echo "Start validation"
 printf "%80s\n" | tr " " "-"
 vars=( __b3bp_srcd __b3bp_dir __b3bp_file __b3bp_base __b3bp_usage )
 for var in "${vars[@]}"; do
-  echo "${var}: ${!var:-}"
+  debug "${var}: ${!var:-}"
   if [[ -z "${!var:-}" ]]; then
     result=1
-    echo "Variable ${var} not readable!"
+    error "Variable ${var} not readable!"
   fi  
 done
 

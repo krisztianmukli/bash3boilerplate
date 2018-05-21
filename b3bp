@@ -41,17 +41,21 @@ set -o pipefail
 #-------------------------------------------------------------------------------
 # Environment variables
 #-------------------------------------------------------------------------------
-__b3bp_srcd=$([[ "${BASH_SOURCE[0]:-}" != "${0}" ]] && echo 1 || echo 0)
-__b3bp_dir="$(cd "$(dirname "${BASH_SOURCE[${__b3bp_srcd}]}")" && pwd)"
-__b3bp_file="${__b3bp_dir}/$(basename "${BASH_SOURCE[${__b3bp_srcd}]}")"
-__b3bp_base="$(basename "${__b3bp_file}" .sh)"
-
-if [[ "${__b3bp_srcd}" == 1 ]]; then 
-  [[ "${__b3bp_usage+x}" ]] && __b3bp_external_usage=1
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
+  __b3bp_srcd=1
+  if [[ "${__b3bp_usage+x}" ]]; then
+    [[ "${BASH_SOURCE[0]}" = "${0}" ]] && __b3bp_srcd=0
+    __b3bp_external_usage=1
+  fi 
 else
+  __b3bp_srcd=0
   [[ "${__b3bp_usage+x}" ]] && unset -v __b3bp_usage
   [[ "${__b3bp_helptext+x}" ]] && unset -v __b3bp_helptext
 fi
+#__b3bp_srcd=$([[ "${BASH_SOURCE[0]:-}" != "${0}" ]] && echo 1 || echo 0)
+__b3bp_dir="$(cd "$(dirname "${BASH_SOURCE[${__b3bp_srcd}]}")" && pwd)"
+__b3bp_file="${__b3bp_dir}/$(basename "${BASH_SOURCE[${__b3bp_srcd}]}")"
+__b3bp_base="$(basename "${__b3bp_file}" .sh)"
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
@@ -154,7 +158,11 @@ function main() {
   error "Non-urgent failures, these should be relayed to developers or admins; each item must be resolved within a given time."
   critical "Should be corrected immediately, but indicates failure in a primary system, an example is a loss of a backup ISP connection."
   alert "Should be corrected immediately, therefore notify staff who can fix the problem. An example would be the loss of a primary ISP connection."
-  #emergency "A \"panic\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call."
+  if [[ "${__b3bp_arg_f}" == "test" ]]; then
+    echo "BASH3 Boilerplate by krisztianmukli"  
+  else
+    emergency "A \"panic\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call."
+  fi
 }
 
 function help () {
@@ -387,8 +395,6 @@ fi
 #-------------------------------------------------------------------------------
 # Runtime
 #-------------------------------------------------------------------------------
-echo "BASH3 Boilerplate"
-
 if [[ "${__b3bp_srcd:-}" == 0 ]]; then
   main
 fi
