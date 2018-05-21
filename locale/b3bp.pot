@@ -1,4 +1,4 @@
-#: b3bp:80
+#: b3bp:79
 msgid ""
 "-f --file  [arg] Filename to process. Required.\n"
 "  -t --temp  [arg] Location of tempfile. Default=\\\"/tmp/bar\\\"\n"
@@ -8,60 +8,63 @@ msgid ""
 "  -n --no-color    Disable color output\n"
 "  -1 --one         Do just one thing"
 msgstr ""
-#: b3bp:88
+#: b3bp:87
 msgid ""
 "This is Bash3 Boilerplate's help text. Feel free to add any description of your\n"
 " program or elaborate more on command-line arguments. This section is not\n"
 " parsed and will be added as-is to the help."
 msgstr ""
-#: b3bp:91
+#: b3bp:90
 msgid "Default"
 msgstr ""
-#: b3bp:92
+#: b3bp:91
 msgid "Required"
 msgstr ""
-#: b3bp:160
-msgid "multiple lines example - line #1\\\\nmultiple lines example - line #2\\\\nimagine logging the output of 'ls -al /path/'"
-msgstr ""
-#: b3bp:163
-msgid "Info useful to developers for debugging the application, not useful during operations."
-msgstr ""
-#: b3bp:164
-msgid "Normal operational messages - may be harvested for reporting, measuring throughput, etc. - no action required."
-msgstr ""
-#: b3bp:165
-msgid "Events that are unusual but not error conditions - might be summarized in an email to developers or admins to spot potential problems - no immediate action required."
-msgstr ""
-#: b3bp:166
-msgid "Warning messages, not an error, but indication that an error will occur if action is not taken, e.g. file system 85% full - each item must be resolved within a given time. This is a debug message"
-msgstr ""
-#: b3bp:167
-msgid "Non-urgent failures, these should be relayed to developers or admins; each item must be resolved within a given time."
-msgstr ""
-#: b3bp:168
-msgid "Should be corrected immediately, but indicates failure in a primary system, an example is a loss of a backup ISP connection."
-msgstr ""
-#: b3bp:169
-msgid "Should be corrected immediately, therefore notify staff who can fix the problem. An example would be the loss of a primary ISP connection."
-msgstr ""
-#: b3bp:171
+#: b3bp:148
 msgid "BASH3 Boilerplate by krisztianmukli"
 msgstr ""
+#: b3bp:149
+msgid "Demo and test of the Bash-script template"
+msgstr ""
+#: b3bp:165
+msgid "multiple lines example - line #1\\\\nmultiple lines example - line #2\\\\nimagine logging the output of 'ls -al /path/'"
+msgstr ""
+#: b3bp:168
+msgid "Info useful to developers for debugging the application, not useful during operations."
+msgstr ""
+#: b3bp:169
+msgid "Normal operational messages - may be harvested for reporting, measuring throughput, etc. - no action required."
+msgstr ""
+#: b3bp:170
+msgid "Events that are unusual but not error conditions - might be summarized in an email to developers or admins to spot potential problems - no immediate action required."
+msgstr ""
+#: b3bp:171
+msgid "Warning messages, not an error, but indication that an error will occur if action is not taken, e.g. file system 85% full - each item must be resolved within a given time. This is a debug message"
+msgstr ""
+#: b3bp:172
+msgid "Non-urgent failures, these should be relayed to developers or admins; each item must be resolved within a given time."
+msgstr ""
 #: b3bp:173
+msgid "Should be corrected immediately, but indicates failure in a primary system, an example is a loss of a backup ISP connection."
+msgstr ""
+#: b3bp:174
+msgid "Should be corrected immediately, therefore notify staff who can fix the problem. An example would be the loss of a primary ISP connection."
+msgstr ""
+#: b3bp:176
 msgid "A \\\"panic\\\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call."
 msgstr ""
-#: b3bp:193
+#: b3bp:196
 msgid "Cleaning up. Done"
 msgstr ""
-#: b3bp:201
+#: b3bp:204
 msgid "Error in ${__file} in function ${1} on line ${2}"
 msgstr ""
-#: b3bp:351
+#: b3bp:354
 msgid "Option -${__b3bp_tmp_opt_short}${__b3bp_tmp_opt_long:-} requires an argument"
 msgstr ""
-#: b3bp:401
+#: b3bp:404
 msgid "Setting a filename with -f or --file is required"
 msgstr ""
-#: b3bp:402
+#: b3bp:405
 msgid "Cannot continue without LOG_LEVEL. "
 msgstr ""

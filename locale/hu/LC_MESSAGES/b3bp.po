@@ -12,7 +12,7 @@ msgstr ""
 "X-Generator: Poedit 1.6.10\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: b3bp:80
+#: b3bp:79
 msgid ""
 "-f --file  [arg] Filename to process. Required.\n"
 "  -t --temp  [arg] Location of tempfile. Default=\\\"/tmp/bar\\\"\n"
@@ -32,7 +32,7 @@ msgstr ""
 "  -n --no-color    Színes kimenet kikapcsolása\n"
 "  -1 --one         Csak egy dolgot csinál"
 
-#: b3bp:88
+#: b3bp:87
 msgid ""
 "This is Bash3 Boilerplate's help text. Feel free to add any description of "
 "your\n"
@@ -44,15 +44,23 @@ msgstr ""
 " Ez a szöveg nem kerül feldolgozásra, úgy adódik hozzá a súgóhoz, \n"
 " ahogy megadod."
 
-#: b3bp:91
+#: b3bp:90
 msgid "Default"
 msgstr "Alapértelmezett"
 
-#: b3bp:92
+#: b3bp:91
 msgid "Required"
 msgstr "Kötelező"
 
-#: b3bp:160
+#: b3bp:148
+msgid "BASH3 Boilerplate by krisztianmukli"
+msgstr "BASH3 Boilerplate by krisztianmukli"
+
+#: b3bp:149
+msgid "Demo and test of the Bash-script template"
+msgstr "Demó és a Bash-szkript sablon tesztelése"
+
+#: b3bp:165
 msgid ""
 "multiple lines example - line #1\\\\nmultiple lines example - line #2\\"
 "\\nimagine logging the output of 'ls -al /path/'"
@@ -60,7 +68,7 @@ msgstr ""
 "többsoros példa - #1. sor\\\\ntöbbsoros példa - #2. sor\\\\nképzeld el, hogy "
 "naplózhatod az 'ls -al /path/' kimenetét"
 
-#: b3bp:163
+#: b3bp:168
 msgid ""
 "Info useful to developers for debugging the application, not useful during "
 "operations."
@@ -68,7 +76,7 @@ msgstr ""
 "Hasznos információk a fejlesztőknek az alkalmazás hibakeresése során, de nem "
 "szükséges normál működés közben."
 
-#: b3bp:164
+#: b3bp:169
 msgid ""
 "Normal operational messages - may be harvested for reporting, measuring "
 "throughput, etc. - no action required."
@@ -76,7 +84,7 @@ msgstr ""
 "Normál működés üzenetei - használható jelentéskészítéshez, átvitel "
 "méréséhez, stb. - nem szükséges művelet."
 
-#: b3bp:165
+#: b3bp:170
 msgid ""
 "Events that are unusual but not error conditions - might be summarized in an "
 "email to developers or admins to spot potential problems - no immediate "
@@ -86,7 +94,7 @@ msgstr ""
 "emailben a fejlesztőknek vagy a rendszergazdának a lehetséges problémák "
 "felismeréséhez - azonnali művelet nem szükséges."
 
-#: b3bp:166
+#: b3bp:171
 msgid ""
 "Warning messages, not an error, but indication that an error will occur if "
 "action is not taken, e.g. file system 85% full - each item must be resolved "
@@ -96,7 +104,7 @@ msgstr ""
 "intézkednek, pl. fájlrendszer 85%-a foglalt - minden esetet meg kell oldani "
 "adott időn belül. Ez egy hibakeresési üzenet"
 
-#: b3bp:167
+#: b3bp:172
 msgid ""
 "Non-urgent failures, these should be relayed to developers or admins; each "
 "item must be resolved within a given time."
@@ -104,7 +112,7 @@ msgstr ""
 "Nem sürgős hibák, ezeket továbbítani kell a fejlesztőknek vagy a "
 "rendszergazdáknak; minden egyes esetet meg kell oldani adott időn belül."
 
-#: b3bp:168
+#: b3bp:173
 msgid ""
 "Should be corrected immediately, but indicates failure in a primary system, "
 "an example is a loss of a backup ISP connection."
@@ -112,7 +120,7 @@ msgstr ""
 "Azonnal javítani kell, az elsődleges rendszer hibájára utal, például a "
 "biztonsági ISP-kapcsolat elvesztésére."
 
-#: b3bp:169
+#: b3bp:174
 msgid ""
 "Should be corrected immediately, therefore notify staff who can fix the "
 "problem. An example would be the loss of a primary ISP connection."
@@ -121,11 +129,7 @@ msgstr ""
 "kijavíthassák a problémát. Például ilyen az elsődleges ISP kapcsolat "
 "elvesztése."
 
-#: b3bp:171
-msgid "BASH3 Boilerplate by krisztianmukli"
-msgstr "BASH3 Boilerplate by krisztianmukli"
-
-#: b3bp:173
+#: b3bp:176
 msgid ""
 "A \\\"panic\\\" condition usually affecting multiple apps/servers/sites. At "
 "this level it would usually notify all tech staff on call."
@@ -134,25 +138,25 @@ msgstr ""
 "hibájára lehet hatással. Ezen a szinten a teljes technikai személyzetet "
 "hívni kell."
 
-#: b3bp:193
+#: b3bp:196
 msgid "Cleaning up. Done"
 msgstr "Takarítás. Kész"
 
-#: b3bp:201
+#: b3bp:204
 msgid "Error in ${__file} in function ${1} on line ${2}"
 msgstr "Hiba a ${__file} fájl ${1} funkciójában a ${2}. sorban"
 
-#: b3bp:351
+#: b3bp:354
 msgid ""
 "Option -${__b3bp_tmp_opt_short}${__b3bp_tmp_opt_long:-} requires an argument"
 msgstr ""
 "A(z) -${__b3bp_tmp_opt_short}${__b3bp_tmp_opt_long:-} kapcsolónak argumentum "
 "megadása szükséges"
 
-#: b3bp:401
+#: b3bp:404
 msgid "Setting a filename with -f or --file is required"
 msgstr "Fájlnév megadása a -f vagy --file kapcsolóval szükséges."
 
-#: b3bp:402
+#: b3bp:405
 msgid "Cannot continue without LOG_LEVEL. "
 msgstr "Nem folytatható LOG_LEVEL nélkül."

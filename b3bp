@@ -144,6 +144,12 @@ function info ()      { [[ "${LOG_LEVEL:-0}" -ge 6 ]] && __b3bp_log info "${@}";
 function debug ()     { [[ "${LOG_LEVEL:-0}" -ge 7 ]] && __b3bp_log debug "${@}"; true; }
 
 function main() {
+  if [[ "${__b3bp_arg_f}" = "test" ]]; then
+    echo $"BASH3 Boilerplate by krisztianmukli"  
+    echo $"Demo and test of the Bash-script template"
+    printf "%80s\n" | tr " " "-" 
+  fi
+
   info "__b3bp_srcd: ${__b3bp_srcd}"
   info "__b3bp_file: ${__b3bp_file}"
   info "__b3bp_dir: ${__b3bp_dir}"
@@ -166,9 +172,7 @@ function main() {
   error $"Non-urgent failures, these should be relayed to developers or admins; each item must be resolved within a given time."
   critical $"Should be corrected immediately, but indicates failure in a primary system, an example is a loss of a backup ISP connection."
   alert $"Should be corrected immediately, therefore notify staff who can fix the problem. An example would be the loss of a primary ISP connection."
-  if [[ "${__b3bp_arg_f}" == "test" ]]; then
-    echo $"BASH3 Boilerplate by krisztianmukli"  
-  else
+  if [[ "${__b3bp_arg_f}" != "test" ]]; then
     emergency $"A \"panic\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call."
   fi
 }
