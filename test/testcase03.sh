@@ -67,7 +67,7 @@ result=0
 
 # Steps of testcase
 # Change localization for proper testing
-var=$(LANGUAGE=en_US ../b3bp -f test)
+var=$(../b3bp -f test)
 
 # Start validation
 printf "%80s\n" | tr " " "-"

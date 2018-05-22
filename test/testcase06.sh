@@ -4,6 +4,7 @@ set -o errexit
 set -o nounset
 # set -o xtrace
 LOG_LEVEL="${LOG_LEVEL:-7}" # 7 = debug -> 0 = emergency
+
 function __b3bp_log () {
   local log_level="${1}"
   shift
@@ -54,11 +55,40 @@ function notice ()    { [[ "${LOG_LEVEL:-0}" -ge 5 ]] && __b3bp_log notice "${@}
 function info ()      { [[ "${LOG_LEVEL:-0}" -ge 6 ]] && __b3bp_log info "${@}"; true; }
 function debug ()     { [[ "${LOG_LEVEL:-0}" -ge 7 ]] && __b3bp_log debug "${@}"; true; }
 
+function _configure_locale() { # [profile]
+    local profile=${1:-EN}
+    case ${profile} in
+      DE|DE_DE|de_DE)
+          LC_ALL="de_DE.UTF-8"
+          LANG="de_DE.UTF-8"
+          LANGUAGE="de_DE:de:en_US:en"
+          ;;
+      EN|EN_US|en|en_US)
+          LC_ALL="en_US.UTF-8"
+          LANG="en_US.UTF-8"
+          LANGUAGE="en_US:en"
+          ;;
+      HU|HU_HU|hu|hu_HU)
+	  LC_ALL="hu_HU.UTF-8"
+	  LANG="hu_HU.UTF-8"
+	  LANGUAGE="hu_HU:hu"
+	  ;;
+      *)
+          echo "ALERT" "${FUNCNAME}: unknown profile '${profile}'"
+          ;;
+      esac
+      LC_PAPER="de_DE.UTF-8"; # independent from locale
+      LESSCHARSET="utf-8";    # independent from locale
+      MM_CHARSET="utf-8"      # independent from locale
+      echo "locale settings" "${LANG}";
+      export LC_ALL LANG LANGUAGE LC_PAPER LESSCHARSET MM_CHARSET
+}
+
 # Test case description
 printf "%80s\n" | tr " " "-"
-echo "Test Case 04: Set usage string exteernally"
-echo "Testing how to set __b3bp_usage string externally and call the script"
-echo "Acceptance: call the script and using the externally specified usage string"
+echo "Test Case 06: testing localization - sourced use"
+echo "Test how to behaviour b3bp in a localized environment with sourced use"
+echo "Acceptance: messages in the specified languages"
 # Start testcase
 printf "%80s\n" | tr " " "-"
 echo "Start testcase"
@@ -66,66 +96,39 @@ printf "%80s\n" | tr " " "-"
 result=0
 
 # Steps of testcase
-read -r -d '' test_usage <<-'EOF' || true
-b3bp [ARGUMENTS] [PARAMETERS]
-Available arguments:
-  -a  Alpha
-  -b  Bravo
-  -c  Charlie
-  -d  Delta
-  -e  Echo
-  -f  Foxtrott
-  -g  Golf
-  -h  Hotel
-  -i  India
-  -j  Juliett
-  -k  Kilo
-  -l  Lima
-  -m  Mike
-  -n  November
-  -o  Oscar
-  -p  Papa
-  -q  Quebec
-  -r  Romeo
-  -s  Sierra
-  -t  Tango
-  -u  Uniform
-  -v  Victor
-  -w  Wiskey
-  -x  X-Ray
-  -y  Yankee
-  -z  Zulu
-  -0  Zero
-  -1  One
-  -2  Two
-  -3  Three
-  -4  Four
-  -5  Five
-  -6  Six
-  -7  Seven
-  -8  Eight
-  -9  Nine
-EOF
+_configure_locale hu
+hu_output=$(source ../b3bp -f test && main)
+#| while IFS= read -r line 
+#do
+#  hu_output="$line"
+#done
 
-__b3bp_usage="${test_usage}"
-# Change localization for proper testing
-source ../b3bp -f test
+[[ "${__b3bp_usage+x}" ]] && unset -v __b3bp_usage
+_configure_locale en
+en_output=$(source ../b3bp -f test && main)
+#| while IFS= read -r line 
+#do
+#  en_output="$line"
+#done
 
 # Start validation
 printf "%80s\n" | tr " " "-"
 echo "Start validation"
 printf "%80s\n" | tr " " "-"
 
-debug "${__b3bp_usage}"
-# When source a script, LANGUAGE environmental variable 
-if [[ "${__b3bp_usage}" != "${test_usage}" ]]; then
+echo "${hu_output:-}"
+echo "${en_output:-}"
+if [[ "${hu_output}" != *"Demó és a Bash-szkript sablon tesztelése"* ]]; then
   result=1
-  error "Usage string externally not writable!"
+fi
+
+if [[ "${en_output}" != *"Demo and test of the Bash-script template"* ]]; then
+  result=1
 fi
 
 # Print results
 printf "%80s\n" | tr " " "-"
-if [[ "${result}" == 0 ]]; then
+if [[ "${result}" = 0 ]]; then
   info "Test PASSED."
 else
   error "Test FAILED!"
