@@ -147,7 +147,7 @@ function main() {
   if [[ "${__b3bp_arg_f}" = "test" ]]; then
     echo $"BASH3 Boilerplate by krisztianmukli"  
     echo $"Demo and test of the Bash-script template"
-    printf "%80s\n" | tr " " "-" 
+    #printf "%80s\n" | tr " " "-" 
   fi
 
   info "__b3bp_srcd: ${__b3bp_srcd}"

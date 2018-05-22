@@ -54,6 +54,36 @@ function warning ()   { [[ "${LOG_LEVEL:-0}" -ge 4 ]] && __b3bp_log warning "${@
 function notice ()    { [[ "${LOG_LEVEL:-0}" -ge 5 ]] && __b3bp_log notice "${@}"; true; }
 function info ()      { [[ "${LOG_LEVEL:-0}" -ge 6 ]] && __b3bp_log info "${@}"; true; }
 function debug ()     { [[ "${LOG_LEVEL:-0}" -ge 7 ]] && __b3bp_log debug "${@}"; true; }
+
+function _configure_locale() { # [profile]
+    local profile=${1:-EN}
+    case ${profile} in
+      DE|DE_DE|de_DE)
+          LC_ALL="de_DE.UTF-8"
+          LANG="de_DE.UTF-8"
+          LANGUAGE="de_DE:de:en_US:en"
+          ;;
+      EN|EN_US|en|en_US)
+          LC_ALL="en_US.UTF-8"
+          LANG="en_US.UTF-8"
+          LANGUAGE="en_US:en"
+          ;;
+      HU|HU_HU|hu|hu_HU)
+	  LC_ALL="hu_HU.UTF-8"
+	  LANG="hu_HU.UTF-8"
+	  LANGUAGE="hu_HU:hu"
+	  ;;
+      *)
+          echo "ALERT" "${FUNCNAME}: unknown profile '${profile}'"
+          ;;
+      esac
+      LC_PAPER="de_DE.UTF-8"; # independent from locale
+      LESSCHARSET="utf-8";    # independent from locale
+      MM_CHARSET="utf-8"      # independent from locale
+      echo "locale settings" "${LANG}";
+      export LC_ALL LANG LANGUAGE LC_PAPER LESSCHARSET MM_CHARSET
+}
+
 # Test case description
 printf "%80s\n" | tr " " "-"
 echo "Test Case 06: testing localization - sourced use"
@@ -66,30 +96,33 @@ printf "%80s\n" | tr " " "-"
 result=0
 
 # Steps of testcase
-LANGUAGE=en source ../b3bp -f test
-echo "${en}"
-if [[ "${en}" != *"Demo and test of the Bash-script template"* ]]; then
-  result=1
-fi
+_configure_locale hu
+hu_output=$(source ../b3bp -f test && main)
+#| while IFS= read -r line 
+#do
+#  hu_output="$line"
+#done
 
-LANGUAGE=hu source ../b3bp -f test
-echo "${hu}"
-if [[ "${hu}" != *"Demó és a Bash-szkript sablon tesztelése"* ]]; then
-  result=1
-fi
+[[ "${__b3bp_usage+x}" ]] && unset -v __b3bp_usage
+_configure_locale en
+en_output=$(source ../b3bp -f test && main)
+#| while IFS= read -r line 
+#do
+#  en_output="$line"
+#done
 
 # Start validation
 printf "%80s\n" | tr " " "-"
 echo "Start validation"
 printf "%80s\n" | tr " " "-"
 
-echo "${en}"
-if [[ "${en}" != *"Demo and test of the Bash-script template"* ]]; then
+echo "${hu_output:-}"
+echo "${en_output:-}"
+if [[ "${hu_output}" != *"Demó és a Bash-szkript sablon tesztelése"* ]]; then
   result=1
 fi
 
-echo "${hu}"
-if [[ "${hu}" != *"Demó és a Bash-szkript sablon tesztelése"* ]]; then
+if [[ "${en_output}" != *"Demo and test of the Bash-script template"* ]]; then
   result=1
 fi
 
