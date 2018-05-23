@@ -54,35 +54,36 @@ local success=false
   fi
 }
 __testcase06_source_lib log.sh
+__testcase06_source_lib locale.sh
 
-function _configure_locale() { # [profile]
-    local profile=${1:-EN}
-    case ${profile} in
-      DE|DE_DE|de_DE)
-          LC_ALL="de_DE.UTF-8"
-          LANG="de_DE.UTF-8"
-          LANGUAGE="de_DE:de:en_US:en"
-          ;;
-      EN|EN_US|en|en_US)
-          LC_ALL="en_US.UTF-8"
-          LANG="en_US.UTF-8"
-          LANGUAGE="en_US:en"
-          ;;
-      HU|HU_HU|hu|hu_HU)
-	  LC_ALL="hu_HU.UTF-8"
-	  LANG="hu_HU.UTF-8"
-	  LANGUAGE="hu_HU:hu"
-	  ;;
-      *)
-          echo "ALERT" "${FUNCNAME}: unknown profile '${profile}'"
-          ;;
-      esac
-      LC_PAPER="de_DE.UTF-8"; # independent from locale
-      LESSCHARSET="utf-8";    # independent from locale
-      MM_CHARSET="utf-8"      # independent from locale
-      echo "locale settings" "${LANG}";
-      export LC_ALL LANG LANGUAGE LC_PAPER LESSCHARSET MM_CHARSET
-}
+#function _configure_locale() { # [profile]
+#    local profile=${1:-EN}
+#    case ${profile} in
+#      DE|DE_DE|de_DE)
+#          LC_ALL="de_DE.UTF-8"
+#          LANG="de_DE.UTF-8"
+#          LANGUAGE="de_DE:de:en_US:en"
+#          ;;
+#      EN|EN_US|en|en_US)
+#          LC_ALL="en_US.UTF-8"
+#          LANG="en_US.UTF-8"
+#          LANGUAGE="en_US:en"
+#          ;;
+#      HU|HU_HU|hu|hu_HU)
+#	  LC_ALL="hu_HU.UTF-8"
+#	  LANG="hu_HU.UTF-8"
+#	  LANGUAGE="hu_HU:hu"
+#	  ;;
+#      *)
+#          echo "ALERT" "${FUNCNAME}: unknown profile '${profile}'"
+#          ;;
+#      esac
+#      LC_PAPER="de_DE.UTF-8"; # independent from locale
+#      LESSCHARSET="utf-8";    # independent from locale
+#      MM_CHARSET="utf-8"      # independent from locale
+#      echo "locale settings" "${LANG}";
+#      export LC_ALL LANG LANGUAGE LC_PAPER LESSCHARSET MM_CHARSET
+#}
 #-------------------------------------------------------------------------------
 # Test case description
 #-------------------------------------------------------------------------------
@@ -99,11 +100,11 @@ echo "Start testcase"
 printf "%80s\n" | tr " " "-"
 result=0
 
-_configure_locale hu
+change_locale hu
 hu_output=$(source ../b3bp -f test && main)
 
 [[ "${__b3bp_usage+x}" ]] && unset -v __b3bp_usage
-_configure_locale en
+change_locale en
 en_output=$(source ../b3bp -f test && main)
 
 #-------------------------------------------------------------------------------
