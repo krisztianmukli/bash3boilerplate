@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 #===============================================================================
 # Script name (shortname) - Short description for script
-# v0.0.1- <year>-<month>-<day>
 # Licensed under the MIT license
 #
 # Long description of script
@@ -53,7 +52,6 @@ else
   [[ "${__b3bp_usage+x}" ]] && unset -v __b3bp_usage
   [[ "${__b3bp_helptext+x}" ]] && unset -v __b3bp_helptext
 fi
-#__b3bp_srcd=$([[ "${BASH_SOURCE[0]:-}" != "${0}" ]] && echo 1 || echo 0)
 __b3bp_dir="$(cd "$(dirname "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")" && pwd)"
 __b3bp_file="${__b3bp_dir}/$(basename "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")"
 __b3bp_base="$(basename "${__b3bp_file}" .sh)"
@@ -95,25 +93,22 @@ __b3bp_requiredtext=$"Required"
 #-------------------------------------------------------------------------------
 function __b3bp_source_lib () {
 local module="${1:-}"
+local folders=( "${__b3bp_dir}" "${__b3bp_dir}/lib"  "/usr/local/lib" "${HOME}/.local/lib")
+local success=false
 
-  if [[ "${module}" = *"/"* ]]; then
-    if [[ -e "${module}" && -r "${module}" ]]; then
-      source "${module}"
-    else
-      echo "Fatal error: ${module} not exists or readable!"
-      exit 1
-    fi
+  if [[ "${module}" = *"/"* && -e "${module}" && -r "${module}" ]]; then
+      source "${module}" && success=true
   else
-    if [[ -e "${BASH_SOURCE%/*}/lib/${module}" && -r "${BASH_SOURCE%/*}/lib/${module}" ]]; then 
-      source "${BASH_SOURCE%/*}/lib/${module}"
-    elif [[ -e "/usr/local/lib/${module}" && -r "/usr/local/lib/${module}" ]]; then
-      source "/usr/local/lib/${module}"
-    elif [[ -e "${HOME}/.local/lib/${module}" && -r "${HOME}/.local/lib/${module}" ]]; then
-      source "${HOME}/.local/lib/${module}"    
-    else
-      echo "Fatal error: ${module} not exists or readable!"
-      exit 1
-    fi
+    for folder in "${folders[@]}"; do
+      if [[ -e "${folder}/${module}" && -r "${folder}/${module}" ]]; then
+        source  "${folder}/${module}" && success=true && break
+      fi
+    done
+  fi
+
+  if [[ "${success}" = false ]]; then
+    echo "Fatal error: ${module} not exists or readable!"
+    exit 1
   fi
 }
 __b3bp_source_lib log.sh

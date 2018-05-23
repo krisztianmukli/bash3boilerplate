@@ -1,106 +1,115 @@
 #!/usr/bin/env bash
-# This file:
+#===============================================================================
+# Test BASH3 Boilerplate by krisztianmukli (test)
+# v2.0.0- 2018-05-23
+# Licensed under the MIT license
 #
-#  - First version of testing BASH3 Boilerplate
+# Long description of script
+# 
+# Copyright (c) 2018 Krisztián Mukli
+# Copyright (c) 2013-2018 Kevin van Zonneveld and contributors
+# https://github.com/krisztianmukli/bash3boilerplate
 #
-# Usage:
+# Notes
+#-------------------------------------------------------------------------------
+# Quickstart
+# Setup information
+# Changelog
+# ToDo
+# Known bugs
 #
-#  ./test
-#
-# Based on a template by BASH3 Boilerplate v2.3.0
-# http://bash3boilerplate.sh/#authors
-#
-# The MIT License (MIT)
-# Copyright (c) 2013 Kevin van Zonneveld and contributors
-# You are not obligated to bundle the LICENSE file with your b3bp projects as long
-# as you leave these references intact in the header comments of your source files.
-
-# Exit on error. Append "|| true" if you expect an error.
-set -o errexit
-# Exit on error inside any functions or subshells.
+# Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
+#===============================================================================
+# Init section
+#===============================================================================
+# Allowing aliases
+shopt -s expand_aliases
+# Exit on error 
+set -o errexit 
+# Exit on error inside any functions or subshells
 set -o errtrace
-# Do not allow use of undefined vars. Use ${VAR:-} to use an undefined VAR
-set -o nounset
-# Catch the error in case mysqldump fails (but gzip succeeds) in `mysqldump |gzip`
-set -o pipefail
+ # Do not allow use of undefined vars. Use ${VAR:-} to use an undefined VAR
+set -o nounset 
+# Catch the error when mysqldump fails (but gzip succeeds) in `mysqldump |gzip`
+set -o pipefail 
 # Turn on traces, useful while debugging but commented out by default
-# set -o xtrace
+#set -o xtrace
 
-if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
-  __i_am_main_script="0" # false
+#===============================================================================
+# Globals section
+#===============================================================================
 
-  if [[ "${__usage+x}" ]]; then
-    if [[ "${BASH_SOURCE[1]}" = "${0}" ]]; then
-      __i_am_main_script="1" # true
-    fi
-
-    __b3bp_external_usage="true"
-    __b3bp_tmp_source_idx=1
-  fi
+#-------------------------------------------------------------------------------
+# Environment variables
+#-------------------------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
+  __test_srcd=1
+  if [[ "${__test_usage+x}" ]]; then
+    [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __test_srcd=0
+    __test_external_usage=1
+    __test_tmp_surce_idx=1
+  fi 
 else
-  __i_am_main_script="1" # true
-  [[ "${__usage+x}" ]] && unset -v __usage
-  [[ "${__helptext+x}" ]] && unset -v __helptext
+  __test_srcd=0
+  [[ "${__test_usage+x}" ]] && unset -v __test_usage
+  [[ "${__test_helptext+x}" ]] && unset -v __test_helptext
 fi
+__test_dir="$(cd "$(dirname "${BASH_SOURCE[${__test_tmp_source_idx:-0}]}")" && pwd)"
+__test_file="${__test_dir}/$(basename "${BASH_SOURCE[${__test_tmp_source_idx:-0}]}")"
+__test_base="$(basename "${__test_file}" .sh)"
 
-# Set magic variables for current file, directory, os, etc.
-__dir="$(cd "$(dirname "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")" && pwd)"
-__file="${__dir}/$(basename "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")"
-__base="$(basename "${__file}" .sh)"
-
-
-# Define the environment variables (and their defaults) that this script depends on
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 
+#-------------------------------------------------------------------------------
+# Usage 
+#-------------------------------------------------------------------------------
+[[ "${__test_usage+x}" ]] || __test_usage="-t --test  [arg] Running the specified test-case
+  -v --verbose     Enable verbose mode, print script as it is executed
+  -d --debug       Enables debug mode
+  -h --help        This page"
+
+[[ "${__test_helptext+x}" ]] || __test_helptext="Acceptance test-script for BASH3 Boilerplate."
+__test_defaulttext="Default"
+__test_requiredtext="Required"
 
 #-------------------------------------------------------------------------------
-# Localization
+# Sourced files 
 #-------------------------------------------------------------------------------
-__test_locale="${__dir}/locale"
-__test_syslocale="/usr/share/locale"
-TEXTDOMAIN="${__base}"
-TEXTDOMAINDIR="$([[ -d "${__test_locale}" ]] && echo "${__test_locale}" || echo "${__test_syslocale}")"
-### Functions
-##############################################################################
-function __b3bp_source_lib () {
+function __test_source_lib () {
 local module="${1:-}"
+local folders=( "${__test_dir}" "${__test_dir}/lib"  "/usr/local/lib" "${HOME}/.local/lib")
+local success=false
 
-  if [[ "${module}" = *"/"* ]]; then
-    if [[ -e "${module}" && -r "${module}" ]]; then
-      source "${module}"
-      echo "Sourcing from ${module}"
-    else
-      echo "Fatal error: ${module} not exists or readable!"
-      exit 1
-    fi
+  if [[ "${module}" = *"/"* && -e "${module}" && -r "${module}" ]]; then
+      source "${module}" && success=true
   else
-    if [[ -e "${BASH_SOURCE%/*}/lib/${module}" && -r "${BASH_SOURCE%/*}/lib/${module}" ]]; then 
-      source "${BASH_SOURCE%/*}/lib/${module}"
-      echo "Sourcing from ${BASH_SOURCE%/*}/lib/${module}"
-    elif [[ -e "/usr/local/lib/${module}" && -r "/usr/local/lib/${module}" ]]; then
-      source "/usr/local/lib/${module}"
-      echo "Sourcing /usr/local/lib/${module}"
-    elif [[ -e "${HOME}/.local/lib/${module}" && -r "${HOME}/.local/lib/${module}" ]]; then
-      source "${HOME}/.local/lib/${module}"    
-      echo "${HOME}/.local/lib/${module}"
-    else
-      echo "Fatal error: ${module} not exists or readable!"
-      exit 1
-    fi
+    for folder in "${folders[@]}"; do
+      if [[ -e "${folder}/${module}" && -r "${folder}/${module}" ]]; then
+        source  "${folder}/${module}" && success=true && break
+      fi
+    done
+  fi
+
+  if [[ "${success}" = false ]]; then
+    echo "Fatal error: ${module} not exists or readable!"
+    exit 1
   fi
 }
-__b3bp_source_lib ../lib/log.sh
+__test_source_lib log.sh
 
+#===============================================================================
+# Functions section
+#===============================================================================
 function help () {
   echo "" 1>&2
   echo " ${*}" 1>&2
   echo "" 1>&2
-  echo "  ${__usage:-No usage available}" 1>&2
+  echo "  ${__test_usage:-No usage available}" 1>&2
   echo "" 1>&2
 
-  if [[ "${__helptext:-}" ]]; then
-    echo " ${__helptext}" 1>&2
+  if [[ "${__test_helptext:-}" ]]; then
+    echo " ${__test_helptext}" 1>&2
     echo "" 1>&2
   fi
 
@@ -114,105 +123,107 @@ running_testcase(){
     file="${file}.sh"
   fi
 
-  if [[ -e "${__dir}/${file}" && -x "${__dir}/${file}" ]]; then	  
+  if [[ -e "${__test_dir}/${file}" && -x "${__test_dir}/${file}" ]]; then	  
     info "${file} started"
-    time "${__dir}/${file}"
+    time "${__test_dir}/${file}"
   else
     warning "No such test case: ${1}!"
   fi
 }
-### Parse commandline options
-##############################################################################
 
-# Commandline options. This defines the usage page, and is used to parse cli
-# opts & defaults from. The parsing is unforgiving so be precise in your syntax
-# - A short option must be preset for every long option; but every short option
-#   need not have a long option
-# - `--` is respected as the separator between options and arguments
-# - We do not bash-expand defaults, so setting '~/app' as a default will not resolve to ${HOME}.
-#   you can use bash variables to work around this (so use ${HOME} instead)
+function main() {
+# Starting testcases
+  if [[ -z "${__test_arg_t}" ]]; then
+    warning "No specified testcase, running all!"
+    files=(*)
+  else
+    files=( ${__test_arg_t//,/ } )
+  fi
 
-# shellcheck disable=SC2015
-[[ "${__usage+x}" ]] || read -r -d '' __usage <<-'EOF' || true # exits non-zero when EOF encountered
-  -t --test  [arg] Running the specified test-case
-  -v --verbose     Enable verbose mode, print script as it is executed
-  -d --debug       Enables debug mode
-  -h --help        This page
-EOF
+  for file in "${files[@]}";do
+    if [[ "${file}" != "${__test_base}" && "${file}" != "testcase-template.sh" ]]; then 
+      running_testcase "${file}"
+    fi
+  done
+}
 
-# shellcheck disable=SC2015
-[[ "${__helptext+x}" ]] || read -r -d '' __helptext <<-'EOF' || true # exits non-zero when EOF encountered
-  Acceptance test-script for BASH3 Boilerplate.
-EOF
+#===============================================================================
+# Main section
+#===============================================================================
 
-# Translate usage string -> getopts arguments, and set $arg_<flag> defaults
-while read -r __b3bp_tmp_line; do
-  if [[ "${__b3bp_tmp_line}" =~ ^- ]]; then
+#-------------------------------------------------------------------------------
+# Parse usage string
+#-------------------------------------------------------------------------------
+while read -r __test_tmp_line; do
+  if [[ "${__test_tmp_line}" =~ ^- ]]; then
     # fetch single character version of option string
-    __b3bp_tmp_opt="${__b3bp_tmp_line%% *}"
-    __b3bp_tmp_opt="${__b3bp_tmp_opt:1}"
+    __test_tmp_opt="${__test_tmp_line%% *}"
+    __test_tmp_opt="${__test_tmp_opt:1}"
 
     # fetch long version if present
-    __b3bp_tmp_long_opt=""
+    __test_tmp_long_opt=""
 
-    if [[ "${__b3bp_tmp_line}" = *"--"* ]]; then
-      __b3bp_tmp_long_opt="${__b3bp_tmp_line#*--}"
-      __b3bp_tmp_long_opt="${__b3bp_tmp_long_opt%% *}"
+    if [[ "${__test_tmp_line}" = *"--"* ]]; then
+      __test_tmp_long_opt="${__test_tmp_line#*--}"
+      __test_tmp_long_opt="${__test_tmp_long_opt%% *}"
     fi
 
     # map opt long name to+from opt short name
-    printf -v "__b3bp_tmp_opt_long2short_${__b3bp_tmp_long_opt//-/_}" '%s' "${__b3bp_tmp_opt}"
-    printf -v "__b3bp_tmp_opt_short2long_${__b3bp_tmp_opt}" '%s' "${__b3bp_tmp_long_opt//-/_}"
+    printf -v "__test_tmp_opt_long2short_${__test_tmp_long_opt//-/_}" '%s' "${__test_tmp_opt}"
+    printf -v "__test_tmp_opt_short2long_${__test_tmp_opt}" '%s' "${__test_tmp_long_opt//-/_}"
 
     # check if option takes an argument
-    if [[ "${__b3bp_tmp_line}" =~ \[.*\] ]]; then
-      __b3bp_tmp_opt="${__b3bp_tmp_opt}:" # add : if opt has arg
-      __b3bp_tmp_init=""  # it has an arg. init with ""
-      printf -v "__b3bp_tmp_has_arg_${__b3bp_tmp_opt:0:1}" '%s' "1"
-    elif [[ "${__b3bp_tmp_line}" =~ \{.*\} ]]; then
-      __b3bp_tmp_opt="${__b3bp_tmp_opt}:" # add : if opt has arg
-      __b3bp_tmp_init=""  # it has an arg. init with ""
+    if [[ "${__test_tmp_line}" =~ \[.*\] ]]; then
+      __test_tmp_opt="${__test_tmp_opt}:" # add : if opt has arg
+      __test_tmp_init=""  # it has an arg. init with ""
+      printf -v "__test_tmp_has_arg_${__test_tmp_opt:0:1}" '%s' "1"
+    elif [[ "${__test_tmp_line}" =~ \{.*\} ]]; then
+      __test_tmp_opt="${__test_tmp_opt}:" # add : if opt has arg
+      __test_tmp_init=""  # it has an arg. init with ""
       # remember that this option requires an argument
-      printf -v "__b3bp_tmp_has_arg_${__b3bp_tmp_opt:0:1}" '%s' "2"
+      printf -v "__test_tmp_has_arg_${__test_tmp_opt:0:1}" '%s' "2"
     else
-      __b3bp_tmp_init="0" # it's a flag. init with 0
-      printf -v "__b3bp_tmp_has_arg_${__b3bp_tmp_opt:0:1}" '%s' "0"
+      __test_tmp_init="0" # it's a flag. init with 0
+      printf -v "__test_tmp_has_arg_${__test_tmp_opt:0:1}" '%s' "0"
     fi
-    __b3bp_tmp_opts="${__b3bp_tmp_opts:-}${__b3bp_tmp_opt}"
+    __test_tmp_opts="${__test_tmp_opts:-}${__test_tmp_opt}"
   fi
 
-  [[ "${__b3bp_tmp_opt:-}" ]] || continue
+  [[ "${__test_tmp_opt:-}" ]] || continue
 
-  if [[ "${__b3bp_tmp_line}" =~ (^|\.\ *)Default= ]]; then
+  if [[ "${__test_tmp_line}" =~ ^"${__test_defaulttext}"= ]] || [[ "${__test_tmp_line}" =~ \.\ *"${__test_defaulttext}"= ]]; then
     # ignore default value if option does not have an argument
-    __b3bp_tmp_varname="__b3bp_tmp_has_arg_${__b3bp_tmp_opt:0:1}"
+    __test_tmp_varname="__test_tmp_has_arg_${__test_tmp_opt:0:1}"
 
-    if [[ "${!__b3bp_tmp_varname}" != "0" ]]; then
-      __b3bp_tmp_init="${__b3bp_tmp_line##*Default=}"
-      __b3bp_tmp_re='^"(.*)"$'
-      if [[ "${__b3bp_tmp_init}" =~ ${__b3bp_tmp_re} ]]; then
-        __b3bp_tmp_init="${BASH_REMATCH[1]}"
+    if [[ "${!__test_tmp_varname}" != "0" ]]; then
+      __test_tmp_init="${__test_tmp_line##*${__test_defaulttext}=}"
+      __test_tmp_re='^"(.*)"$'
+      if [[ "${__test_tmp_init}" =~ ${__test_tmp_re} ]]; then
+        __test_tmp_init="${BASH_REMATCH[1]}"
       else
-        __b3bp_tmp_re="^'(.*)'$"
-        if [[ "${__b3bp_tmp_init}" =~ ${__b3bp_tmp_re} ]]; then
-          __b3bp_tmp_init="${BASH_REMATCH[1]}"
+        __test_tmp_re="^'(.*)'"
+        if [[ "${__test_tmp_init}" =~ ${__test_tmp_re} ]]; then
+          __test_tmp_init="${BASH_REMATCH[1]}"
         fi
       fi
     fi
   fi
 
-  if [[ "${__b3bp_tmp_line}" =~ (^|\.\ *)Required\. ]]; then
+  if [[ "${__test_tmp_line}" =~ ^"${__test_requiredtext}"\. ]] || [[ "${__test_tmp_line}" =~ \.\ *"${__test_requiredtext}"\. ]]; then
     # remember that this option requires an argument
-    printf -v "__b3bp_tmp_has_arg_${__b3bp_tmp_opt:0:1}" '%s' "2"
+    printf -v "__test_tmp_has_arg_${__test_tmp_opt:0:1}" '%s' "2"
   fi
 
-  printf -v "arg_${__b3bp_tmp_opt:0:1}" '%s' "${__b3bp_tmp_init}"
-done <<< "${__usage:-}"
+  printf -v "__test_arg_${__test_tmp_opt:0:1}" '%s' "${__test_tmp_init}"
+done <<< "${__test_usage:-}"
 
+#-------------------------------------------------------------------------------
+# Parse command-line arguments
+#-------------------------------------------------------------------------------
 # run getopts only if options were specified in __usage
-if [[ "${__b3bp_tmp_opts:-}" ]]; then
+if [[ "${__test_tmp_opts:-}" ]]; then
   # Allow long options like --this
-  __b3bp_tmp_opts="${__b3bp_tmp_opts}-:"
+  __test_tmp_opts="${__test_tmp_opts}-:"
 
   # Reset in case getopts has been used previously in the shell.
   OPTIND=1
@@ -221,41 +232,41 @@ if [[ "${__b3bp_tmp_opts:-}" ]]; then
   set +o nounset # unexpected arguments will cause unbound variables
                  # to be dereferenced
   # Overwrite $arg_<flag> defaults with the actual CLI options
-  while getopts "${__b3bp_tmp_opts}" __b3bp_tmp_opt; do
-    [[ "${__b3bp_tmp_opt}" = "?" ]] && help "Invalid use of script: ${*} "
+  while getopts "${__test_tmp_opts}" __test_tmp_opt; do
+    [[ "${__test_tmp_opt}" = "?" ]] && help "Invalid use of script: ${*} "
 
-    if [[ "${__b3bp_tmp_opt}" = "-" ]]; then
+    if [[ "${__test_tmp_opt}" = "-" ]]; then
       # OPTARG is long-option-name or long-option=value
-      if [[ "${}" =~ .*=.* ]]; then
+      if [[ "${OPTARG}" =~ .*=.* ]]; then
         # --key=value format
-        __b3bp_tmp_long_opt=${OPTARG/=*/}
+        __test_tmp_long_opt=${OPTARG/=*/}
         # Set opt to the short option corresponding to the long option
-        __b3bp_tmp_varname="__b3bp_tmp_opt_long2short_${__b3bp_tmp_long_opt//-/_}"
-        printf -v "__b3bp_tmp_opt" '%s' "${!__b3bp_tmp_varname}"
+        __test_tmp_varname="__test_tmp_opt_long2short_${__test_tmp_long_opt//-/_}"
+        printf -v "__test_tmp_opt" '%s' "${!__test_tmp_varname}"
         OPTARG=${OPTARG#*=}
       else
         # --key value format
         # Map long name to short version of option
-        __b3bp_tmp_varname="__b3bp_tmp_opt_long2short_${OPTARG//-/_}"
-        printf -v "__b3bp_tmp_opt" '%s' "${!__b3bp_tmp_varname}"
+        __test_tmp_varname="__test_tmp_opt_long2short_${OPTARG//-/_}"
+        printf -v "__test_tmp_opt" '%s' "${!__test_tmp_varname}"
         # Only assign OPTARG if option takes an argument
-        __b3bp_tmp_varname="__b3bp_tmp_has_arg_${__b3bp_tmp_opt}"
-        printf -v "OPTARG" '%s' "${@:OPTIND:${!__b3bp_tmp_varname}}"
+        __test_tmp_varname="__test_tmp_has_arg_${__test_tmp_opt}"
+        printf -v "OPTARG" '%s' "${@:OPTIND:${!__test_tmp_varname}}"
         # shift over the argument if argument is expected
-        ((OPTIND+=__b3bp_tmp_has_arg_${__b3bp_tmp_opt}))
+        ((OPTIND+=__test_tmp_has_arg_${__test_tmp_opt}))
       fi
       # we have set opt/OPTARG to the short value and the argument as OPTARG if it exists
     fi
-    __b3bp_tmp_varname="arg_${__b3bp_tmp_opt:0:1}"
-    __b3bp_tmp_default="${!__b3bp_tmp_varname}"
+    __test_tmp_varname="__test_arg_${__test_tmp_opt:0:1}"
+    __test_tmp_default="${!__test_tmp_varname}"
 
-    __b3bp_tmp_value="${OPTARG}"
-    if [[ -z "${OPTARG}" ]] && [[ "${__b3bp_tmp_default}" = "0" ]]; then
-      __b3bp_tmp_value="1"
+    __test_tmp_value="${OPTARG}"
+    if [[ -z "${OPTARG}" ]]; then
+      __test_tmp_value=$((__test_tmp_default + 1))
     fi
 
-    printf -v "${__b3bp_tmp_varname}" '%s' "${__b3bp_tmp_value}"
-    debug "cli arg ${__b3bp_tmp_varname} = (${__b3bp_tmp_default}) -> ${!__b3bp_tmp_varname}"
+    printf -v "${__test_tmp_varname}" '%s' "${__test_tmp_value}"
+    debug "cli arg ${__test_tmp_varname} = (${__test_tmp_default}) -> ${!__test_tmp_varname}"
   done
   set -o nounset # no more unbound variable references expected
 
@@ -265,106 +276,77 @@ if [[ "${__b3bp_tmp_opts:-}" ]]; then
     shift
   fi
 fi
-
-
-### Automatic validation of required option arguments
-##############################################################################
-
-for __b3bp_tmp_varname in ${!__b3bp_tmp_has_arg_*}; do
+#-------------------------------------------------------------------------------
+# Validate required option arguments
+#-------------------------------------------------------------------------------
+for __test_tmp_varname in ${!__test_tmp_has_arg_*}; do
   # validate only options which required an argument
-  [[ "${!__b3bp_tmp_varname}" = "2" ]] || continue
+  [[ "${!__test_tmp_varname}" = "2" ]] || continue
 
-  __b3bp_tmp_opt_short="${__b3bp_tmp_varname##*_}"
-  __b3bp_tmp_varname="arg_${__b3bp_tmp_opt_short}"
-  [[ "${!__b3bp_tmp_varname}" ]] && continue
+  __test_tmp_opt_short="${__test_tmp_varname##*_}"
+  __test_tmp_varname="__test_arg_${__test_tmp_opt_short}"
+  [[ "${!__test_tmp_varname}" ]] && continue
 
-  __b3bp_tmp_varname="__b3bp_tmp_opt_short2long_${__b3bp_tmp_opt_short}"
-  printf -v "__b3bp_tmp_opt_long" '%s' "${!__b3bp_tmp_varname}"
-  [[ "${__b3bp_tmp_opt_long:-}" ]] && __b3bp_tmp_opt_long=" (--${__b3bp_tmp_opt_long//_/-})"
+  __test_tmp_varname="__test_tmp_opt_short2long_${__test_tmp_opt_short}"
+  printf -v "__test_tmp_opt_long" '%s' "${!__test_tmp_varname}"
+  [[ "${__test_tmp_opt_long:-}" ]] && __test_tmp_opt_long=" (--${__test_tmp_opt_long//_/-})"
 
-  help "Option -${__b3bp_tmp_opt_short}${__b3bp_tmp_opt_long:-} requires an argument"
+  help "Option -${__test_tmp_opt_short}${__test_tmp_opt_long:-} requires an argument"
 done
 
-
-### Cleanup Environment variables
-##############################################################################
-
-for __tmp_varname in ${!__b3bp_tmp_*}; do
+#-------------------------------------------------------------------------------
+# Cleanup temporary variables 
+#-------------------------------------------------------------------------------
+for __tmp_varname in ${!__test_tmp_*}; do
   unset -v "${__tmp_varname}"
 done
 
 unset -v __tmp_varname
 
-
-### Externally supplied __usage. Nothing else to do here
-##############################################################################
-
-if [[ "${__b3bp_external_usage:-}" = "true" ]]; then
-  unset -v __b3bp_external_usage
+#-------------------------------------------------------------------------------
+# Externally supplied __test_usage. Nothing else to do here
+#-------------------------------------------------------------------------------
+if [[ "${__test_external_usage:-}" == 1 ]]; then
+  unset -v __test_external_usage
   return
 fi
 
-
-### Signal trapping and backtracing
-##############################################################################
-
-function __b3bp_cleanup_before_exit () {
-  info "Cleaning up. Done"
-}
-#trap __b3bp_cleanup_before_exit EXIT
-
-# requires `set -o errtrace`
-__b3bp_err_report() {
-    local error_code
-    error_code=${?}
-    error "Error in ${__file} in function ${1} on line ${2}"
-    exit ${error_code}
-}
-# Uncomment the following line for always providing an error backtrace
-# trap '__b3bp_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
-
-
-### Command-line argument switches (like -d for debugmode, -h for showing helppage)
-##############################################################################
-
+#-------------------------------------------------------------------------------
+# Call internal functions
+#-------------------------------------------------------------------------------
 # debug mode
-if [[ "${arg_d:?}" = "1" ]]; then
+if [[ "${__test_arg_d:?}" = "1" ]]; then
   set -o xtrace
   LOG_LEVEL="7"
   # Enable error backtracing
-  trap '__b3bp_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+  trap '__test_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
 fi
 
 # verbose mode
-if [[ "${arg_v:?}" = "1" ]]; then
+if [[ "${__test_arg_v:?}" = "1" ]]; then
   set -o verbose
 fi
 
 # help mode
-if [[ "${arg_h:?}" = "1" ]]; then
+if [[ "${__test_arg_h:?}" = "1" ]]; then
   # Help exists with code 1
   help "Help using ${0}"
 fi
 
 
-### Validation. Error out if the things required for your script are not present
-##############################################################################
-
+#-------------------------------------------------------------------------------
+# Validate required arguments
+#-------------------------------------------------------------------------------
 [[ "${LOG_LEVEL:-}" ]] || emergency "Cannot continue without LOG_LEVEL. "
 
 
-### Runtime
-##############################################################################
-# Starting testcases
-if [[ -z "${arg_t}" ]]; then
-  warning "No specified testcase, running all!"
-  files=(*)
-else
-  files=( ${arg_t//,/ } )
+#-------------------------------------------------------------------------------
+# Runtime
+#-------------------------------------------------------------------------------
+if [[ "${__test_srcd:-}" == 0 ]]; then
+  main
 fi
 
-for file in "${files[@]}";do
-  if [[ "${file}" != "${__base}" && "${file}" != "testcase-template.sh" ]]; then 
-    running_testcase "${file}"
-  fi
-done
+#===============================================================================
+# END OF FILE
+#===============================================================================
