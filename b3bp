@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 #===============================================================================
 # Script name (shortname) - Short description for script
-# v0.0.1- <year>-<month>-<day>
 # Licensed under the MIT license
 #
 # Long description of script
@@ -53,7 +52,6 @@ else
   [[ "${__b3bp_usage+x}" ]] && unset -v __b3bp_usage
   [[ "${__b3bp_helptext+x}" ]] && unset -v __b3bp_helptext
 fi
-#__b3bp_srcd=$([[ "${BASH_SOURCE[0]:-}" != "${0}" ]] && echo 1 || echo 0)
 __b3bp_dir="$(cd "$(dirname "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")" && pwd)"
 __b3bp_file="${__b3bp_dir}/$(basename "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")"
 __b3bp_base="$(basename "${__b3bp_file}" .sh)"
@@ -90,59 +88,38 @@ TEXTDOMAIN="${__b3bp_base}"
 __b3bp_defaulttext=$"Default"
 __b3bp_requiredtext=$"Required"
 
+#-------------------------------------------------------------------------------
+# Sourced files 
+#-------------------------------------------------------------------------------
+function __b3bp_source_lib () {
+local module="${1:-}"
+local folders=( "${__b3bp_dir}" "${__b3bp_dir}/lib"  "/usr/local/lib" "${HOME}/.local/lib")
+local success=false
+
+  if [[ "${module}" = *"/"* && -e "${module}" && -r "${module}" ]]; then
+      source "${module}" && success=true
+  else
+    for folder in "${folders[@]}"; do
+      if [[ -e "${folder}/${module}" && -r "${folder}/${module}" ]]; then
+        source  "${folder}/${module}" && success=true && break
+      fi
+    done
+  fi
+
+  if [[ "${success}" = false ]]; then
+    if [[ -n "$(type -t error)" && "$(type -t error)" = function ]]; then 
+      error "Fatal error: ${module} not exists or readable!"
+     else
+       echo "Fatal error: ${module} not exists or readable!"
+     fi
+    exit 1
+  fi
+}
+__b3bp_source_lib log.sh
+
 #===============================================================================
 # Functions section
 #===============================================================================
-function __b3bp_log () {
-  local log_level="${1}"
-  shift
-
-  # shellcheck disable=SC2034
-  local color_debug="\\x1b[35m"
-  # shellcheck disable=SC2034
-  local color_info="\\x1b[32m"
-  # shellcheck disable=SC2034
-  local color_notice="\\x1b[34m"
-  # shellcheck disable=SC2034
-  local color_warning="\\x1b[33m"
-  # shellcheck disable=SC2034
-  local color_error="\\x1b[31m"
-  # shellcheck disable=SC2034
-  local color_critical="\\x1b[1;31m"
-  # shellcheck disable=SC2034
-  local color_alert="\\x1b[1;33;41m"
-  # shellcheck disable=SC2034
-  local color_emergency="\\x1b[1;4;5;33;41m"
-
-  local colorvar="color_${log_level}"
-
-  local color="${!colorvar:-${color_error}}"
-  local color_reset="\\x1b[0m"
-
-  if [[ "${NO_COLOR:-}" = "true" ]] || ( [[ "${TERM:-}" != "xterm"* ]] && [[ "${TERM:-}" != "screen"* ]] ) || [[ ! -t 2 ]]; then
-    if [[ "${NO_COLOR:-}" != "false" ]]; then
-      # Don't use colors on pipes or non-recognized terminals
-      color=""; color_reset=""
-    fi
-  fi
-
-  # all remaining arguments are to be printed
-  local log_line=""
-
-  while IFS=$'\n' read -r log_line; do
-    echo -e "$(date -u +"%Y-%m-%d %H:%M:%S UTC") ${color}$(printf "[%9s]" "${log_level}")${color_reset} ${log_line}" 1>&2
-  done <<< "${@:-}"
-}
-
-function emergency () {                                __b3bp_log emergency "${@}"; exit 1; }
-function alert ()     { [[ "${LOG_LEVEL:-0}" -ge 1 ]] && __b3bp_log alert "${@}"; true; }
-function critical ()  { [[ "${LOG_LEVEL:-0}" -ge 2 ]] && __b3bp_log critical "${@}"; true; }
-function error ()     { [[ "${LOG_LEVEL:-0}" -ge 3 ]] && __b3bp_log error "${@}"; true; }
-function warning ()   { [[ "${LOG_LEVEL:-0}" -ge 4 ]] && __b3bp_log warning "${@}"; true; }
-function notice ()    { [[ "${LOG_LEVEL:-0}" -ge 5 ]] && __b3bp_log notice "${@}"; true; }
-function info ()      { [[ "${LOG_LEVEL:-0}" -ge 6 ]] && __b3bp_log info "${@}"; true; }
-function debug ()     { [[ "${LOG_LEVEL:-0}" -ge 7 ]] && __b3bp_log debug "${@}"; true; }
-
 function main() {
   if [[ "${__b3bp_arg_f}" = "test" ]]; then
     echo $"BASH3 Boilerplate by krisztianmukli"  
