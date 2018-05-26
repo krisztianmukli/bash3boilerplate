@@ -92,7 +92,11 @@ local success=false
   fi
 
   if [[ "${success}" = false ]]; then
-    echo "Fatal error: ${module} not exists or readable!"
+    if [[ -n "$(type -t error)" && "$(type -t error)" = function ]]; then 
+      error "Fatal error: ${module} not exists or readable!"
+     else
+       echo "Fatal error: ${module} not exists or readable!"
+     fi
     exit 1
   fi
 }
