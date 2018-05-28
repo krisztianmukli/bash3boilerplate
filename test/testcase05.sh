@@ -33,31 +33,8 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 #-------------------------------------------------------------------------------
 # Sourced files 
 #-------------------------------------------------------------------------------
-function __testcase05_source_lib () {
-local module="${1:-}"
-local folders=( "${__testcase05_dir}" "${__testcase05_dir}/lib"  "/usr/local/lib" "${HOME}/.local/lib")
-local success=false
-
-  if [[ "${module}" = *"/"* && -e "${module}" && -r "${module}" ]]; then
-      source "${module}" && success=true
-  else
-    for folder in "${folders[@]}"; do
-      if [[ -e "${folder}/${module}" && -r "${folder}/${module}" ]]; then
-        source  "${folder}/${module}" && success=true && break
-      fi
-    done
-  fi
-
-  if [[ "${success}" = false ]]; then
-    if [[ -n "$(type -t error)" && "$(type -t error)" = function ]]; then 
-      error "Fatal error: ${module} not exists or readable!"
-     else
-       echo "Fatal error: ${module} not exists or readable!"
-     fi
-    exit 1
-  fi
-}
-__testcase05_source_lib log.sh
+export PATH="${__testcase05_dir}/lib:${HOME}/.local/share/${__testcase05_base}:$PATH"
+source log.sh
 
 #-------------------------------------------------------------------------------
 # Test case description

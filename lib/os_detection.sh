@@ -8,11 +8,11 @@
 # NOT TESTED IN EVERY CASE!!
 
 if [[ "$OSTYPE" == "linux-gnu" ]]; then 
-  if [[ -x /usr/bin/zypper ]]; then DISTROTYPE="suse"; # SUSE / openSUSE     
-  elif [[ -x /usr/bin/apt-get ]]; then DISTROTYPE="debian"; # Debian / Ubuntu Based Systems     
-  elif [[ -x /usr/bin/dnf ]]; then DISTROTYPE="fedora"; # Modern Fedora    
-  elif [[ -x /usr/bin/yum ]]; then DISTROTYPE="redhat"; # Red Hat / Fedora or derivatives    
-  elif [[ -x /usr/bin/pacman ]]; then DISTROTYPE="archlinux"; # Arch Linux
+  if [[ -x /usr/bin/zypper ]]; then DISTROTYPE="suse-based"; # SUSE / openSUSE
+  elif [[ -x /usr/bin/apt-get ]]; then DISTROTYPE="debian-based"; # Debian / Ubuntu Based Systems
+  elif [[ -x /usr/bin/dnf ]]; then DISTROTYPE="fedora-based"; # Modern Fedora and derivatives
+  elif [[ -x /usr/bin/yum ]]; then DISTROTYPE="redhat-based"; # Red Hat / Fedora or derivatives
+  elif [[ -x /usr/bin/pacman ]]; then DISTROTYPE="arch-based"; # Arch Linux or derivates
   elif [[ -x /usr/local/swupd ]]; then DISTROTYPE="clearlinux"; # Clear Linux
   elif [[ -x /usr/sbin/equo ]]; then DISTROTYPE="sabayon"; # Sabayon
   elif [[ -x /usr/bin/xbps-install ]] || [[ -x /usr/sbin/xbps-install ]]; then DISTROTYPE="voidlinux"; # Void Linux

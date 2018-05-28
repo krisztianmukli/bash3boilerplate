@@ -45,7 +45,7 @@ if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
   if [[ "${__b3bp_usage+x}" ]]; then
     [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __b3bp_srcd=0
     __b3bp_external_usage=1
-    __b3bp_tmp_surce_idx=1
+    __b3bp_tmp_source_idx=1
   fi 
 else
   __b3bp_srcd=0
@@ -61,16 +61,24 @@ LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 
 #-------------------------------------------------------------------------------
+# Sourced files
+#-------------------------------------------------------------------------------
+export PATH="${__b3bp_dir}/lib:${HOME}/.local/share/${__b3bp_base}:$PATH"
+source log.sh
+source os_detection.sh
+
+#-------------------------------------------------------------------------------
 # Localization
 #-------------------------------------------------------------------------------
-if [[ -d "${__b3bp_dir}/locale" ]]; then
-  TEXTDOMAINDIR="${__b3bp_dir}/locale"
-elif [[ -d "${HOME}/.local/share/locale" ]]; then
-  TEXTDOMAINDIR="${HOME}/.local/share/locale" 
-else
-  TEXTDOMAINDIR="/usr/share/locale"
-fi
-TEXTDOMAIN="${__b3bp_base}"
+export TEXTDOMAINDIR="/usr/share/locale"
+__b3bp_localepath=( "${__b3bp_dir}/locale" "${HOME}/.local/share/locale" )
+  for folder in "${__b3bp_localepath[@]}"; do
+    if [[ -d "${folder}" ]]; then
+      export TEXTDOMAINDIR="${folder}"
+      break
+    fi
+  done
+export TEXTDOMAIN="${__b3bp_base}"
 
 #-------------------------------------------------------------------------------
 # Usage 
@@ -88,36 +96,6 @@ TEXTDOMAIN="${__b3bp_base}"
  parsed and will be added as-is to the help."
 __b3bp_defaulttext=$"Default"
 __b3bp_requiredtext=$"Required"
-
-#-------------------------------------------------------------------------------
-# Sourced files 
-#-------------------------------------------------------------------------------
-function __b3bp_source_lib () {
-local module="${1:-}"
-local folders=( "${__b3bp_dir}" "${__b3bp_dir}/lib"  "/usr/local/lib" "${HOME}/.local/lib")
-local success=false
-
-  if [[ "${module}" = *"/"* && -e "${module}" && -r "${module}" ]]; then
-      source "${module}" && success=true
-  else
-    for folder in "${folders[@]}"; do
-      if [[ -e "${folder}/${module}" && -r "${folder}/${module}" ]]; then
-        source  "${folder}/${module}" && success=true && break
-      fi
-    done
-  fi
-
-  if [[ "${success}" = false ]]; then
-    if [[ -n "$(type -t error)" && "$(type -t error)" = function ]]; then 
-      error "Fatal error: ${module} not exists or readable!"
-     else
-       echo "Fatal error: ${module} not exists or readable!"
-     fi
-    exit 1
-  fi
-}
-__b3bp_source_lib log.sh
-__b3bp_source_lib os_detection.sh
 
 #-------------------------------------------------------------------------------
 # Signal trapping and backtracing
