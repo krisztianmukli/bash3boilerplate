@@ -55,6 +55,7 @@ fi
 __b3bp_dir="$(cd "$(dirname "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")" && pwd)"
 __b3bp_file="${__b3bp_dir}/$(basename "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")"
 __b3bp_base="$(basename "${__b3bp_file}" .sh)"
+__b3bp_tmpdir="${TMPDIR:=/tmp}/${__b3bp_base}.$RANDOM.$RANDOM.$RANDOM.$$"
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
@@ -117,6 +118,29 @@ local success=false
 }
 __b3bp_source_lib log.sh
 
+#-------------------------------------------------------------------------------
+# Signal trapping and backtracing
+#-------------------------------------------------------------------------------
+function create_tempdir() {
+  (umask 077 && mkdir "${__b3bp_tmpdir}") || emergency "Could not create temporary directory! Exiting."
+}
+
+function __b3bp_cleanup_before_exit () {
+  rm -rf "${__b3bp_tmpdir}"
+  info $"Cleaning up. Done"
+}
+trap __b3bp_cleanup_before_exit EXIT
+
+# requires `set -o errtrace`
+__b3bp_err_report() {
+    local error_code
+    error_code=${?}
+    error $"Error in ${__file} in function ${1} on line ${2}"
+    exit ${error_code}
+}
+# Uncomment the following line for always providing an error backtrace
+# trap '__b3bp_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+
 #===============================================================================
 # Functions section
 #===============================================================================
@@ -124,8 +148,10 @@ function main() {
   if [[ "${__b3bp_arg_f}" = "test" ]]; then
     echo $"BASH3 Boilerplate by krisztianmukli"  
     echo $"Demo and test of the Bash-script template"
-    #printf "%80s\n" | tr " " "-" 
   fi
+
+  create_tempdir 
+  [[ -d "${__b3bp_tmpdir}" ]] && touch "${__b3bp_tmpdir}/testfile"
 
   info "__b3bp_srcd: ${__b3bp_srcd}"
   info "__b3bp_file: ${__b3bp_file}"
@@ -152,6 +178,7 @@ function main() {
   if [[ "${__b3bp_arg_f}" != "test" ]]; then
     emergency $"A \"panic\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call."
   fi
+  read -n 1 -s -r -p "Press any key to continue" && echo ""
 }
 
 function help () {
@@ -169,20 +196,6 @@ function help () {
   exit 1
 }
 
-function __b3bp_cleanup_before_exit () {
-  info $"Cleaning up. Done"
-}
-trap __b3bp_cleanup_before_exit EXIT
-
-# requires `set -o errtrace`
-__b3bp_err_report() {
-    local error_code
-    error_code=${?}
-    error $"Error in ${__file} in function ${1} on line ${2}"
-    exit ${error_code}
-}
-# Uncomment the following line for always providing an error backtrace
-# trap '__b3bp_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
 
 #===============================================================================
 # Main section
