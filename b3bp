@@ -117,6 +117,7 @@ local success=false
   fi
 }
 __b3bp_source_lib log.sh
+__b3bp_source_lib os_detection.sh
 
 #-------------------------------------------------------------------------------
 # Signal trapping and backtracing
@@ -158,6 +159,7 @@ function main() {
   info "__b3bp_dir: ${__b3bp_dir}"
   info "__b3bp_base: ${__b3bp_base}"
   info "OSTYPE: ${OSTYPE}"
+  info "DISTROTYPE: ${DISTROTYPE}"
 
   info "__b3bp_arg_f: ${__b3bp_arg_f}"
   info "__b3bp_arg_d: ${__b3bp_arg_d}"
