@@ -55,7 +55,7 @@ fi
 __b3bp_dir="$(cd "$(dirname "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")" && pwd)"
 __b3bp_file="${__b3bp_dir}/$(basename "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")"
 __b3bp_base="$(basename "${__b3bp_file}" .sh)"
-__b3bp_tmpdir="${TMPDIR:=/tmp}/${__b3bp_base}.$RANDOM.$RANDOM.$RANDOM.$$"
+__b3bp_tmpdir="${TMPDIR:=/tmp}/${__b3bp_base}.$RANDOM.$RANDOM.$RANDOM.$$" 
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
