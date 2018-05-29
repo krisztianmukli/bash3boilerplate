@@ -12,7 +12,7 @@ local footer="${3:-}"
   fi
   echo "  ${main:-No info available}" 1>&2
   echo "" 1>&2
-
+ 
   if [[ "${footer:-}" ]]; then
     echo " ${footer}" 1>&2
     echo "" 1>&2

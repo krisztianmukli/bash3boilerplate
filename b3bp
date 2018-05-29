@@ -26,7 +26,7 @@ shopt -s expand_aliases
 set -o errexit 
 # Exit on error inside any functions or subshells
 set -o errtrace
- # Do not allow use of undefined vars. Use ${VAR:-} to use an undefined VAR
+# Do not allow use of undefined vars. Use ${VAR:-} to use an undefined VAR
 set -o nounset 
 # Catch the error when mysqldump fails (but gzip succeeds) in `mysqldump |gzip`
 set -o pipefail 
@@ -63,10 +63,11 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 #-------------------------------------------------------------------------------
 # Sourced files
 #-------------------------------------------------------------------------------
-export PATH="${__b3bp_dir}/lib:${HOME}/.local/share/${__b3bp_base}:$PATH"
+export PATH="${__b3bp_dir}/lib:$PATH"
 source log.sh
 source os_detection.sh
 source display_info.sh
+source install_script.sh
 
 #-------------------------------------------------------------------------------
 # Localization
@@ -91,7 +92,9 @@ export TEXTDOMAIN="${__b3bp_base}"
   -h --help        This page
   -n --no-color    Disable color output
   -1 --one         Do just one thing
-  -V --version     Display version and license information"
+  -V --version     Display version and license information
+  -I --install     Install script
+  -U --uninstall   Uninstall script"
 
 [[ "${__b3bp_helptext+x}" ]] || __b3bp_helptext=$"This is Bash3 Boilerplate's help text. Feel free to add any description of your
  program or elaborate more on command-line arguments. This section is not
@@ -297,7 +300,7 @@ if [[ "${__b3bp_tmp_opts:-}" ]]; then
 fi
 
 #-------------------------------------------------------------------------------
-# Help mode
+# Helper functions
 #-------------------------------------------------------------------------------
 if [[ "${__b3bp_arg_h:?}" = "1" ]]; then
   # Help exists with code 1
@@ -307,6 +310,11 @@ fi
 if [[ "${__b3bp_arg_V:?}" = "1" ]]; then
   # Version exists with code 1
   display_info "${__b3bp_name}" "${__b3bp_version}" "${__b3bp_license}"
+fi
+
+# install script
+if [[ "${__b3bp_arg_I:?}" = "1" ]]; then
+  install_script "${__b3bp_dir}" "$__b3bp_base"
 fi
 
 #-------------------------------------------------------------------------------
