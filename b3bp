@@ -66,6 +66,7 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 export PATH="${__b3bp_dir}/lib:${HOME}/.local/share/${__b3bp_base}:$PATH"
 source log.sh
 source os_detection.sh
+source display_info.sh
 
 #-------------------------------------------------------------------------------
 # Localization
@@ -89,19 +90,23 @@ export TEXTDOMAIN="${__b3bp_base}"
   -d --debug       Enables debug mode
   -h --help        This page
   -n --no-color    Disable color output
-  -1 --one         Do just one thing"
+  -1 --one         Do just one thing
+  -V --version     Display version and license information"
 
 [[ "${__b3bp_helptext+x}" ]] || __b3bp_helptext=$"This is Bash3 Boilerplate's help text. Feel free to add any description of your
  program or elaborate more on command-line arguments. This section is not
  parsed and will be added as-is to the help."
 __b3bp_defaulttext=$"Default"
 __b3bp_requiredtext=$"Required"
+__b3bp_name=$"BASH3 Boilerplate by krisztianmukli"
+__b3bp_version="v1.0.0"
+__b3bp_license=$"Licensed under the MIT license"
 
 #-------------------------------------------------------------------------------
 # Signal trapping and backtracing
 #-------------------------------------------------------------------------------
 function create_tempdir() {
-  (umask 077 && mkdir "${__b3bp_tmpdir}") || emergency "Could not create temporary directory! Exiting."
+  (umask 077 && mkdir "${__b3bp_tmpdir}") || emergency $"Could not create temporary directory! Exiting."
 }
 
 function __b3bp_cleanup_before_exit () {
@@ -125,7 +130,7 @@ __b3bp_err_report() {
 #===============================================================================
 function main() {
   if [[ "${__b3bp_arg_f}" = "test" ]]; then
-    echo $"BASH3 Boilerplate by krisztianmukli"  
+    echo "${__b3bp_name}"
     echo $"Demo and test of the Bash-script template"
   fi
 
@@ -158,24 +163,8 @@ function main() {
   if [[ "${__b3bp_arg_f}" != "test" ]]; then
     emergency $"A \"panic\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call."
   fi
-  read -n 1 -s -r -p "Press any key to continue" && echo ""
+  read -n 1 -s -r -p $"Press any key to continue" && echo ""
 }
-
-function help () {
-  echo "" 1>&2
-  echo " ${*}" 1>&2
-  echo "" 1>&2
-  echo "  ${__b3bp_usage:-No usage available}" 1>&2
-  echo "" 1>&2
-
-  if [[ "${__b3bp_helptext:-}" ]]; then
-    echo " ${__b3bp_helptext}" 1>&2
-    echo "" 1>&2
-  fi
-
-  exit 1
-}
-
 
 #===============================================================================
 # Main section
@@ -263,7 +252,7 @@ if [[ "${__b3bp_tmp_opts:-}" ]]; then
                  # to be dereferenced
   # Overwrite $arg_<flag> defaults with the actual CLI options
   while getopts "${__b3bp_tmp_opts}" __b3bp_tmp_opt; do
-    [[ "${__b3bp_tmp_opt}" = "?" ]] && help "Invalid use of script: ${*} "
+    [[ "${__b3bp_tmp_opt}" = "?" ]] && display_info $"Invalid use of script: ${*}" "${__b3bp_usage}" "${__b3bp_helptext}"
 
     if [[ "${__b3bp_tmp_opt}" = "-" ]]; then
       # OPTARG is long-option-name or long-option=value
@@ -306,6 +295,26 @@ if [[ "${__b3bp_tmp_opts:-}" ]]; then
     shift
   fi
 fi
+
+#-------------------------------------------------------------------------------
+# Help mode
+#-------------------------------------------------------------------------------
+if [[ "${__b3bp_arg_h:?}" = "1" ]]; then
+  # Help exists with code 1
+  display_info $"Help using ${0}" "${__b3bp_usage}" "${__b3bp_helptext}"
+fi
+
+if [[ "${__b3bp_arg_V:?}" = "1" ]]; then
+  # Version exists with code 1
+  display_info "${__b3bp_name}" "${__b3bp_version}" "${__b3bp_license}"
+fi
+
+#-------------------------------------------------------------------------------
+# Validate required arguments
+#-------------------------------------------------------------------------------
+[[ "${__b3bp_arg_f:-}" ]] || display_info $"Setting a filename with -f or --file is required" "${__b3bp_usage}" "${__b3bp_helptext}"  
+[[ "${LOG_LEVEL:-}" ]] || emergency $"Cannot continue without LOG_LEVEL. "
+
 #-------------------------------------------------------------------------------
 # Validate required option arguments
 #-------------------------------------------------------------------------------
@@ -321,7 +330,7 @@ for __b3bp_tmp_varname in ${!__b3bp_tmp_has_arg_*}; do
   printf -v "__b3bp_tmp_opt_long" '%s' "${!__b3bp_tmp_varname}"
   [[ "${__b3bp_tmp_opt_long:-}" ]] && __b3bp_tmp_opt_long=" (--${__b3bp_tmp_opt_long//_/-})"
 
-  help $"Option -${__b3bp_tmp_opt_short}${__b3bp_tmp_opt_long:-} requires an argument"
+  display_info  $"Option -${__b3bp_tmp_opt_short}${__b3bp_tmp_opt_long:-} requires an argument" "${__b3bp_usage}" "${__b3bp_helptext}"
 done
 
 #-------------------------------------------------------------------------------
@@ -361,18 +370,6 @@ fi
 if [[ "${__b3bp_arg_n:?}" = "1" ]]; then
   NO_COLOR="true"
 fi
-
-# help mode
-if [[ "${__b3bp_arg_h:?}" = "1" ]]; then
-  # Help exists with code 1
-  help "Help using ${0}"
-fi
-
-#-------------------------------------------------------------------------------
-# Validate required arguments
-#-------------------------------------------------------------------------------
-[[ "${__b3bp_arg_f:-}" ]] || help $"Setting a filename with -f or --file is required"
-[[ "${LOG_LEVEL:-}" ]] || emergency $"Cannot continue without LOG_LEVEL. "
 
 #-------------------------------------------------------------------------------
 # Runtime
