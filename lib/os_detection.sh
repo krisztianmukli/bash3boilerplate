@@ -31,12 +31,10 @@ elif [[ "$OSTYPE" == "win32" ]]; then DISTROTYPE="windows-win32"; # I'm not sure
 elif [[ "$OSTYPE" == "freebsd"* ]]; then DISTROTYPE="freebsd"; # FreeBSD
 elif [[ "$OSTYPE" == "openbsd"* ]]; then DISTROTYPE="openbsd"; # OpenBSD # if [[ -x /usr/sbin/pkg_add ]]; then DISTROTYPE="openbsd"; fi # OpenBSD
 elif [[ "$OSTYPE" == "netbsd"* ]]; then DISTROTYPE="netbsd"; # NetBSD
-else
-  if [[ -x /usr/bin/pkg_radd ]]; then DISTROTYPE="bsd"; # BSD
-  elif [[ -x /usr/local/sbin/pkg ]] || [[ -x /usr/sbin/pkg ]]; then DISTROTYPE="dragonflybsd"; # DragonFlyBSD
-  elif [[ -x /usr/sbin/mport ]]; then DISTROTYPE="midnightbsd"; # MidnightBSD  
-  else DISTROTYPE="unknown" # Unknown operating system
-  fi
+elif [[ -x /usr/bin/pkg_radd ]]; then DISTROTYPE="bsd"; # BSD
+elif [[ -x /usr/local/sbin/pkg ]] || [[ -x /usr/sbin/pkg ]]; then DISTROTYPE="dragonflybsd"; # DragonFlyBSD
+elif [[ -x /usr/sbin/mport ]]; then DISTROTYPE="midnightbsd"; # MidnightBSD  
+else DISTROTYPE="unknown" # Unknown operating system
 fi
 
 export DISTROTYPE
