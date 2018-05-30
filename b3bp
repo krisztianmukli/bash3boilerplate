@@ -72,12 +72,14 @@ source install_script.sh
 #-------------------------------------------------------------------------------
 # Localization
 #-------------------------------------------------------------------------------
-export TEXTDOMAINDIR="${__b3bp_dir}/locale"
-__b3bp_localepath=( "${HOME}/.local/share/locale" "/usr/local/share/locale" "/usr/share/locale" )
+__b3bp_localepath=( "${__b3bp_dir}/locale" "${HOME}/.local/share/locale" "/usr/local/share/locale" "/usr/share/locale" )
   for folder in "${__b3bp_localepath[@]}"; do
-    if [[ -n $(find "${folder}" -name "${__b3bp_base}.mo") ]]; then
-      export TEXTDOMAINDIR="${folder}"
-      break
+    if [[ -d "${folder}" ]]; then
+      count=$(find "${folder}" -name "${__b3bp_base}.mo" | wc -l )
+      if [[ $count -gt 0 ]]; then
+        export TEXTDOMAINDIR="${folder}"
+        break
+      fi
     fi
   done
 export TEXTDOMAIN="${__b3bp_base}"
