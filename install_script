@@ -1,0 +1,392 @@
+#!/usr/bin/env bash
+#===============================================================================
+# Universal script installer (script_install)
+# Licensed under the MIT license
+#
+# This file can install bash-script and it's dependencies from a specified
+# folder, using install.ini file. 
+# It is part of BASH3 Boilerplate by krisztianmukli project.
+# 
+# Copyright (c) 2018 Krisztián Mukli
+# https://www.github.com/krisztianmukli/bash3boilerplate
+#
+# Notes
+#-------------------------------------------------------------------------------
+# Quickstart
+#
+#   install_script sourcedir [targetdir]
+#
+# Setup information
+# Changelog
+# ToDo
+# Known bugs
+#
+# Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
+#===============================================================================
+# Init section
+#===============================================================================
+# Allowing aliases
+shopt -s expand_aliases
+# Exit on error 
+set -o errexit 
+# Exit on error inside any functions or subshells
+set -o errtrace
+# Do not allow use of undefined vars. Use ${VAR:-} to use an undefined VAR
+set -o nounset 
+# Catch the error when mysqldump fails (but gzip succeeds) in `mysqldump |gzip`
+set -o pipefail 
+# Turn on traces, useful while debugging but commented out by default
+#set -o xtrace
+
+#===============================================================================
+# Globals section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Environment variables
+#-------------------------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
+  __si_srcd=1
+  if [[ "${__si_usage+x}" ]]; then
+    [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __si_srcd=0
+    __si_external_usage=1
+    __si_tmp_source_idx=1
+  fi 
+else
+  __si_srcd=0
+  [[ "${__si_usage+x}" ]] && unset -v __si_usage
+  [[ "${__si_helptext+x}" ]] && unset -v __si_helptext
+fi
+__si_dir="$(cd "$(dirname "${BASH_SOURCE[${__si_tmp_source_idx:-0}]}")" && pwd)"
+__si_file="${__si_dir}/$(basename "${BASH_SOURCE[${__si_tmp_source_idx:-0}]}")"
+__si_base="$(basename "${__si_file}" .sh)"
+__si_tmpdir="${TMPDIR:=/tmp}/${__si_base}.$RANDOM.$RANDOM.$RANDOM.$$" 
+
+LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
+NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
+
+#-------------------------------------------------------------------------------
+# Sourced files
+#-------------------------------------------------------------------------------
+export PATH="${__si_dir}/lib:$PATH"
+source log.sh
+source os_detection.sh
+source display_info.sh
+
+#-------------------------------------------------------------------------------
+# Localization
+#-------------------------------------------------------------------------------
+__si_localepath=( "${__si_dir}/locale" "${HOME}/.local/share/locale" "/usr/local/share/locale" "/usr/share/locale" )
+  for folder in "${__si_localepath[@]}"; do
+    if [[ -d "${folder}" ]]; then
+      count=$(find "${folder}" -name "${__si_base}.mo" | wc -l )
+      if [[ $count -gt 0 ]]; then
+        export TEXTDOMAINDIR="${folder}"
+        break
+      fi
+    fi
+  done
+export TEXTDOMAIN="${__si_base}"
+
+#-------------------------------------------------------------------------------
+# Usage 
+#-------------------------------------------------------------------------------
+[[ "${__si_usage+x}" ]] || __si_usage=$"-f --file  [arg] Filename to process. Required.
+  -t --temp  [arg] Location of tempfile. Default=\"/tmp/bar\"
+  -v               Enable verbose mode, print script as it is executed
+  -d --debug       Enables debug mode
+  -h --help        This page
+  -n --no-color    Disable color output
+  -1 --one         Do just one thing
+  -V --version     Display version and license information
+  -I --install     Install script
+  -U --uninstall   Uninstall script"
+
+[[ "${__si_helptext+x}" ]] || __si_helptext=$"This is Bash3 Boilerplate's help text. Feel free to add any description of your
+ program or elaborate more on command-line arguments. This section is not
+ parsed and will be added as-is to the help."
+__si_defaulttext=$"Default"
+__si_requiredtext=$"Required"
+__si_name=$"BASH3 Boilerplate by krisztianmukli"
+__si_version="v1.0.0"
+__si_license=$"Licensed under the MIT license"
+
+#===============================================================================
+# Functions section
+#===============================================================================
+function main() {
+  if [[ "${__si_arg_f}" = "test" ]]; then
+    echo "${__si_name}"
+    echo $"Demo and test of the Bash-script template"
+  fi
+
+  create_tempdir 
+  [[ -d "${__si_tmpdir}" ]] && touch "${__si_tmpdir}/testfile"
+
+  info "__si_srcd: ${__si_srcd}"
+  info "__si_file: ${__si_file}"
+  info "__si_dir: ${__si_dir}"
+  info "__si_base: ${__si_base}"
+  info "OSTYPE: ${OSTYPE}"
+  info "DISTROTYPE: ${DISTROTYPE}"
+
+  info "__si_arg_f: ${__si_arg_f}"
+  info "__si_arg_d: ${__si_arg_d}"
+  info "__si_arg_v: ${__si_arg_v}"
+  info "__si_arg_h: ${__si_arg_h}"
+  info "__si_arg_t: ${__si_arg_t}"
+
+  info "$(echo -e $"multiple lines example - line #1\\nmultiple lines example - line #2\\nimagine logging the output of 'ls -al /path/'")"
+
+  # All of these go to STDERR, so you can use STDOUT for piping machine readable information to other software
+  debug $"Info useful to developers for debugging the application, not useful during operations."
+  info $"Normal operational messages - may be harvested for reporting, measuring throughput, etc. - no action required."
+  notice $"Events that are unusual but not error conditions - might be summarized in an email to developers or admins to spot potential problems - no immediate action required."
+  warning $"Warning messages, not an error, but indication that an error will occur if action is not taken, e.g. file system 85% full - each item must be resolved within a given time. This is a debug message"
+  error $"Non-urgent failures, these should be relayed to developers or admins; each item must be resolved within a given time."
+  critical $"Should be corrected immediately, but indicates failure in a primary system, an example is a loss of a backup ISP connection."
+  alert $"Should be corrected immediately, therefore notify staff who can fix the problem. An example would be the loss of a primary ISP connection."
+  if [[ "${__si_arg_f}" != "test" ]]; then
+    emergency $"A \"panic\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call."
+  fi
+  read -n 1 -s -r -p $"Press any key to continue" && echo ""
+}
+
+#===============================================================================
+# Main section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Parse usage string
+#-------------------------------------------------------------------------------
+while read -r __si_tmp_line; do
+  if [[ "${__si_tmp_line}" =~ ^- ]]; then
+    # fetch single character version of option string
+    __si_tmp_opt="${__si_tmp_line%% *}"
+    __si_tmp_opt="${__si_tmp_opt:1}"
+
+    # fetch long version if present
+    __si_tmp_long_opt=""
+
+    if [[ "${__si_tmp_line}" = *"--"* ]]; then
+      __si_tmp_long_opt="${__si_tmp_line#*--}"
+      __si_tmp_long_opt="${__si_tmp_long_opt%% *}"
+    fi
+
+    # map opt long name to+from opt short name
+    printf -v "__si_tmp_opt_long2short_${__si_tmp_long_opt//-/_}" '%s' "${__si_tmp_opt}"
+    printf -v "__si_tmp_opt_short2long_${__si_tmp_opt}" '%s' "${__si_tmp_long_opt//-/_}"
+
+    # check if option takes an argument
+    if [[ "${__si_tmp_line}" =~ \[.*\] ]]; then
+      __si_tmp_opt="${__si_tmp_opt}:" # add : if opt has arg
+      __si_tmp_init=""  # it has an arg. init with ""
+      printf -v "__si_tmp_has_arg_${__si_tmp_opt:0:1}" '%s' "1"
+    elif [[ "${__si_tmp_line}" =~ \{.*\} ]]; then
+      __si_tmp_opt="${__si_tmp_opt}:" # add : if opt has arg
+      __si_tmp_init=""  # it has an arg. init with ""
+      # remember that this option requires an argument
+      printf -v "__si_tmp_has_arg_${__si_tmp_opt:0:1}" '%s' "2"
+    else
+      __si_tmp_init="0" # it's a flag. init with 0
+      printf -v "__si_tmp_has_arg_${__si_tmp_opt:0:1}" '%s' "0"
+    fi
+    __si_tmp_opts="${__si_tmp_opts:-}${__si_tmp_opt}"
+  fi
+
+  [[ "${__si_tmp_opt:-}" ]] || continue
+
+  if [[ "${__si_tmp_line}" =~ ^"${__si_defaulttext}"= ]] || [[ "${__si_tmp_line}" =~ \.\ *"${__si_defaulttext}"= ]]; then
+    # ignore default value if option does not have an argument
+    __si_tmp_varname="__si_tmp_has_arg_${__si_tmp_opt:0:1}"
+
+    if [[ "${!__si_tmp_varname}" != "0" ]]; then
+      __si_tmp_init="${__si_tmp_line##*${__si_defaulttext}=}"
+      __si_tmp_re='^"(.*)"$'
+      if [[ "${__si_tmp_init}" =~ ${__si_tmp_re} ]]; then
+        __si_tmp_init="${BASH_REMATCH[1]}"
+      else
+        __si_tmp_re="^'(.*)'$"
+        if [[ "${__si_tmp_init}" =~ ${__si_tmp_re} ]]; then
+          __si_tmp_init="${BASH_REMATCH[1]}"
+        fi
+      fi
+    fi
+  fi
+
+  if [[ "${__si_tmp_line}" =~ ^"${__si_requiredtext}"\. ]] || [[ "${__si_tmp_line}" =~ \.\ *"${__si_requiredtext}"\. ]]; then
+    # remember that this option requires an argument
+    printf -v "__si_tmp_has_arg_${__si_tmp_opt:0:1}" '%s' "2"
+  fi
+
+  printf -v "__si_arg_${__si_tmp_opt:0:1}" '%s' "${__si_tmp_init}"
+done <<< "${__si_usage:-}"
+
+#-------------------------------------------------------------------------------
+# Parse command-line arguments
+#-------------------------------------------------------------------------------
+# run getopts only if options were specified in __usage
+if [[ "${__si_tmp_opts:-}" ]]; then
+  # Allow long options like --this
+  __si_tmp_opts="${__si_tmp_opts}-:"
+
+  # Reset in case getopts has been used previously in the shell.
+  OPTIND=1
+
+  # start parsing command line
+  set +o nounset # unexpected arguments will cause unbound variables
+                 # to be dereferenced
+  # Overwrite $arg_<flag> defaults with the actual CLI options
+  while getopts "${__si_tmp_opts}" __si_tmp_opt; do
+    [[ "${__si_tmp_opt}" = "?" ]] && display_info $"Invalid use of script: ${*}" "${__si_usage}" "${__si_helptext}"
+
+    if [[ "${__si_tmp_opt}" = "-" ]]; then
+      # OPTARG is long-option-name or long-option=value
+      if [[ "${OPTARG}" =~ .*=.* ]]; then
+        # --key=value format
+        __si_tmp_long_opt=${OPTARG/=*/}
+        # Set opt to the short option corresponding to the long option
+        __si_tmp_varname="__si_tmp_opt_long2short_${__si_tmp_long_opt//-/_}"
+        printf -v "__si_tmp_opt" '%s' "${!__si_tmp_varname}"
+        OPTARG=${OPTARG#*=}
+      else
+        # --key value format
+        # Map long name to short version of option
+        __si_tmp_varname="__si_tmp_opt_long2short_${OPTARG//-/_}"
+        printf -v "__si_tmp_opt" '%s' "${!__si_tmp_varname}"
+        # Only assign OPTARG if option takes an argument
+        __si_tmp_varname="__si_tmp_has_arg_${__si_tmp_opt}"
+        printf -v "OPTARG" '%s' "${@:OPTIND:${!__si_tmp_varname}}"
+        # shift over the argument if argument is expected
+        ((OPTIND+=__si_tmp_has_arg_${__si_tmp_opt}))
+      fi
+      # we have set opt/OPTARG to the short value and the argument as OPTARG if it exists
+    fi
+    __si_tmp_varname="__si_arg_${__si_tmp_opt:0:1}"
+    __si_tmp_default="${!__si_tmp_varname}"
+
+    __si_tmp_value="${OPTARG}"
+    if [[ -z "${OPTARG}" ]]; then
+      __si_tmp_value=$((__si_tmp_default + 1))
+    fi
+
+    printf -v "${__si_tmp_varname}" '%s' "${__si_tmp_value}"
+    debug "cli arg ${__si_tmp_varname} = (${__si_tmp_default}) -> ${!__si_tmp_varname}"
+  done
+  set -o nounset # no more unbound variable references expected
+
+  shift $((OPTIND-1))
+
+  if [[ "${1:-}" = "--" ]] ; then
+    shift
+  fi
+fi
+
+#-------------------------------------------------------------------------------
+# Helper functions
+#-------------------------------------------------------------------------------
+if [[ "${__si_arg_h:?}" = "1" ]]; then
+  # Help exists with code 1
+  display_info $"Help using ${0}" "${__si_usage}" "${__si_helptext}"
+fi
+
+if [[ "${__si_arg_V:?}" = "1" ]]; then
+  # Version exists with code 1
+  display_info "${__si_name}" "${__si_version}" "${__si_license}"
+fi
+
+#-------------------------------------------------------------------------------
+# Validate required arguments
+#-------------------------------------------------------------------------------
+[[ "${__si_arg_f:-}" ]] || display_info $"Setting a filename with -f or --file is required" "${__si_usage}" "${__si_helptext}"  
+[[ "${LOG_LEVEL:-}" ]] || emergency $"Cannot continue without LOG_LEVEL. "
+
+#-------------------------------------------------------------------------------
+# Validate required option arguments
+#-------------------------------------------------------------------------------
+for __si_tmp_varname in ${!__si_tmp_has_arg_*}; do
+  # validate only options which required an argument
+  [[ "${!__si_tmp_varname}" = "2" ]] || continue
+
+  __si_tmp_opt_short="${__si_tmp_varname##*_}"
+  __si_tmp_varname="__si_arg_${__si_tmp_opt_short}"
+  [[ "${!__si_tmp_varname}" ]] && continue
+
+  __si_tmp_varname="__si_tmp_opt_short2long_${__si_tmp_opt_short}"
+  printf -v "__si_tmp_opt_long" '%s' "${!__si_tmp_varname}"
+  [[ "${__si_tmp_opt_long:-}" ]] && __si_tmp_opt_long=" (--${__si_tmp_opt_long//_/-})"
+
+  display_info  $"Option -${__si_tmp_opt_short}${__si_tmp_opt_long:-} requires an argument" "${__si_usage}" "${__si_helptext}"
+done
+
+#-------------------------------------------------------------------------------
+# Cleanup temporary variables 
+#-------------------------------------------------------------------------------
+for __tmp_varname in ${!__si_tmp_*}; do
+  unset -v "${__tmp_varname}"
+done
+
+unset -v __tmp_varname
+
+#-------------------------------------------------------------------------------
+# Externally supplied __si_usage. Nothing else to do here
+#-------------------------------------------------------------------------------
+if [[ "${__si_external_usage:-}" == 1 ]]; then
+  unset -v __si_external_usage
+  return
+fi
+
+#-------------------------------------------------------------------------------
+# Signal trapping and backtracing
+#-------------------------------------------------------------------------------
+function create_tempdir() {
+  (umask 077 && mkdir "${__si_tmpdir}") || emergency $"Could not create temporary directory! Exiting."
+}
+
+function __si_cleanup_before_exit () {
+  rm -rf "${__si_tmpdir}"
+  info $"Cleaning up. Done"
+}
+trap __si_cleanup_before_exit EXIT
+
+# requires `set -o errtrace`
+__si_err_report() {
+    local error_code
+    error_code=${?}
+    error $"Error in ${__file} in function ${1} on line ${2}"
+    exit ${error_code}
+}
+# Uncomment the following line for always providing an error backtrace
+# trap '__si_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+
+#-------------------------------------------------------------------------------
+# Call internal functions
+#-------------------------------------------------------------------------------
+# debug mode
+if [[ "${__si_arg_d:?}" = "1" ]]; then
+  set -o xtrace
+  LOG_LEVEL="7"
+  # Enable error backtracing
+  trap '__si_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+fi
+
+# verbose mode
+if [[ "${__si_arg_v:?}" = "1" ]]; then
+  set -o verbose
+fi
+
+# no color mode
+if [[ "${__si_arg_n:?}" = "1" ]]; then
+  NO_COLOR="true"
+fi
+
+#-------------------------------------------------------------------------------
+# Runtime
+#-------------------------------------------------------------------------------
+if [[ "${__si_srcd:-}" == 0 ]]; then
+  main
+fi
+
+#===============================================================================
+# END OF FILE
+#===============================================================================
