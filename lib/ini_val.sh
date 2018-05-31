@@ -50,7 +50,7 @@ function ini_val() {
       current=$(awk -F "${delim}" "/^${key}${delim}/ {for (i=2; i<NF; i++) printf \$i \" \"; print \$NF}" "${file}")
       echo "${current}"
     else
-      error "${file} not exists or not readable!"
+      error "The '${file}' file is not exists or not readable!"
     fi
   else
     if [[ ! -e "${file}" ]]; then 

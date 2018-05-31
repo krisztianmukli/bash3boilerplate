@@ -21,6 +21,9 @@
 # ToDo
 # Known bugs
 #
+# * When targetfile unwritable and cp ask 'try anyway?' and user choose No, 
+#   it will exit 0, and script_install say installation was succesful.
+#
 # Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
 #===============================================================================
 # Init section
@@ -69,6 +72,7 @@ export PATH="${__si_dir}/lib:$PATH"
 source log.sh
 source os_detection.sh
 source display_info.sh
+source ini_val.sh
 
 #-------------------------------------------------------------------------------
 # Localization
@@ -88,8 +92,7 @@ export TEXTDOMAIN="${__si_base}"
 #-------------------------------------------------------------------------------
 # Usage 
 #-------------------------------------------------------------------------------
-[[ "${__si_usage+x}" ]] || __si_usage=\
-$"-c --check-dependencies  Check dependencies of specified script
+[[ "${__si_usage+x}" ]] || __si_usage=$"-c --check-dependencies  Check dependencies of specified script
   -d --debug               Enables debug mode
   -h --help                This page
   -i --ini [inifile]       Ini-file using the installation. Default="install.ini"
@@ -99,8 +102,7 @@ $"-c --check-dependencies  Check dependencies of specified script
   -v                       Enable verbose mode, print script as it is executed
   -V --version             Display version and license information"
 
-[[ "${__si_helptext+x}" ]] || __si_helptext=\
-$"This command can install bash-script and it's dependencies from a specified
+[[ "${__si_helptext+x}" ]] || __si_helptext=$"This command can install bash-script and it's dependencies from a specified
  folder, using install.ini file. 
  It is part of BASH3 Boilerplate by krisztianmukli project."
 __si_defaulttext=$"Default"
@@ -112,59 +114,51 @@ __si_license=$"Licensed under the MIT license"
 #===============================================================================
 # Functions section
 #===============================================================================
-
 function install_files() {
 local sourcedir=${1:-}
 local targetdir=${2:-}
-local localedir=${3:-}
-local script=$( ini_val "${sourcedir}/install.ini" install.script )
-local libraries=$( ini_val "${sourcedir}/install.ini" install.lib )
-local result=0
+local localedir="${3:-}"
+local files=${4:-}
+  
+  # Check sourcedir is exists
+  [[ -d "${sourcedir}" ]] || emergency "Installation unsuccesful: ${sourcedir} is not exists!"
+  # Check targetdir is exists, otherwise create it
+  [[ ! -d "${targetdir}" ]] && (mkdir "${targetdir}" 2>&- || emergency "Installation unsuccesful: can not create ${targetdir}")
+  # Check targetdir is writable
+  [[ ! -w "${targetdir}" ]] && emergency "Installation unsuccesful: ${targetdir} not writable"
+  
+  # Check localedir is exists, if there is locale folder in sourcedir
+  if [[ -d "${sourcedir}/locale" ]]; then
+    # Check targetdir is exists, otherwise create it
+    [[ ! -d "${localedir}" ]] && (mkdir "${localedir}" 2>&- || emergency "Installation unsuccesful: can not create ${localedir}")
+    # Check targetdir is writable
+    [[ ! -w "${localedir}" ]] && emergency "Installation unsuccesful: ${localedir} not writable"
+  fi
 
-  # Check exist and create destination
-  [[ ! -d "${targetdir}" ]] && mkdir "${targetdir}" || return 1
-  [[ -d "${sourcedir}/lib" ]] && [[ ! -d "${targetdir}/lib" ]] && mkdir "${targetdir}/lib" || return 1
-  [[ -d "${sourcedir}/locale" ]] && [[ ! -d "${localedir}" ]] && mkdir "${localedir}" || return 1
+  for file in ${files}; do
+    # Check filename can't pipe to upper directory
+    [[ "${file}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename"
+    cp -i "${sourcedir}/${file}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    find "${sourcedir}/locale" -name "${file}.mo" -exec sh -c "cp --parents ${1} ${2}" {} "${localedir}" \; || (emergency "Installation unsuccesful: there was an error during copying files")
+  done
 
-  # Check write permission or exit
-  [[ ! -w "${targetdir}" ]] && error "${targetdir} not writable" && return 1
-  [[ -d "${sourcedir}/lib" ]] && [[ ! -w "${targetdir}/lib" ]] && error "${targetdir} not writable" && return 1
-  [[ -d "${sourcedir}/locale" ]] && [[ ! -w "${localedir}" ]] && error "${localedir} not writable" && return 1
-
-  # Copy files from sourcedir to targetdir
- if [[ -e "${sourcedir}/${script}" ]]; then
-   cp -i "${sourcedir}/${script}" "${targetdir}" || result=1
- fi
-
- if [[ -d "${sourcedir}/lib" ]]; then
-   for lib in $libraries; do
-     cp -i "${sourcedir}/lib/${lib}" "${targetdir}/lib" || result=1
-   done
- fi
-
- if [[ -d "${sourcedir}/locale" ]]; then
-   cp -ir "${sourcedir}/locale/." "${localedir}" || result=1
- fi
-
- return "${result}"
+  info "Installation files was succesful to ${targetdir}"
 }
 
 function main() {
   #info "__si_arg_s: ${__si_arg_s}"
   #info "__si_arg_t: ${__si_arg_t}"
+local sourcedir="${__si_arg_s}"
+local scripts=$( ini_val "${sourcedir}/install.ini" install.scripts )
 
-  if [[ -d "${__si_arg_s}" ]]; then
-    sourcedir="${__si_arg_s}"
-    
-    # Check OS 
-    if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
-      # Check permissions
-      if [[ $EUID != 0 ]]; then
-        targetdir="${__si_arg_t:-${HOME}/.local/bin}"
-        localedir="${__si_arg_t:-${HOME}/.local/share}/locale"
-   
-	install_files "${sourcedir}" "${targetdir}" "${localedir}"
-	result=$?
+  # Check OS 
+  if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
+    # Check permissions
+    if [[ $EUID != 0 ]]; then
+      targetdir="${__si_arg_t:-${HOME}/.local/bin}"
+      localedir="${__si_arg_t:-${HOME}/.local/share}/locale"
+      
+      install_files "${sourcedir}" "${targetdir}" "${localedir}" "${scripts}"
 
      # Ubuntu-based systems already contains user private bin in ~/.profile, but Debian not
 #     if ! grep -q "\$HOME/.local/bin" "${HOME}/.profile"; then
@@ -179,34 +173,20 @@ function main() {
 #     fi
        
       source "${HOME}/.profile" && export PATH
-      if [[ ${result} -eq 0 ]]; then
-        info "Installation was succesful to ${targetdir}"
-      else
-	error "Installation was unsuccesful to ${targetdir}"
-      fi
-     else
-       targetdir="/usr/local/bin"
-       localedir="/usr/local/share/locale"
+    else
+      targetdir="/usr/local/bin"
+      localedir="/usr/local/share/locale"
 
-       install_files "${sourcedir}" "${targetdir}"
-       info "Installation was succesful to ${targetdir}"
-
-      if [[ ${result} -eq 0 ]]; then
-        info "Installation was succesful to ${targetdir}"
-      else
-	error "Installation was unsuccesful to ${targetdir}"
-      fi
-     fi
+      install_files "${sourcedir}" "${targetdir}" "${localedir}" "${scripts}"
+       #info "Installation was succesful to ${targetdir}"
+    fi
 
    else
      display_info $"Unsupported operating system." $"Install script manually: 
 * Copy the script and the lib folder to your PATH.
 * Copy to locale folder to your locale folder."
 
-    fi
-  else
-    error "Specified directory does not exists!"
-  fi
+   fi
 
 }
 
