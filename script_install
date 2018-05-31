@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #===============================================================================
-# Universal script installer (script_install)
+# Standalone script installer (script_install)
 # Licensed under the MIT license
 #
 # This file can install bash-script and it's dependencies from a specified
@@ -14,7 +14,7 @@
 #-------------------------------------------------------------------------------
 # Quickstart
 #
-#   install_script sourcedir [targetdir]
+#   script_install -s sourcedir [-t targetdir | -c]
 #
 # Setup information
 # Changelog
@@ -25,8 +25,6 @@
 #===============================================================================
 # Init section
 #===============================================================================
-# Allowing aliases
-shopt -s expand_aliases
 # Exit on error 
 set -o errexit 
 # Exit on error inside any functions or subshells
@@ -60,7 +58,6 @@ fi
 __si_dir="$(cd "$(dirname "${BASH_SOURCE[${__si_tmp_source_idx:-0}]}")" && pwd)"
 __si_file="${__si_dir}/$(basename "${BASH_SOURCE[${__si_tmp_source_idx:-0}]}")"
 __si_base="$(basename "${__si_file}" .sh)"
-__si_tmpdir="${TMPDIR:=/tmp}/${__si_base}.$RANDOM.$RANDOM.$RANDOM.$$" 
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
@@ -91,65 +88,126 @@ export TEXTDOMAIN="${__si_base}"
 #-------------------------------------------------------------------------------
 # Usage 
 #-------------------------------------------------------------------------------
-[[ "${__si_usage+x}" ]] || __si_usage=$"-f --file  [arg] Filename to process. Required.
-  -t --temp  [arg] Location of tempfile. Default=\"/tmp/bar\"
-  -v               Enable verbose mode, print script as it is executed
-  -d --debug       Enables debug mode
-  -h --help        This page
-  -n --no-color    Disable color output
-  -1 --one         Do just one thing
-  -V --version     Display version and license information
-  -I --install     Install script
-  -U --uninstall   Uninstall script"
+[[ "${__si_usage+x}" ]] || __si_usage=\
+$"-c --check-dependencies  Check dependencies of specified script
+  -d --debug               Enables debug mode
+  -h --help                This page
+  -i --ini [inifile]       Ini-file using the installation. Default="install.ini"
+  -n --no-color            Disable color output
+  -s --source [sourcedir]  Source dir of script. Default=.
+  -t --target [targetdir]  Target directory. Optional. If not specified, installer use /usr/local/bin or ~/.local/bin
+  -v                       Enable verbose mode, print script as it is executed
+  -V --version             Display version and license information"
 
-[[ "${__si_helptext+x}" ]] || __si_helptext=$"This is Bash3 Boilerplate's help text. Feel free to add any description of your
- program or elaborate more on command-line arguments. This section is not
- parsed and will be added as-is to the help."
+[[ "${__si_helptext+x}" ]] || __si_helptext=\
+$"This command can install bash-script and it's dependencies from a specified
+ folder, using install.ini file. 
+ It is part of BASH3 Boilerplate by krisztianmukli project."
 __si_defaulttext=$"Default"
 __si_requiredtext=$"Required"
-__si_name=$"BASH3 Boilerplate by krisztianmukli"
+__si_name=$"Standalone script installer"
 __si_version="v1.0.0"
 __si_license=$"Licensed under the MIT license"
 
 #===============================================================================
 # Functions section
 #===============================================================================
+
+function install_files() {
+local sourcedir=${1:-}
+local targetdir=${2:-}
+local localedir=${3:-}
+local script=$( ini_val "${sourcedir}/install.ini" install.script )
+local libraries=$( ini_val "${sourcedir}/install.ini" install.lib )
+local result=0
+
+  # Check exist and create destination
+  [[ ! -d "${targetdir}" ]] && mkdir "${targetdir}" || return 1
+  [[ -d "${sourcedir}/lib" ]] && [[ ! -d "${targetdir}/lib" ]] && mkdir "${targetdir}/lib" || return 1
+  [[ -d "${sourcedir}/locale" ]] && [[ ! -d "${localedir}" ]] && mkdir "${localedir}" || return 1
+
+  # Check write permission or exit
+  [[ ! -w "${targetdir}" ]] && error "${targetdir} not writable" && return 1
+  [[ -d "${sourcedir}/lib" ]] && [[ ! -w "${targetdir}/lib" ]] && error "${targetdir} not writable" && return 1
+  [[ -d "${sourcedir}/locale" ]] && [[ ! -w "${localedir}" ]] && error "${localedir} not writable" && return 1
+
+  # Copy files from sourcedir to targetdir
+ if [[ -e "${sourcedir}/${script}" ]]; then
+   cp -i "${sourcedir}/${script}" "${targetdir}" || result=1
+ fi
+
+ if [[ -d "${sourcedir}/lib" ]]; then
+   for lib in $libraries; do
+     cp -i "${sourcedir}/lib/${lib}" "${targetdir}/lib" || result=1
+   done
+ fi
+
+ if [[ -d "${sourcedir}/locale" ]]; then
+   cp -ir "${sourcedir}/locale/." "${localedir}" || result=1
+ fi
+
+ return "${result}"
+}
+
 function main() {
-  if [[ "${__si_arg_f}" = "test" ]]; then
-    echo "${__si_name}"
-    echo $"Demo and test of the Bash-script template"
+  #info "__si_arg_s: ${__si_arg_s}"
+  #info "__si_arg_t: ${__si_arg_t}"
+
+  if [[ -d "${__si_arg_s}" ]]; then
+    sourcedir="${__si_arg_s}"
+    
+    # Check OS 
+    if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
+      # Check permissions
+      if [[ $EUID != 0 ]]; then
+        targetdir="${__si_arg_t:-${HOME}/.local/bin}"
+        localedir="${__si_arg_t:-${HOME}/.local/share}/locale"
+   
+	install_files "${sourcedir}" "${targetdir}" "${localedir}"
+	result=$?
+
+     # Ubuntu-based systems already contains user private bin in ~/.profile, but Debian not
+#     if ! grep -q "\$HOME/.local/bin" "${HOME}/.profile"; then
+#       {
+#         echo "" 
+#         echo "# set PATH so it includes user's private bin if it exists"
+#         echo "if [ -d \"\$HOME/.local/bin\" ] ; then"
+#         echo "    PATH=\"\$HOME/.local/bin:\$PATH\" "
+#         echo "fi" 
+#       } >> "${HOME}/.profile"
+#       warning "~/.profile was updated, please login again or run 'source ~/.profile' command to reload PATH variable!"
+#     fi
+       
+      source "${HOME}/.profile" && export PATH
+      if [[ ${result} -eq 0 ]]; then
+        info "Installation was succesful to ${targetdir}"
+      else
+	error "Installation was unsuccesful to ${targetdir}"
+      fi
+     else
+       targetdir="/usr/local/bin"
+       localedir="/usr/local/share/locale"
+
+       install_files "${sourcedir}" "${targetdir}"
+       info "Installation was succesful to ${targetdir}"
+
+      if [[ ${result} -eq 0 ]]; then
+        info "Installation was succesful to ${targetdir}"
+      else
+	error "Installation was unsuccesful to ${targetdir}"
+      fi
+     fi
+
+   else
+     display_info $"Unsupported operating system." $"Install script manually: 
+* Copy the script and the lib folder to your PATH.
+* Copy to locale folder to your locale folder."
+
+    fi
+  else
+    error "Specified directory does not exists!"
   fi
 
-  create_tempdir 
-  [[ -d "${__si_tmpdir}" ]] && touch "${__si_tmpdir}/testfile"
-
-  info "__si_srcd: ${__si_srcd}"
-  info "__si_file: ${__si_file}"
-  info "__si_dir: ${__si_dir}"
-  info "__si_base: ${__si_base}"
-  info "OSTYPE: ${OSTYPE}"
-  info "DISTROTYPE: ${DISTROTYPE}"
-
-  info "__si_arg_f: ${__si_arg_f}"
-  info "__si_arg_d: ${__si_arg_d}"
-  info "__si_arg_v: ${__si_arg_v}"
-  info "__si_arg_h: ${__si_arg_h}"
-  info "__si_arg_t: ${__si_arg_t}"
-
-  info "$(echo -e $"multiple lines example - line #1\\nmultiple lines example - line #2\\nimagine logging the output of 'ls -al /path/'")"
-
-  # All of these go to STDERR, so you can use STDOUT for piping machine readable information to other software
-  debug $"Info useful to developers for debugging the application, not useful during operations."
-  info $"Normal operational messages - may be harvested for reporting, measuring throughput, etc. - no action required."
-  notice $"Events that are unusual but not error conditions - might be summarized in an email to developers or admins to spot potential problems - no immediate action required."
-  warning $"Warning messages, not an error, but indication that an error will occur if action is not taken, e.g. file system 85% full - each item must be resolved within a given time. This is a debug message"
-  error $"Non-urgent failures, these should be relayed to developers or admins; each item must be resolved within a given time."
-  critical $"Should be corrected immediately, but indicates failure in a primary system, an example is a loss of a backup ISP connection."
-  alert $"Should be corrected immediately, therefore notify staff who can fix the problem. An example would be the loss of a primary ISP connection."
-  if [[ "${__si_arg_f}" != "test" ]]; then
-    emergency $"A \"panic\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call."
-  fi
-  read -n 1 -s -r -p $"Press any key to continue" && echo ""
 }
 
 #===============================================================================
@@ -298,7 +356,7 @@ fi
 #-------------------------------------------------------------------------------
 # Validate required arguments
 #-------------------------------------------------------------------------------
-[[ "${__si_arg_f:-}" ]] || display_info $"Setting a filename with -f or --file is required" "${__si_usage}" "${__si_helptext}"  
+#[[ "${__si_arg_s:-}" ]] || display_info $"Setting source directory for installer is required." "${__si_usage}" "${__si_helptext}"  
 [[ "${LOG_LEVEL:-}" ]] || emergency $"Cannot continue without LOG_LEVEL. "
 
 #-------------------------------------------------------------------------------
@@ -339,12 +397,7 @@ fi
 #-------------------------------------------------------------------------------
 # Signal trapping and backtracing
 #-------------------------------------------------------------------------------
-function create_tempdir() {
-  (umask 077 && mkdir "${__si_tmpdir}") || emergency $"Could not create temporary directory! Exiting."
-}
-
 function __si_cleanup_before_exit () {
-  rm -rf "${__si_tmpdir}"
   info $"Cleaning up. Done"
 }
 trap __si_cleanup_before_exit EXIT
