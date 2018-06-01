@@ -131,7 +131,7 @@ local preinst=$( ini_val "${sourcedir}/install.ini" install.preinst )
 local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
 
   # Check sourcedir is exists
-  [[ -d "${sourcedir}" ]] || emergency "Installation unsuccesful: ${sourcedir} is not exists!"
+  [[ ! -d "${sourcedir}" ]] && emergency "Installation unsuccesful: ${sourcedir} is not exists!"
 
   # Calling preinstall scripts, if any
   for command in ${preinst}; do
