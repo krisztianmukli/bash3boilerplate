@@ -98,7 +98,7 @@ export TEXTDOMAIN="${__si_base}"
   -i --ini [inifile]       Ini-file using the installation. Default="install.ini"
   -n --no-color            Disable color output
   -s --source [sourcedir]  Source dir of script. Default=.
-  -t --target [targetdir]  Target directory. Optional. If not specified, installer use /usr/local/bin or ~/.local/bin
+  -t --target [targetdir]  Target directory. Optional, if not specified, installer use /usr/local/bin or ~/.local/bin
   -v                       Enable verbose mode, print script as it is executed
   -V --version             Display version and license information"
 
@@ -116,10 +116,14 @@ __si_license=$"Licensed under the MIT license"
 #===============================================================================
 function install_files() {
 local sourcedir=${1:-}
+local libsourcedir="${sourcedir:-}/lib"
+local localesourcedir="${sourcedir:-}/locale"
 local targetdir=${2:-}
-local localedir="${3:-}"
-local files=${4:-}
-  
+local libtargetdir="${targetdir:-}/lib"
+local localetargetdir="${3:-}"
+local scripts=$( ini_val "${sourcedir}/install.ini" install.scripts )
+local libraries=$( ini_val "${sourcedir}/install.ini" install.libraries )
+
   # Check sourcedir is exists
   [[ -d "${sourcedir}" ]] || emergency "Installation unsuccesful: ${sourcedir} is not exists!"
   # Check targetdir is exists, otherwise create it
@@ -127,58 +131,103 @@ local files=${4:-}
   # Check targetdir is writable
   [[ ! -w "${targetdir}" ]] && emergency "Installation unsuccesful: ${targetdir} not writable"
   
-  # Check localedir is exists, if there is locale folder in sourcedir
-  if [[ -d "${sourcedir}/locale" ]]; then
-    # Check targetdir is exists, otherwise create it
-    [[ ! -d "${localedir}" ]] && (mkdir "${localedir}" 2>&- || emergency "Installation unsuccesful: can not create ${localedir}")
-    # Check targetdir is writable
-    [[ ! -w "${localedir}" ]] && emergency "Installation unsuccesful: ${localedir} not writable"
+  # Check libraries is not empty
+  if [[ "${libraries+x}" ]]; then	  
+    # Check sourcedir/lib is exists
+    [[ -d "${libsourcedir}" ]] || emergency "Installation unsuccesful: ${libsourcedir} is not exists!"
+    # Check targetdir/lib is exists, otherwise create it
+    [[ ! -d "${libtargetdir}" ]] && (mkdir "${libtargetdir}" 2>&- || emergency "Installation unsuccesful: can not create ${libtargetdir}")
+    # Check targetdir/lib is writable
+    [[ ! -w "${libtargetdir}" ]] && emergency "Installation unsuccesful: ${libtargetdir} not writable"
   fi
 
-  for file in ${files}; do
+  # Check localedir is exists, if there is locale folder in sourcedir
+  if [[ -d "${localesourcedir}" ]]; then
+    # Check targetdir is exists, otherwise create it
+    [[ ! -d "${localetargetdir}" ]] && (mkdir "${localetargetdir}" 2>&- || emergency "Installation unsuccesful: can not create ${localetargetdir}")
+    # Check targetdir is writable
+    [[ ! -w "${localetargetdir}" ]] && emergency "Installation unsuccesful: ${localetargetdir} not writable"
+  fi
+
+  for script in ${scripts}; do
     # Check filename can't pipe to upper directory
-    [[ "${file}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename"
-    cp -i "${sourcedir}/${file}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
-    find "${sourcedir}/locale" -name "${file}.mo" -exec sh -c "cp --parents ${1} ${2}" {} "${localedir}" \; || (emergency "Installation unsuccesful: there was an error during copying files")
+    [[ "${script}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename (${script})"
+    cp -i "${sourcedir}/${script}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    debug "Installation file ${script} was succesful to ${targetdir}"
+  done
+
+  for lib in ${libraries}; do
+    [[ "${lib}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename ($lib)"
+    cp -i "${libsourcedir}/${lib}" "${libtargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    debug "Installation file ${lib} was succesful to ${libtargetdir}"
   done
 
   info "Installation files was succesful to ${targetdir}"
 }
 
+function edit_profile(){
+local folder=${1:-}
+  if [[ ! -z "${folder}" ]]; then
+
+      if ! grep -q "${folder}" "${HOME}/.profile"; then
+        {
+          echo "" 
+          echo "# set PATH so it includes user's private bin if it exists - Added by b3bp installer"
+          echo "if [ -d \"${folder}\" ] ; then"
+          echo "    PATH=\"${folder}:\$PATH\" "
+          echo "fi" 
+        } >> "${HOME}/.profile"
+        warning "~/.profile was updated, please login again or run 'source ~/.profile' command to reload PATH variable!"
+
+	return 0 
+      fi
+
+  fi
+  return 1
+}
+
 function main() {
-  #info "__si_arg_s: ${__si_arg_s}"
-  #info "__si_arg_t: ${__si_arg_t}"
 local sourcedir="${__si_arg_s}"
-local scripts=$( ini_val "${sourcedir}/install.ini" install.scripts )
 
   # Check OS 
   if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
     # Check permissions
     if [[ $EUID != 0 ]]; then
-      targetdir="${__si_arg_t:-${HOME}/.local/bin}"
-      localedir="${__si_arg_t:-${HOME}/.local/share}/locale"
-      
-      install_files "${sourcedir}" "${targetdir}" "${localedir}" "${scripts}"
 
-     # Ubuntu-based systems already contains user private bin in ~/.profile, but Debian not
-#     if ! grep -q "\$HOME/.local/bin" "${HOME}/.profile"; then
-#       {
-#         echo "" 
-#         echo "# set PATH so it includes user's private bin if it exists"
-#         echo "if [ -d \"\$HOME/.local/bin\" ] ; then"
-#         echo "    PATH=\"\$HOME/.local/bin:\$PATH\" "
-#         echo "fi" 
-#       } >> "${HOME}/.profile"
-#       warning "~/.profile was updated, please login again or run 'source ~/.profile' command to reload PATH variable!"
-#     fi
-       
-      source "${HOME}/.profile" && export PATH
+      if [[ ! -z "${__si_arg_t}" ]]; then
+        targetdir="${__si_arg_t}"
+	targetdirtext="${__si_arg_t}"
+      else
+        targetdir="${HOME}/.local/bin"
+	targetdirtext="\$HOME/.local/bin"
+      fi
+
+      localedir="${__si_arg_t:-${HOME}/.local/share}"
+      install_files "${sourcedir}" "${targetdir}" "${localedir}"
+      edit_profile "${targetdirtext}" && source "${HOME}/.profile" && export PATH
+
     else
-      targetdir="/usr/local/bin"
-      localedir="/usr/local/share/locale"
 
-      install_files "${sourcedir}" "${targetdir}" "${localedir}" "${scripts}"
-       #info "Installation was succesful to ${targetdir}"
+      #if [[ ! -z "${__si_arg_t}" ]]; then
+      #  targetdir="${__si_arg_t}"
+      #  targetdirtext="${__si_arg_t}"
+      #  localedir="${__si_arg_t}"
+      #else
+      #  targetdir="/usr/local/bin"
+      #  targetdirtext=""
+      #  localedir="/usr/local/share"
+      #fi
+      #targetdir="/usr/local/bin"
+      #localedir="/usr/local/share/locale"
+
+      targetdir="${__si_arg_t:-/usr/local/bin}"
+      targetdirtext="${__si_arg_t:-}"
+      localedir="${__si_arg_t:-/usr/local/share/locale}"
+
+      install_files "${sourcedir}" "${targetdir}" "${localedir}"
+      edit_profile "${targetdirtext}" && source "${HOME}/.profile" && export PATH
     fi
 
    else
@@ -336,7 +385,6 @@ fi
 #-------------------------------------------------------------------------------
 # Validate required arguments
 #-------------------------------------------------------------------------------
-#[[ "${__si_arg_s:-}" ]] || display_info $"Setting source directory for installer is required." "${__si_usage}" "${__si_helptext}"  
 [[ "${LOG_LEVEL:-}" ]] || emergency $"Cannot continue without LOG_LEVEL. "
 
 #-------------------------------------------------------------------------------

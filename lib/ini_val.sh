@@ -25,7 +25,6 @@
 # Copyright (c) 2013 Kevin van Zonneveld and contributors
 # You are not obligated to bundle the LICENSE file with your b3bp projects as long
 # as you leave these references intact in the header comments of your source files.
-source log.sh
 function ini_val() {
   local file="${1:-}"
   local sectionkey="${2:-}"
@@ -49,8 +48,6 @@ function ini_val() {
       # get a value
       current=$(awk -F "${delim}" "/^${key}${delim}/ {for (i=2; i<NF; i++) printf \$i \" \"; print \$NF}" "${file}")
       echo "${current}"
-    else
-      error "The '${file}' file is not exists or not readable!"
     fi
   else
     if [[ ! -e "${file}" ]]; then 
