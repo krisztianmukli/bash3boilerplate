@@ -153,6 +153,7 @@ local libraries=$( ini_val "${sourcedir}/install.ini" install.libraries )
     # Check filename can't pipe to upper directory
     [[ "${script}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename (${script})"
     cp -i "${sourcedir}/${script}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    [[ ! -x "${targetdir}/${script}" ]] && (chmod +x "${targetdir}/${script}" || error "Set executable permission was unsuccesful for file ${targetdir}/${script}! Maybe it need higher privileges!")
     find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
     debug "Installation file ${script} was succesful to ${targetdir}"
   done
@@ -209,18 +210,6 @@ local sourcedir="${__si_arg_s}"
       edit_profile "${targetdirtext}" && source "${HOME}/.profile" && export PATH
 
     else
-
-      #if [[ ! -z "${__si_arg_t}" ]]; then
-      #  targetdir="${__si_arg_t}"
-      #  targetdirtext="${__si_arg_t}"
-      #  localedir="${__si_arg_t}"
-      #else
-      #  targetdir="/usr/local/bin"
-      #  targetdirtext=""
-      #  localedir="/usr/local/share"
-      #fi
-      #targetdir="/usr/local/bin"
-      #localedir="/usr/local/share/locale"
 
       targetdir="${__si_arg_t:-/usr/local/bin}"
       targetdirtext="${__si_arg_t:-}"
