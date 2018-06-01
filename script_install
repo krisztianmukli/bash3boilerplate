@@ -97,6 +97,7 @@ export TEXTDOMAIN="${__si_base}"
 #-------------------------------------------------------------------------------
 [[ "${__si_usage+x}" ]] || __si_usage=$"-c --check-dependencies  Check dependencies of specified script
   -d --debug               Enables debug mode
+  -f --force               Forcing commands (e.g. overwrite existing files)
   -h --help                This page
   -i --ini [inifile]       Ini-file using the installation. Default="install.ini"
   -n --no-color            Disable color output
@@ -164,8 +165,13 @@ local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
   for script in ${scripts}; do
     # Check filename can't pipe to upper directory
     [[ "${script}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename (${script})"
-    cp -i "${sourcedir}/${script}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
-    cp -i "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || (emergency "Installation unsuccesful: there was an error during copying files")
+    if [[ "${__si_arg_f:?}" = "1" ]]; then
+      cp -f "${sourcedir}/${script}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+      cp -f "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || (emergency "Installation unsuccesful: there was an error during copying files")
+    else
+      cp -i "${sourcedir}/${script}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+      cp -i "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || (emergency "Installation unsuccesful: there was an error during copying files")
+    fi
     [[ ! -x "${targetdir}/${script}" ]] && (chmod +x "${targetdir}/${script}" || error "Set executable permission was unsuccesful for file ${targetdir}/${script}! Maybe it need higher privileges!")
     find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
     # Save localetargetdir for removing
@@ -174,8 +180,12 @@ local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
   done
 
   for lib in ${libraries}; do
-    [[ "${lib}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename ($lib)"
-    cp -i "${libsourcedir}/${lib}" "${libtargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    [[ "${lib}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename ($lib)"i
+    if [[ "${__si_arg_f:?}" = "1" ]]; then
+      cp -f "${libsourcedir}/${lib}" "${libtargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    else
+      cp -i "${libsourcedir}/${lib}" "${libtargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    fi
     find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
     debug "Installation file ${lib} was succesful to ${libtargetdir}"
   done

@@ -55,7 +55,6 @@ fi
 __sr_dir="$(cd "$(dirname "${BASH_SOURCE[${__sr_tmp_source_idx:-0}]}")" && pwd)"
 __sr_file="${__sr_dir}/$(basename "${BASH_SOURCE[${__sr_tmp_source_idx:-0}]}")"
 __sr_base="$(basename "${__sr_file}" .sh)"
-__sr_tmpdir="${TMPDIR:=/tmp}/${__sr_base}.$RANDOM.$RANDOM.$RANDOM.$$" 
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
@@ -67,6 +66,7 @@ export PATH="${__sr_dir}/lib:$PATH"
 source log.sh
 source os_detection.sh
 source display_info.sh
+source ini_val.sh
 
 #-------------------------------------------------------------------------------
 # Localization
@@ -87,11 +87,9 @@ export TEXTDOMAIN="${__sr_base}"
 # Usage 
 #-------------------------------------------------------------------------------
 [[ "${__sr_usage+x}" ]] || __sr_usage=$"
-  -s --script [scriptfile] Remove specified scriptfile and it's localization and libraries. Required.
-  -l --only-libraries      Remove only specified scriptfile's libraries, if any
-  -D --only-dependencies   Remove only specified scriptfile's dependencies
-  -L --only-locale         Remove only specified script locale files
-  -p --only-payloads       Remove only specified scriptfile's payload
+  -s --script [scriptfile] Remove specified scriptfile and it's localization and payloads. Required.
+  -l --with-libraries      Remove specified scriptfile and it's libraries, if any
+  -D --with-dependencies   Remove specified scriptfile and it's dependencies
   -d --debug               Enables debug mode
   -h --help                This page
   -n --no-color            Disable color output
@@ -112,22 +110,12 @@ __sr_license=$"Licensed under the MIT license"
 #===============================================================================
 function main() {
 local script="${__sr_arg_s}"
-local targetdir=$(which "${scriptfile}")  
-  info "__sr_arg_s: ${__sr_arg_s}"
-  info "__sr_arg_l: ${__sr_arg_l}"
-  info "__sr_arg_D: ${__sr_arg_D}"
-  info "__sr_arg_L: ${__sr_arg_L}"
-  info "__sr_arg_p: ${__sr_arg_p}"
+local targetdir=$(dirname $(which "${script}") 2>&-)  
 
   if [[ ! -z "${targetdir}" ]]; then
     localetargetdir=$( ini_val "${targetdir}/${script}.ini" install.locale )
     libtargetdir="${targetdir}/lib"
-    if [[ "${__sr_arg_l:?}" = "0" && "${__sr_arg_D:?}" = "0" && "${__sr_arg_L:?}" = "0" && "${__sr_arg_p:?}" = "0" ]]; then
-      fullremove=1
-    else
-      fullremove=0
-    fi
-    
+
     # Get variable arrays
     prerm=$( ini_val "${targetdir}/${script}.ini" install.prerm )
     postrm=$( ini_val "${targetdir}/${script}.ini" install.postrm )
@@ -141,12 +129,19 @@ local targetdir=$(which "${scriptfile}")
     # Check targetdir is writable
     [[ ! -w "${targetdir}" ]] && emergency "Removing script unsuccesful: ${targetdir} is not writable! It may need higher privileges."
 
-    # Calling prerm script if fullremove 
-    if [[ "${fullremove:?}" = "1" ]]; then
-      for command in "${prerm:-}"; do
-        eval "${command}"
-      done
-    fi
+    # Calling prerm script
+    for command in ${prerm:-}; do
+      eval "${command}"
+    done
+
+    #Remove script
+    for script in ${scripts}; do
+      [[ "$script" = *".."* ]] && emergency "Removing unsuccesful: unsupported filename ($script)"
+      rm -f "${targetdir}/${script}" || emergency "Removing unsuccesful: there was an error during removing file ${script}"
+      rm -f "${targetdir}/${script}.ini" || emergency "Removing unsuccesful: there was an error during removing file ${script}"
+      find "${localetargetdir}" -name "${script}.mo" -print0 | xargs -0 rm -f || emergency "Removing unsuccesful: there was an error during removing files"  
+      debug "Removing file ${targetdir}/${script} was succesfully removed" 
+    done    
 
     # Remove payloads
     for payload in ${payloads}; do
@@ -156,34 +151,29 @@ local targetdir=$(which "${scriptfile}")
     done 
 
     # Remove libraries
-    for lib in ${libraries}; do
-      [[ "${lib}" = *".."* ]] && emergency "Removing unsuccesful: unsupported filename ($lib)"
-      rm -rf "${targetdir}/lib/${lib}" || emergency "Removing unsuccesful: there was an error during removing files"
-      find "${localetargetdir}" -name "${lib}.mo" -print0 | xargs -0 rm -f || emergency "Removing unsuccesful: there was an error during removing files"
-      debug "Removing file ${targetdir}/lib/${lib} was succesful"
-    done
-
-    #Remove locale
-    #Remove script
-
-    # Calling postrm script if fullremove 
-    if [[ "${fullremove:?}" = "1" ]]; then
-      for command in "${postrm:-}"; do
-        eval "${command}"
+    if [[ "${__sr_arg_l:?}" = "1" ]]; then
+      for lib in ${libraries}; do
+        [[ "${lib}" = *".."* ]] && emergency "Removing unsuccesful: unsupported filename ($lib)"
+        rm -rf "${libtargetdir}/${lib}" || emergency "Removing unsuccesful: there was an error during removing files"
+        find "${localetargetdir}" -name "${lib}.mo" -print0 | xargs -0 rm -f || emergency "Removing unsuccesful: there was an error during removing files"
+        debug "Removing file ${targetdir}/lib/${lib} was succesful"
       done
     fi
+   
+    find "${targetdir}" -empty -type d -delete 
+    find "${localetargetdir}" -empty -type d -delete
 
+    #TODO: Remove dependencies
+
+    # Calling postrm script if fullremove 
+    for command in ${postrm:-}; do
+      eval "${command}"
+    done
+    
+    info "Removing script was success."
   else
     emergency "Script is unavailable or doesn't exists!"
   fi
-
-  # Check OS 
-  if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
-
-  else
-    emergency $"Unsupported operating system."
-  fi
-
 }
 
 #===============================================================================
