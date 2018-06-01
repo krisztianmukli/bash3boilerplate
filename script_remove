@@ -1,0 +1,411 @@
+#!/usr/bin/env bash
+#===============================================================================
+# Standalone script uninstaller (script_remove)
+# Licensed under the MIT license
+#
+# This file can uninstall bash-script and it's dependencies from a specified
+# folder, using script.ini file. 
+# It is part of BASH3 Boilerplate by krisztianmukli project.
+# 
+# Copyright (c) 2018 Krisztián Mukli
+# https://www.github.com/krisztianmukli/bash3boilerplate
+#
+# Notes
+#-------------------------------------------------------------------------------
+# Quickstart
+# Setup information
+# Changelog
+# ToDo
+# Known bugs
+#
+# Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
+#===============================================================================
+# Init section
+#===============================================================================
+# Exit on error 
+set -o errexit 
+# Exit on error inside any functions or subshells
+set -o errtrace
+# Do not allow use of undefined vars. Use ${VAR:-} to use an undefined VAR
+set -o nounset 
+# Catch the error when mysqldump fails (but gzip succeeds) in `mysqldump |gzip`
+set -o pipefail 
+# Turn on traces, useful while debugging but commented out by default
+#set -o xtrace
+
+#===============================================================================
+# Globals section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Environment variables
+#-------------------------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
+  __sr_srcd=1
+  if [[ "${__sr_usage+x}" ]]; then
+    [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __sr_srcd=0
+    __sr_external_usage=1
+    __sr_tmp_source_idx=1
+  fi 
+else
+  __sr_srcd=0
+  [[ "${__sr_usage+x}" ]] && unset -v __sr_usage
+  [[ "${__sr_helptext+x}" ]] && unset -v __sr_helptext
+fi
+__sr_dir="$(cd "$(dirname "${BASH_SOURCE[${__sr_tmp_source_idx:-0}]}")" && pwd)"
+__sr_file="${__sr_dir}/$(basename "${BASH_SOURCE[${__sr_tmp_source_idx:-0}]}")"
+__sr_base="$(basename "${__sr_file}" .sh)"
+
+LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
+NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
+
+#-------------------------------------------------------------------------------
+# Sourced files
+#-------------------------------------------------------------------------------
+export PATH="${__sr_dir}/lib:$PATH"
+source log.sh
+source os_detection.sh
+source display_info.sh
+source ini_val.sh
+
+#-------------------------------------------------------------------------------
+# Localization
+#-------------------------------------------------------------------------------
+__sr_localepath=( "${__sr_dir}/locale" "${HOME}/.local/share/locale" "/usr/local/share/locale" "/usr/share/locale" )
+  for folder in "${__sr_localepath[@]}"; do
+    if [[ -d "${folder}" ]]; then
+      count=$(find "${folder}" -name "${__sr_base}.mo" | wc -l )
+      if [[ $count -gt 0 ]]; then
+        export TEXTDOMAINDIR="${folder}"
+        break
+      fi
+    fi
+  done
+export TEXTDOMAIN="${__sr_base}"
+
+#-------------------------------------------------------------------------------
+# Usage 
+#-------------------------------------------------------------------------------
+[[ "${__sr_usage+x}" ]] || __sr_usage=$"
+  -s --script [scriptfile] Remove specified scriptfile and it's localization and payloads. Required.
+  -l --with-libraries      Remove specified scriptfile and it's libraries, if any
+  -D --with-dependencies   Remove specified scriptfile and it's dependencies
+  -d --debug               Enables debug mode
+  -h --help                This page
+  -n --no-color            Disable color output
+  -v                       Enable verbose mode, print script as it is executed
+  -V --version             Display version and license information"
+
+[[ "${__sr_helptext+x}" ]] || __sr_helptext=$"This command can install bash-script and it's dependencies from a specified folder, 
+using script own ini file. 
+ It is part of BASH3 Boilerplate by krisztianmukli project."
+__sr_defaulttext=$"Default"
+__sr_requiredtext=$"Required"
+__sr_name=$"Standalone script uninstaller"
+__sr_version="v1.0.0"
+__sr_license=$"Licensed under the MIT license"
+
+#===============================================================================
+# Functions section
+#===============================================================================
+function main() {
+local script="${__sr_arg_s}"
+local targetdir=$(dirname $(which "${script}") 2>&-)  
+
+  if [[ ! -z "${targetdir}" ]]; then
+    localetargetdir=$( ini_val "${targetdir}/${script}.ini" install.locale )
+    libtargetdir="${targetdir}/lib"
+
+    # Get variable arrays
+    prerm=$( ini_val "${targetdir}/${script}.ini" install.prerm )
+    postrm=$( ini_val "${targetdir}/${script}.ini" install.postrm )
+    payloads=$( ini_val "${targetdir}/${script}.ini" install.payloads )
+    scripts=$( ini_val "${targetdir}/${script}.ini" install.scripts )
+    libraries=$( ini_val "${targetdir}/${script}.ini" install.libraries )
+
+    # Check targetdir is exists
+    [[ ! -d "${targetdir}" ]] && emergency "Removing script unsuccesful: ${targetdir} is not exists!"
+    
+    # Check targetdir is writable
+    [[ ! -w "${targetdir}" ]] && emergency "Removing script unsuccesful: ${targetdir} is not writable! It may need higher privileges."
+
+    # Calling prerm script
+    for command in ${prerm:-}; do
+      eval "${command}"
+    done
+
+    #Remove script
+    for script in ${scripts}; do
+      [[ "$script" = *".."* ]] && emergency "Removing unsuccesful: unsupported filename ($script)"
+      rm -f "${targetdir}/${script}" || emergency "Removing unsuccesful: there was an error during removing file ${script}"
+      rm -f "${targetdir}/${script}.ini" || emergency "Removing unsuccesful: there was an error during removing file ${script}"
+      find "${localetargetdir}" -name "${script}.mo" -print0 | xargs -0 rm -f || emergency "Removing unsuccesful: there was an error during removing files"  
+      debug "Removing file ${targetdir}/${script} was succesfully removed" 
+    done    
+
+    # Remove payloads
+    for payload in ${payloads}; do
+      [[ "${payload}" = *".."* ]] && emergency "Removing unsuccesful: unsupported filename (${payload})"
+      rm -f "${targetdir}/${payload}" || emergency "Removing unsuccesful: there was an error during removing files"
+      debug "The file ${sourcedir}/${payload} was succesfully removed."
+    done 
+
+    # Remove libraries
+    if [[ "${__sr_arg_l:?}" = "1" ]]; then
+      for lib in ${libraries}; do
+        [[ "${lib}" = *".."* ]] && emergency "Removing unsuccesful: unsupported filename ($lib)"
+        rm -rf "${libtargetdir}/${lib}" || emergency "Removing unsuccesful: there was an error during removing files"
+        find "${localetargetdir}" -name "${lib}.mo" -print0 | xargs -0 rm -f || emergency "Removing unsuccesful: there was an error during removing files"
+        debug "Removing file ${targetdir}/lib/${lib} was succesful"
+      done
+    fi
+   
+    find "${targetdir}" -empty -type d -delete 
+    find "${localetargetdir}" -empty -type d -delete
+
+    #TODO: Remove dependencies
+
+    # Calling postrm script if fullremove 
+    for command in ${postrm:-}; do
+      eval "${command}"
+    done
+    
+    info "Removing script was success."
+  else
+    emergency "Script is unavailable or doesn't exists!"
+  fi
+}
+
+#===============================================================================
+# Main section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Parse usage string
+#-------------------------------------------------------------------------------
+while read -r __sr_tmp_line; do
+  if [[ "${__sr_tmp_line}" =~ ^- ]]; then
+    # fetch single character version of option string
+    __sr_tmp_opt="${__sr_tmp_line%% *}"
+    __sr_tmp_opt="${__sr_tmp_opt:1}"
+
+    # fetch long version if present
+    __sr_tmp_long_opt=""
+
+    if [[ "${__sr_tmp_line}" = *"--"* ]]; then
+      __sr_tmp_long_opt="${__sr_tmp_line#*--}"
+      __sr_tmp_long_opt="${__sr_tmp_long_opt%% *}"
+    fi
+
+    # map opt long name to+from opt short name
+    printf -v "__sr_tmp_opt_long2short_${__sr_tmp_long_opt//-/_}" '%s' "${__sr_tmp_opt}"
+    printf -v "__sr_tmp_opt_short2long_${__sr_tmp_opt}" '%s' "${__sr_tmp_long_opt//-/_}"
+
+    # check if option takes an argument
+    if [[ "${__sr_tmp_line}" =~ \[.*\] ]]; then
+      __sr_tmp_opt="${__sr_tmp_opt}:" # add : if opt has arg
+      __sr_tmp_init=""  # it has an arg. init with ""
+      printf -v "__sr_tmp_has_arg_${__sr_tmp_opt:0:1}" '%s' "1"
+    elif [[ "${__sr_tmp_line}" =~ \{.*\} ]]; then
+      __sr_tmp_opt="${__sr_tmp_opt}:" # add : if opt has arg
+      __sr_tmp_init=""  # it has an arg. init with ""
+      # remember that this option requires an argument
+      printf -v "__sr_tmp_has_arg_${__sr_tmp_opt:0:1}" '%s' "2"
+    else
+      __sr_tmp_init="0" # it's a flag. init with 0
+      printf -v "__sr_tmp_has_arg_${__sr_tmp_opt:0:1}" '%s' "0"
+    fi
+    __sr_tmp_opts="${__sr_tmp_opts:-}${__sr_tmp_opt}"
+  fi
+
+  [[ "${__sr_tmp_opt:-}" ]] || continue
+
+  if [[ "${__sr_tmp_line}" =~ ^"${__sr_defaulttext}"= ]] || [[ "${__sr_tmp_line}" =~ \.\ *"${__sr_defaulttext}"= ]]; then
+    # ignore default value if option does not have an argument
+    __sr_tmp_varname="__sr_tmp_has_arg_${__sr_tmp_opt:0:1}"
+
+    if [[ "${!__sr_tmp_varname}" != "0" ]]; then
+      __sr_tmp_init="${__sr_tmp_line##*${__sr_defaulttext}=}"
+      __sr_tmp_re='^"(.*)"$'
+      if [[ "${__sr_tmp_init}" =~ ${__sr_tmp_re} ]]; then
+        __sr_tmp_init="${BASH_REMATCH[1]}"
+      else
+        __sr_tmp_re="^'(.*)'$"
+        if [[ "${__sr_tmp_init}" =~ ${__sr_tmp_re} ]]; then
+          __sr_tmp_init="${BASH_REMATCH[1]}"
+        fi
+      fi
+    fi
+  fi
+
+  if [[ "${__sr_tmp_line}" =~ ^"${__sr_requiredtext}"\. ]] || [[ "${__sr_tmp_line}" =~ \.\ *"${__sr_requiredtext}"\. ]]; then
+    # remember that this option requires an argument
+    printf -v "__sr_tmp_has_arg_${__sr_tmp_opt:0:1}" '%s' "2"
+  fi
+
+  printf -v "__sr_arg_${__sr_tmp_opt:0:1}" '%s' "${__sr_tmp_init}"
+done <<< "${__sr_usage:-}"
+
+#-------------------------------------------------------------------------------
+# Parse command-line arguments
+#-------------------------------------------------------------------------------
+# run getopts only if options were specified in __usage
+if [[ "${__sr_tmp_opts:-}" ]]; then
+  # Allow long options like --this
+  __sr_tmp_opts="${__sr_tmp_opts}-:"
+
+  # Reset in case getopts has been used previously in the shell.
+  OPTIND=1
+
+  # start parsing command line
+  set +o nounset # unexpected arguments will cause unbound variables
+                 # to be dereferenced
+  # Overwrite $arg_<flag> defaults with the actual CLI options
+  while getopts "${__sr_tmp_opts}" __sr_tmp_opt; do
+    [[ "${__sr_tmp_opt}" = "?" ]] && display_info $"Invalid use of script: ${*}" "${__sr_usage}" "${__sr_helptext}"
+
+    if [[ "${__sr_tmp_opt}" = "-" ]]; then
+      # OPTARG is long-option-name or long-option=value
+      if [[ "${OPTARG}" =~ .*=.* ]]; then
+        # --key=value format
+        __sr_tmp_long_opt=${OPTARG/=*/}
+        # Set opt to the short option corresponding to the long option
+        __sr_tmp_varname="__sr_tmp_opt_long2short_${__sr_tmp_long_opt//-/_}"
+        printf -v "__sr_tmp_opt" '%s' "${!__sr_tmp_varname}"
+        OPTARG=${OPTARG#*=}
+      else
+        # --key value format
+        # Map long name to short version of option
+        __sr_tmp_varname="__sr_tmp_opt_long2short_${OPTARG//-/_}"
+        printf -v "__sr_tmp_opt" '%s' "${!__sr_tmp_varname}"
+        # Only assign OPTARG if option takes an argument
+        __sr_tmp_varname="__sr_tmp_has_arg_${__sr_tmp_opt}"
+        printf -v "OPTARG" '%s' "${@:OPTIND:${!__sr_tmp_varname}}"
+        # shift over the argument if argument is expected
+        ((OPTIND+=__sr_tmp_has_arg_${__sr_tmp_opt}))
+      fi
+      # we have set opt/OPTARG to the short value and the argument as OPTARG if it exists
+    fi
+    __sr_tmp_varname="__sr_arg_${__sr_tmp_opt:0:1}"
+    __sr_tmp_default="${!__sr_tmp_varname}"
+
+    __sr_tmp_value="${OPTARG}"
+    if [[ -z "${OPTARG}" ]]; then
+      __sr_tmp_value=$((__sr_tmp_default + 1))
+    fi
+
+    printf -v "${__sr_tmp_varname}" '%s' "${__sr_tmp_value}"
+    debug "cli arg ${__sr_tmp_varname} = (${__sr_tmp_default}) -> ${!__sr_tmp_varname}"
+  done
+  set -o nounset # no more unbound variable references expected
+
+  shift $((OPTIND-1))
+
+  if [[ "${1:-}" = "--" ]] ; then
+    shift
+  fi
+fi
+
+#-------------------------------------------------------------------------------
+# Helper functions
+#-------------------------------------------------------------------------------
+if [[ "${__sr_arg_h:?}" = "1" ]]; then
+  # Help exists with code 1
+  display_info $"Help using ${0}" "${__sr_usage}" "${__sr_helptext}"
+fi
+
+if [[ "${__sr_arg_V:?}" = "1" ]]; then
+  # Version exists with code 1
+  display_info "${__sr_name}" "${__sr_version}" "${__sr_license}"
+fi
+
+#-------------------------------------------------------------------------------
+# Validate required arguments
+#-------------------------------------------------------------------------------
+[[ "${__sr_arg_s:-}" ]] || display_info $"Setting a filename with -s or --source is required" "${__sr_usage}" "${__sr_helptext}"  
+[[ "${LOG_LEVEL:-}" ]] || emergency $"Cannot continue without LOG_LEVEL. "
+
+#-------------------------------------------------------------------------------
+# Validate required option arguments
+#-------------------------------------------------------------------------------
+for __sr_tmp_varname in ${!__sr_tmp_has_arg_*}; do
+  # validate only options which required an argument
+  [[ "${!__sr_tmp_varname}" = "2" ]] || continue
+
+  __sr_tmp_opt_short="${__sr_tmp_varname##*_}"
+  __sr_tmp_varname="__sr_arg_${__sr_tmp_opt_short}"
+  [[ "${!__sr_tmp_varname}" ]] && continue
+
+  __sr_tmp_varname="__sr_tmp_opt_short2long_${__sr_tmp_opt_short}"
+  printf -v "__sr_tmp_opt_long" '%s' "${!__sr_tmp_varname}"
+  [[ "${__sr_tmp_opt_long:-}" ]] && __sr_tmp_opt_long=" (--${__sr_tmp_opt_long//_/-})"
+
+  display_info  $"Option -${__sr_tmp_opt_short}${__sr_tmp_opt_long:-} requires an argument" "${__sr_usage}" "${__sr_helptext}"
+done
+
+#-------------------------------------------------------------------------------
+# Cleanup temporary variables 
+#-------------------------------------------------------------------------------
+for __tmp_varname in ${!__sr_tmp_*}; do
+  unset -v "${__tmp_varname}"
+done
+
+unset -v __tmp_varname
+
+#-------------------------------------------------------------------------------
+# Externally supplied __sr_usage. Nothing else to do here
+#-------------------------------------------------------------------------------
+if [[ "${__sr_external_usage:-}" == 1 ]]; then
+  unset -v __sr_external_usage
+  return
+fi
+
+#-------------------------------------------------------------------------------
+# Signal trapping and backtracing
+#-------------------------------------------------------------------------------
+function __sr_cleanup_before_exit () {
+  info $"Cleaning up. Done"
+}
+trap __sr_cleanup_before_exit EXIT
+
+# requires `set -o errtrace`
+__sr_err_report() {
+    local error_code
+    error_code=${?}
+    error $"Error in ${__file} in function ${1} on line ${2}"
+    exit ${error_code}
+}
+# Uncomment the following line for always providing an error backtrace
+# trap '__sr_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+
+#-------------------------------------------------------------------------------
+# Call internal functions
+#-------------------------------------------------------------------------------
+# debug mode
+if [[ "${__sr_arg_d:?}" = "1" ]]; then
+  set -o xtrace
+  LOG_LEVEL="7"
+  # Enable error backtracing
+  trap '__sr_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+fi
+
+# verbose mode
+if [[ "${__sr_arg_v:?}" = "1" ]]; then
+  set -o verbose
+fi
+
+# no color mode
+if [[ "${__sr_arg_n:?}" = "1" ]]; then
+  NO_COLOR="true"
+fi
+
+#-------------------------------------------------------------------------------
+# Runtime
+#-------------------------------------------------------------------------------
+if [[ "${__sr_srcd:-}" == 0 ]]; then
+  main
+fi
+
+#===============================================================================
+# END OF FILE
+#===============================================================================
