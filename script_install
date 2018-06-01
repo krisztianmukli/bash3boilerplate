@@ -123,6 +123,7 @@ local libtargetdir="${targetdir:-}/lib"
 local localetargetdir="${3:-}"
 local scripts=$( ini_val "${sourcedir}/install.ini" install.scripts )
 local libraries=$( ini_val "${sourcedir}/install.ini" install.libraries )
+local payloads=$( ini_val "${sourcedir}/install.ini" install.payloads )
 
   # Check sourcedir is exists
   [[ -d "${sourcedir}" ]] || emergency "Installation unsuccesful: ${sourcedir} is not exists!"
@@ -153,8 +154,11 @@ local libraries=$( ini_val "${sourcedir}/install.ini" install.libraries )
     # Check filename can't pipe to upper directory
     [[ "${script}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename (${script})"
     cp -i "${sourcedir}/${script}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    cp -i "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || (emergency "Installation unsuccesful: there was an error during copying files")
     [[ ! -x "${targetdir}/${script}" ]] && (chmod +x "${targetdir}/${script}" || error "Set executable permission was unsuccesful for file ${targetdir}/${script}! Maybe it need higher privileges!")
     find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    # Save localetargetdir for removing
+    ini_val "${targetdir}/${script}.ini" install.locale ${localetargetdir}
     debug "Installation file ${script} was succesful to ${targetdir}"
   done
 
@@ -163,6 +167,13 @@ local libraries=$( ini_val "${sourcedir}/install.ini" install.libraries )
     cp -i "${libsourcedir}/${lib}" "${libtargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
     find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
     debug "Installation file ${lib} was succesful to ${libtargetdir}"
+  done
+
+  for payload in ${payloads}; do
+    # Check filename can't pipe to upper directory
+    [[ "${payload}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename (${payload})"
+    cp -i "${sourcedir}/${payload}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    debug "Installation file ${script} was succesful to ${targetdir}"
   done
 
   info "Installation files was succesful to ${targetdir}"
