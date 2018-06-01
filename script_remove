@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 #===============================================================================
 # Standalone script uninstaller (script_remove)
 # Licensed under the MIT license
@@ -16,7 +15,10 @@
 # Setup information
 # Changelog
 # ToDo
-# Known bugs
+# Known bugs and limitations
+#
+# * Can not automatically remove third party scripts and programmes, but postrm
+# usable for such cases.
 #
 # Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
 #===============================================================================
@@ -120,6 +122,7 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
     prerm=$( ini_val "${targetdir}/${script}.ini" install.prerm )
     postrm=$( ini_val "${targetdir}/${script}.ini" install.postrm )
     payloads=$( ini_val "${targetdir}/${script}.ini" install.payloads )
+    dependencies=$( ini_val "${targetdir}/${script}.ini" install.dependencies )
     scripts=$( ini_val "${targetdir}/${script}.ini" install.scripts )
     libraries=$( ini_val "${targetdir}/${script}.ini" install.libraries )
 
@@ -163,7 +166,10 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
     find "${targetdir}" -empty -type d -delete 
     find "${localetargetdir}" -empty -type d -delete
 
-    #TODO: Remove dependencies
+    #Remove dependencies
+    if [[ "${__sr_arg_D}" = "1" ]]; then
+      sudo apt-get remove --yes ${dependencies}
+    fi
 
     # Calling postrm script if fullremove 
     for command in ${postrm:-}; do

@@ -19,8 +19,6 @@
 # Setup information
 # Changelog
 # ToDo
-#TODO: Check and install dependencies with system package-manager and third party
-#
 # Known bugs and limitations
 #
 # * When targetfile unwritable and cp ask 'try anyway?' and user choose No, 
@@ -128,6 +126,8 @@ local localetargetdir="${3:-}"
 local scripts=$( ini_val "${sourcedir}/install.ini" install.scripts )
 local libraries=$( ini_val "${sourcedir}/install.ini" install.libraries )
 local payloads=$( ini_val "${sourcedir}/install.ini" install.payloads )
+local dependencies=$( ini_val "${sourcedir}/install.ini" install.dependencies )
+local thirdparties=$( ini_val "${sourcedir}/install.ini" install.thirdparties )
 local preinst=$( ini_val "${sourcedir}/install.ini" install.preinst )
 local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
 
@@ -175,7 +175,7 @@ local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
     [[ ! -x "${targetdir}/${script}" ]] && (chmod +x "${targetdir}/${script}" || error "Set executable permission was unsuccesful for file ${targetdir}/${script}! Maybe it need higher privileges!")
     find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
     # Save localetargetdir for removing
-    ini_val "${targetdir}/${script}.ini" install.locale ${localetargetdir}
+    ini_val "${targetdir}/${script}.ini" install.locale "${localetargetdir}"
     debug "Installation file ${script} was succesful to ${targetdir}"
   done
 
@@ -195,6 +195,14 @@ local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
     [[ "${payload}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename (${payload})"
     cp -i "${sourcedir}/${payload}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
     debug "Installation file ${script} was succesful to ${targetdir}"
+  done
+
+  # Install dependencies  
+  eval "${pkgmanagercmd} ${dependencies}"
+
+  # Calling thirdparty scripts, if any
+  for command in ${thirdparties}; do
+    eval "${__si_dir}/${command}"
   done
 
   # Calling postinstall scripts, if any
@@ -231,15 +239,21 @@ local sourcedir="${__si_arg_s}"
 
   # Check OS 
   if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
+
+    if [[ "${__si_arg_f:?}" = "1" ]]; then
+      pkgmanagercmd="sudo apt-get install --yes "
+    else
+      pkgmanagercmd="sudo apt-get install "
+    fi
     # Check permissions
     if [[ $EUID != 0 ]]; then
 
       if [[ ! -z "${__si_arg_t}" ]]; then
         targetdir="${__si_arg_t}"
-	targetdirtext="${__si_arg_t}"
+        targetdirtext="${__si_arg_t}"
       else
         targetdir="${HOME}/.local/bin"
-	targetdirtext="\$HOME/.local/bin"
+        targetdirtext="\$HOME/.local/bin"
       fi
 
       localedir="${__si_arg_t:-${HOME}/.local/share}"
@@ -247,7 +261,6 @@ local sourcedir="${__si_arg_s}"
       edit_profile "${targetdirtext}" && source "${HOME}/.profile" && export PATH
 
     else
-
       targetdir="${__si_arg_t:-/usr/local/bin}"
       targetdirtext="${__si_arg_t:-}"
       localedir="${__si_arg_t:-/usr/local/share/locale}"
