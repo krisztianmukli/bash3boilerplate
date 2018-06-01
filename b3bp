@@ -26,7 +26,7 @@ shopt -s expand_aliases
 set -o errexit 
 # Exit on error inside any functions or subshells
 set -o errtrace
- # Do not allow use of undefined vars. Use ${VAR:-} to use an undefined VAR
+# Do not allow use of undefined vars. Use ${VAR:-} to use an undefined VAR
 set -o nounset 
 # Catch the error when mysqldump fails (but gzip succeeds) in `mysqldump |gzip`
 set -o pipefail 
@@ -55,7 +55,7 @@ fi
 __b3bp_dir="$(cd "$(dirname "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")" && pwd)"
 __b3bp_file="${__b3bp_dir}/$(basename "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")"
 __b3bp_base="$(basename "${__b3bp_file}" .sh)"
-__b3bp_tmpdir="${TMPDIR:=/tmp}/${__b3bp_base}.$RANDOM.$RANDOM.$RANDOM.$$"
+__b3bp_tmpdir="${TMPDIR:=/tmp}/${__b3bp_base}.$RANDOM.$RANDOM.$RANDOM.$$" 
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
@@ -63,20 +63,23 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 #-------------------------------------------------------------------------------
 # Sourced files
 #-------------------------------------------------------------------------------
-export PATH="${__b3bp_dir}/lib:${HOME}/.local/share/${__b3bp_base}:$PATH"
+export PATH="${__b3bp_dir}/lib:$PATH"
 source log.sh
 source os_detection.sh
 source display_info.sh
+source install_script.sh
 
 #-------------------------------------------------------------------------------
 # Localization
 #-------------------------------------------------------------------------------
-export TEXTDOMAINDIR="/usr/share/locale"
-__b3bp_localepath=( "${__b3bp_dir}/locale" "${HOME}/.local/share/locale" )
+__b3bp_localepath=( "${__b3bp_dir}/locale" "${HOME}/.local/share/locale" "/usr/local/share/locale" "/usr/share/locale" )
   for folder in "${__b3bp_localepath[@]}"; do
     if [[ -d "${folder}" ]]; then
-      export TEXTDOMAINDIR="${folder}"
-      break
+      count=$(find "${folder}" -name "${__b3bp_base}.mo" | wc -l )
+      if [[ $count -gt 0 ]]; then
+        export TEXTDOMAINDIR="${folder}"
+        break
+      fi
     fi
   done
 export TEXTDOMAIN="${__b3bp_base}"
@@ -91,7 +94,9 @@ export TEXTDOMAIN="${__b3bp_base}"
   -h --help        This page
   -n --no-color    Disable color output
   -1 --one         Do just one thing
-  -V --version     Display version and license information"
+  -V --version     Display version and license information
+  -I --install     Install script
+  -U --uninstall   Uninstall script"
 
 [[ "${__b3bp_helptext+x}" ]] || __b3bp_helptext=$"This is Bash3 Boilerplate's help text. Feel free to add any description of your
  program or elaborate more on command-line arguments. This section is not
@@ -101,29 +106,6 @@ __b3bp_requiredtext=$"Required"
 __b3bp_name=$"BASH3 Boilerplate by krisztianmukli"
 __b3bp_version="v1.0.0"
 __b3bp_license=$"Licensed under the MIT license"
-
-#-------------------------------------------------------------------------------
-# Signal trapping and backtracing
-#-------------------------------------------------------------------------------
-function create_tempdir() {
-  (umask 077 && mkdir "${__b3bp_tmpdir}") || emergency $"Could not create temporary directory! Exiting."
-}
-
-function __b3bp_cleanup_before_exit () {
-  rm -rf "${__b3bp_tmpdir}"
-  info $"Cleaning up. Done"
-}
-trap __b3bp_cleanup_before_exit EXIT
-
-# requires `set -o errtrace`
-__b3bp_err_report() {
-    local error_code
-    error_code=${?}
-    error $"Error in ${__file} in function ${1} on line ${2}"
-    exit ${error_code}
-}
-# Uncomment the following line for always providing an error backtrace
-# trap '__b3bp_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
 
 #===============================================================================
 # Functions section
@@ -297,7 +279,7 @@ if [[ "${__b3bp_tmp_opts:-}" ]]; then
 fi
 
 #-------------------------------------------------------------------------------
-# Help mode
+# Helper functions
 #-------------------------------------------------------------------------------
 if [[ "${__b3bp_arg_h:?}" = "1" ]]; then
   # Help exists with code 1
@@ -349,6 +331,29 @@ if [[ "${__b3bp_external_usage:-}" == 1 ]]; then
   unset -v __b3bp_external_usage
   return
 fi
+
+#-------------------------------------------------------------------------------
+# Signal trapping and backtracing
+#-------------------------------------------------------------------------------
+function create_tempdir() {
+  (umask 077 && mkdir "${__b3bp_tmpdir}") || emergency $"Could not create temporary directory! Exiting."
+}
+
+function __b3bp_cleanup_before_exit () {
+  rm -rf "${__b3bp_tmpdir}"
+  info $"Cleaning up. Done"
+}
+trap __b3bp_cleanup_before_exit EXIT
+
+# requires `set -o errtrace`
+__b3bp_err_report() {
+    local error_code
+    error_code=${?}
+    error $"Error in ${__file} in function ${1} on line ${2}"
+    exit ${error_code}
+}
+# Uncomment the following line for always providing an error backtrace
+# trap '__b3bp_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
 
 #-------------------------------------------------------------------------------
 # Call internal functions

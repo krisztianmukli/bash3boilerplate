@@ -1,0 +1,489 @@
+#!/usr/bin/env bash
+#===============================================================================
+# Standalone script installer (script_install)
+# Licensed under the MIT license
+#
+# This file can install bash-script and it's dependencies from a specified
+# folder, using install.ini file. 
+# It is part of BASH3 Boilerplate by krisztianmukli project.
+# 
+# Copyright (c) 2018 Krisztián Mukli
+# https://www.github.com/krisztianmukli/bash3boilerplate
+#
+# Notes
+#-------------------------------------------------------------------------------
+# Quickstart
+#
+#   script_install -s sourcedir [-t targetdir | -c]
+#
+# Setup information
+# Changelog
+# ToDo
+#TODO: Check and install dependencies with system package-manager and third party
+#
+# Known bugs and limitations
+#
+# * When targetfile unwritable and cp ask 'try anyway?' and user choose No, 
+#   it will exit 0, and script_install say installation was succesful.
+# * Preinstall and postinstall script must be locate in source directory
+#
+# Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
+#===============================================================================
+# Init section
+#===============================================================================
+# Exit on error 
+set -o errexit 
+# Exit on error inside any functions or subshells
+set -o errtrace
+# Do not allow use of undefined vars. Use ${VAR:-} to use an undefined VAR
+set -o nounset 
+# Catch the error when mysqldump fails (but gzip succeeds) in `mysqldump |gzip`
+set -o pipefail 
+# Turn on traces, useful while debugging but commented out by default
+#set -o xtrace
+
+#===============================================================================
+# Globals section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Environment variables
+#-------------------------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
+  __si_srcd=1
+  if [[ "${__si_usage+x}" ]]; then
+    [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __si_srcd=0
+    __si_external_usage=1
+    __si_tmp_source_idx=1
+  fi 
+else
+  __si_srcd=0
+  [[ "${__si_usage+x}" ]] && unset -v __si_usage
+  [[ "${__si_helptext+x}" ]] && unset -v __si_helptext
+fi
+__si_dir="$(cd "$(dirname "${BASH_SOURCE[${__si_tmp_source_idx:-0}]}")" && pwd)"
+__si_file="${__si_dir}/$(basename "${BASH_SOURCE[${__si_tmp_source_idx:-0}]}")"
+__si_base="$(basename "${__si_file}" .sh)"
+
+LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
+NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
+
+#-------------------------------------------------------------------------------
+# Sourced files
+#-------------------------------------------------------------------------------
+export PATH="${__si_dir}/lib:$PATH"
+source log.sh
+source os_detection.sh
+source display_info.sh
+source ini_val.sh
+
+#-------------------------------------------------------------------------------
+# Localization
+#-------------------------------------------------------------------------------
+__si_localepath=( "${__si_dir}/locale" "${HOME}/.local/share/locale" "/usr/local/share/locale" "/usr/share/locale" )
+  for folder in "${__si_localepath[@]}"; do
+    if [[ -d "${folder}" ]]; then
+      count=$(find "${folder}" -name "${__si_base}.mo" | wc -l )
+      if [[ $count -gt 0 ]]; then
+        export TEXTDOMAINDIR="${folder}"
+        break
+      fi
+    fi
+  done
+export TEXTDOMAIN="${__si_base}"
+
+#-------------------------------------------------------------------------------
+# Usage 
+#-------------------------------------------------------------------------------
+[[ "${__si_usage+x}" ]] || __si_usage=$"-c --check-dependencies  Check dependencies of specified script
+  -d --debug               Enables debug mode
+  -h --help                This page
+  -i --ini [inifile]       Ini-file using the installation. Default="install.ini"
+  -n --no-color            Disable color output
+  -s --source [sourcedir]  Source dir of script. Default=.
+  -t --target [targetdir]  Target directory. Optional, if not specified, installer use /usr/local/bin or ~/.local/bin
+  -v                       Enable verbose mode, print script as it is executed
+  -V --version             Display version and license information"
+
+[[ "${__si_helptext+x}" ]] || __si_helptext=$"This command can install bash-script and it's dependencies from a specified
+ folder, using install.ini file. 
+ It is part of BASH3 Boilerplate by krisztianmukli project."
+__si_defaulttext=$"Default"
+__si_requiredtext=$"Required"
+__si_name=$"Standalone script installer"
+__si_version="v1.0.0"
+__si_license=$"Licensed under the MIT license"
+
+#===============================================================================
+# Functions section
+#===============================================================================
+function install_files() {
+local sourcedir=${1:-}
+local libsourcedir="${sourcedir:-}/lib"
+local localesourcedir="${sourcedir:-}/locale"
+local targetdir=${2:-}
+local libtargetdir="${targetdir:-}/lib"
+local localetargetdir="${3:-}"
+local scripts=$( ini_val "${sourcedir}/install.ini" install.scripts )
+local libraries=$( ini_val "${sourcedir}/install.ini" install.libraries )
+local payloads=$( ini_val "${sourcedir}/install.ini" install.payloads )
+local preinst=$( ini_val "${sourcedir}/install.ini" install.preinst )
+local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
+
+  # Check sourcedir is exists
+  [[ -d "${sourcedir}" ]] || emergency "Installation unsuccesful: ${sourcedir} is not exists!"
+
+  # Calling preinstall scripts, if any
+  for command in ${preinst}; do
+    eval "${__si_dir}/${command}"
+  done
+
+  # Check targetdir is exists, otherwise create it
+  [[ ! -d "${targetdir}" ]] && (mkdir "${targetdir}" 2>&- || emergency "Installation unsuccesful: can not create ${targetdir}")
+  # Check targetdir is writable
+  [[ ! -w "${targetdir}" ]] && emergency "Installation unsuccesful: ${targetdir} not writable"
+  
+  # Check libraries is not empty
+  if [[ "${libraries+x}" ]]; then	  
+    # Check sourcedir/lib is exists
+    [[ -d "${libsourcedir}" ]] || emergency "Installation unsuccesful: ${libsourcedir} is not exists!"
+    # Check targetdir/lib is exists, otherwise create it
+    [[ ! -d "${libtargetdir}" ]] && (mkdir "${libtargetdir}" 2>&- || emergency "Installation unsuccesful: can not create ${libtargetdir}")
+    # Check targetdir/lib is writable
+    [[ ! -w "${libtargetdir}" ]] && emergency "Installation unsuccesful: ${libtargetdir} not writable"
+  fi
+
+  # Check localedir is exists, if there is locale folder in sourcedir
+  if [[ -d "${localesourcedir}" ]]; then
+    # Check targetdir is exists, otherwise create it
+    [[ ! -d "${localetargetdir}" ]] && (mkdir "${localetargetdir}" 2>&- || emergency "Installation unsuccesful: can not create ${localetargetdir}")
+    # Check targetdir is writable
+    [[ ! -w "${localetargetdir}" ]] && emergency "Installation unsuccesful: ${localetargetdir} not writable"
+  fi
+
+  for script in ${scripts}; do
+    # Check filename can't pipe to upper directory
+    [[ "${script}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename (${script})"
+    cp -i "${sourcedir}/${script}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    cp -i "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || (emergency "Installation unsuccesful: there was an error during copying files")
+    [[ ! -x "${targetdir}/${script}" ]] && (chmod +x "${targetdir}/${script}" || error "Set executable permission was unsuccesful for file ${targetdir}/${script}! Maybe it need higher privileges!")
+    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    # Save localetargetdir for removing
+    ini_val "${targetdir}/${script}.ini" install.locale ${localetargetdir}
+    debug "Installation file ${script} was succesful to ${targetdir}"
+  done
+
+  for lib in ${libraries}; do
+    [[ "${lib}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename ($lib)"
+    cp -i "${libsourcedir}/${lib}" "${libtargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    debug "Installation file ${lib} was succesful to ${libtargetdir}"
+  done
+
+  for payload in ${payloads}; do
+    # Check filename can't pipe to upper directory
+    [[ "${payload}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename (${payload})"
+    cp -i "${sourcedir}/${payload}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    debug "Installation file ${script} was succesful to ${targetdir}"
+  done
+
+  # Calling postinstall scripts, if any
+  for command in ${postinst}; do
+    eval "${__si_dir}/${command}"
+  done
+
+  info "Installation files was succesful to ${targetdir}"
+}
+
+function edit_profile(){
+local folder=${1:-}
+  if [[ ! -z "${folder}" ]]; then
+
+      if ! grep -q "${folder}" "${HOME}/.profile"; then
+        {
+          echo "" 
+          echo "# set PATH so it includes user's private bin if it exists - Added by b3bp installer"
+          echo "if [ -d \"${folder}\" ] ; then"
+          echo "    PATH=\"${folder}:\$PATH\" "
+          echo "fi" 
+        } >> "${HOME}/.profile"
+        warning "~/.profile was updated, please login again or run 'source ~/.profile' command to reload PATH variable!"
+
+	return 0 
+      fi
+
+  fi
+  return 1
+}
+
+function main() {
+local sourcedir="${__si_arg_s}"
+
+  # Check OS 
+  if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
+    # Check permissions
+    if [[ $EUID != 0 ]]; then
+
+      if [[ ! -z "${__si_arg_t}" ]]; then
+        targetdir="${__si_arg_t}"
+	targetdirtext="${__si_arg_t}"
+      else
+        targetdir="${HOME}/.local/bin"
+	targetdirtext="\$HOME/.local/bin"
+      fi
+
+      localedir="${__si_arg_t:-${HOME}/.local/share}"
+      install_files "${sourcedir}" "${targetdir}" "${localedir}"
+      edit_profile "${targetdirtext}" && source "${HOME}/.profile" && export PATH
+
+    else
+
+      targetdir="${__si_arg_t:-/usr/local/bin}"
+      targetdirtext="${__si_arg_t:-}"
+      localedir="${__si_arg_t:-/usr/local/share/locale}"
+
+      install_files "${sourcedir}" "${targetdir}" "${localedir}"
+      edit_profile "${targetdirtext}" && source "${HOME}/.profile" && export PATH
+    fi
+
+   else
+     display_info $"Unsupported operating system." $"Install script manually: 
+* Copy the script and the lib folder to your PATH.
+* Copy to locale folder to your locale folder."
+
+   fi
+
+}
+
+#===============================================================================
+# Main section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Parse usage string
+#-------------------------------------------------------------------------------
+while read -r __si_tmp_line; do
+  if [[ "${__si_tmp_line}" =~ ^- ]]; then
+    # fetch single character version of option string
+    __si_tmp_opt="${__si_tmp_line%% *}"
+    __si_tmp_opt="${__si_tmp_opt:1}"
+
+    # fetch long version if present
+    __si_tmp_long_opt=""
+
+    if [[ "${__si_tmp_line}" = *"--"* ]]; then
+      __si_tmp_long_opt="${__si_tmp_line#*--}"
+      __si_tmp_long_opt="${__si_tmp_long_opt%% *}"
+    fi
+
+    # map opt long name to+from opt short name
+    printf -v "__si_tmp_opt_long2short_${__si_tmp_long_opt//-/_}" '%s' "${__si_tmp_opt}"
+    printf -v "__si_tmp_opt_short2long_${__si_tmp_opt}" '%s' "${__si_tmp_long_opt//-/_}"
+
+    # check if option takes an argument
+    if [[ "${__si_tmp_line}" =~ \[.*\] ]]; then
+      __si_tmp_opt="${__si_tmp_opt}:" # add : if opt has arg
+      __si_tmp_init=""  # it has an arg. init with ""
+      printf -v "__si_tmp_has_arg_${__si_tmp_opt:0:1}" '%s' "1"
+    elif [[ "${__si_tmp_line}" =~ \{.*\} ]]; then
+      __si_tmp_opt="${__si_tmp_opt}:" # add : if opt has arg
+      __si_tmp_init=""  # it has an arg. init with ""
+      # remember that this option requires an argument
+      printf -v "__si_tmp_has_arg_${__si_tmp_opt:0:1}" '%s' "2"
+    else
+      __si_tmp_init="0" # it's a flag. init with 0
+      printf -v "__si_tmp_has_arg_${__si_tmp_opt:0:1}" '%s' "0"
+    fi
+    __si_tmp_opts="${__si_tmp_opts:-}${__si_tmp_opt}"
+  fi
+
+  [[ "${__si_tmp_opt:-}" ]] || continue
+
+  if [[ "${__si_tmp_line}" =~ ^"${__si_defaulttext}"= ]] || [[ "${__si_tmp_line}" =~ \.\ *"${__si_defaulttext}"= ]]; then
+    # ignore default value if option does not have an argument
+    __si_tmp_varname="__si_tmp_has_arg_${__si_tmp_opt:0:1}"
+
+    if [[ "${!__si_tmp_varname}" != "0" ]]; then
+      __si_tmp_init="${__si_tmp_line##*${__si_defaulttext}=}"
+      __si_tmp_re='^"(.*)"$'
+      if [[ "${__si_tmp_init}" =~ ${__si_tmp_re} ]]; then
+        __si_tmp_init="${BASH_REMATCH[1]}"
+      else
+        __si_tmp_re="^'(.*)'$"
+        if [[ "${__si_tmp_init}" =~ ${__si_tmp_re} ]]; then
+          __si_tmp_init="${BASH_REMATCH[1]}"
+        fi
+      fi
+    fi
+  fi
+
+  if [[ "${__si_tmp_line}" =~ ^"${__si_requiredtext}"\. ]] || [[ "${__si_tmp_line}" =~ \.\ *"${__si_requiredtext}"\. ]]; then
+    # remember that this option requires an argument
+    printf -v "__si_tmp_has_arg_${__si_tmp_opt:0:1}" '%s' "2"
+  fi
+
+  printf -v "__si_arg_${__si_tmp_opt:0:1}" '%s' "${__si_tmp_init}"
+done <<< "${__si_usage:-}"
+
+#-------------------------------------------------------------------------------
+# Parse command-line arguments
+#-------------------------------------------------------------------------------
+# run getopts only if options were specified in __usage
+if [[ "${__si_tmp_opts:-}" ]]; then
+  # Allow long options like --this
+  __si_tmp_opts="${__si_tmp_opts}-:"
+
+  # Reset in case getopts has been used previously in the shell.
+  OPTIND=1
+
+  # start parsing command line
+  set +o nounset # unexpected arguments will cause unbound variables
+                 # to be dereferenced
+  # Overwrite $arg_<flag> defaults with the actual CLI options
+  while getopts "${__si_tmp_opts}" __si_tmp_opt; do
+    [[ "${__si_tmp_opt}" = "?" ]] && display_info $"Invalid use of script: ${*}" "${__si_usage}" "${__si_helptext}"
+
+    if [[ "${__si_tmp_opt}" = "-" ]]; then
+      # OPTARG is long-option-name or long-option=value
+      if [[ "${OPTARG}" =~ .*=.* ]]; then
+        # --key=value format
+        __si_tmp_long_opt=${OPTARG/=*/}
+        # Set opt to the short option corresponding to the long option
+        __si_tmp_varname="__si_tmp_opt_long2short_${__si_tmp_long_opt//-/_}"
+        printf -v "__si_tmp_opt" '%s' "${!__si_tmp_varname}"
+        OPTARG=${OPTARG#*=}
+      else
+        # --key value format
+        # Map long name to short version of option
+        __si_tmp_varname="__si_tmp_opt_long2short_${OPTARG//-/_}"
+        printf -v "__si_tmp_opt" '%s' "${!__si_tmp_varname}"
+        # Only assign OPTARG if option takes an argument
+        __si_tmp_varname="__si_tmp_has_arg_${__si_tmp_opt}"
+        printf -v "OPTARG" '%s' "${@:OPTIND:${!__si_tmp_varname}}"
+        # shift over the argument if argument is expected
+        ((OPTIND+=__si_tmp_has_arg_${__si_tmp_opt}))
+      fi
+      # we have set opt/OPTARG to the short value and the argument as OPTARG if it exists
+    fi
+    __si_tmp_varname="__si_arg_${__si_tmp_opt:0:1}"
+    __si_tmp_default="${!__si_tmp_varname}"
+
+    __si_tmp_value="${OPTARG}"
+    if [[ -z "${OPTARG}" ]]; then
+      __si_tmp_value=$((__si_tmp_default + 1))
+    fi
+
+    printf -v "${__si_tmp_varname}" '%s' "${__si_tmp_value}"
+    debug "cli arg ${__si_tmp_varname} = (${__si_tmp_default}) -> ${!__si_tmp_varname}"
+  done
+  set -o nounset # no more unbound variable references expected
+
+  shift $((OPTIND-1))
+
+  if [[ "${1:-}" = "--" ]] ; then
+    shift
+  fi
+fi
+
+#-------------------------------------------------------------------------------
+# Helper functions
+#-------------------------------------------------------------------------------
+if [[ "${__si_arg_h:?}" = "1" ]]; then
+  # Help exists with code 1
+  display_info $"Help using ${0}" "${__si_usage}" "${__si_helptext}"
+fi
+
+if [[ "${__si_arg_V:?}" = "1" ]]; then
+  # Version exists with code 1
+  display_info "${__si_name}" "${__si_version}" "${__si_license}"
+fi
+
+#-------------------------------------------------------------------------------
+# Validate required arguments
+#-------------------------------------------------------------------------------
+[[ "${LOG_LEVEL:-}" ]] || emergency $"Cannot continue without LOG_LEVEL. "
+
+#-------------------------------------------------------------------------------
+# Validate required option arguments
+#-------------------------------------------------------------------------------
+for __si_tmp_varname in ${!__si_tmp_has_arg_*}; do
+  # validate only options which required an argument
+  [[ "${!__si_tmp_varname}" = "2" ]] || continue
+
+  __si_tmp_opt_short="${__si_tmp_varname##*_}"
+  __si_tmp_varname="__si_arg_${__si_tmp_opt_short}"
+  [[ "${!__si_tmp_varname}" ]] && continue
+
+  __si_tmp_varname="__si_tmp_opt_short2long_${__si_tmp_opt_short}"
+  printf -v "__si_tmp_opt_long" '%s' "${!__si_tmp_varname}"
+  [[ "${__si_tmp_opt_long:-}" ]] && __si_tmp_opt_long=" (--${__si_tmp_opt_long//_/-})"
+
+  display_info  $"Option -${__si_tmp_opt_short}${__si_tmp_opt_long:-} requires an argument" "${__si_usage}" "${__si_helptext}"
+done
+
+#-------------------------------------------------------------------------------
+# Cleanup temporary variables 
+#-------------------------------------------------------------------------------
+for __tmp_varname in ${!__si_tmp_*}; do
+  unset -v "${__tmp_varname}"
+done
+
+unset -v __tmp_varname
+
+#-------------------------------------------------------------------------------
+# Externally supplied __si_usage. Nothing else to do here
+#-------------------------------------------------------------------------------
+if [[ "${__si_external_usage:-}" == 1 ]]; then
+  unset -v __si_external_usage
+  return
+fi
+
+#-------------------------------------------------------------------------------
+# Signal trapping and backtracing
+#-------------------------------------------------------------------------------
+function __si_cleanup_before_exit () {
+  info $"Cleaning up. Done"
+}
+trap __si_cleanup_before_exit EXIT
+
+# requires `set -o errtrace`
+__si_err_report() {
+    local error_code
+    error_code=${?}
+    error $"Error in ${__file} in function ${1} on line ${2}"
+    exit ${error_code}
+}
+# Uncomment the following line for always providing an error backtrace
+# trap '__si_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+
+#-------------------------------------------------------------------------------
+# Call internal functions
+#-------------------------------------------------------------------------------
+# debug mode
+if [[ "${__si_arg_d:?}" = "1" ]]; then
+  set -o xtrace
+  LOG_LEVEL="7"
+  # Enable error backtracing
+  trap '__si_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+fi
+
+# verbose mode
+if [[ "${__si_arg_v:?}" = "1" ]]; then
+  set -o verbose
+fi
+
+# no color mode
+if [[ "${__si_arg_n:?}" = "1" ]]; then
+  NO_COLOR="true"
+fi
+
+#-------------------------------------------------------------------------------
+# Runtime
+#-------------------------------------------------------------------------------
+if [[ "${__si_srcd:-}" == 0 ]]; then
+  main
+fi
+
+#===============================================================================
+# END OF FILE
+#===============================================================================
