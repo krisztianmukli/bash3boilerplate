@@ -19,10 +19,13 @@
 # Setup information
 # Changelog
 # ToDo
-# Known bugs
+#TODO: Check and install dependencies with system package-manager and third party
+#
+# Known bugs and limitations
 #
 # * When targetfile unwritable and cp ask 'try anyway?' and user choose No, 
 #   it will exit 0, and script_install say installation was succesful.
+# * Preinstall and postinstall script must be locate in source directory
 #
 # Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
 #===============================================================================
@@ -124,9 +127,17 @@ local localetargetdir="${3:-}"
 local scripts=$( ini_val "${sourcedir}/install.ini" install.scripts )
 local libraries=$( ini_val "${sourcedir}/install.ini" install.libraries )
 local payloads=$( ini_val "${sourcedir}/install.ini" install.payloads )
+local preinst=$( ini_val "${sourcedir}/install.ini" install.preinst )
+local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
 
   # Check sourcedir is exists
   [[ -d "${sourcedir}" ]] || emergency "Installation unsuccesful: ${sourcedir} is not exists!"
+
+  # Calling preinstall scripts, if any
+  for command in ${preinst}; do
+    eval "${__si_dir}/${command}"
+  done
+
   # Check targetdir is exists, otherwise create it
   [[ ! -d "${targetdir}" ]] && (mkdir "${targetdir}" 2>&- || emergency "Installation unsuccesful: can not create ${targetdir}")
   # Check targetdir is writable
@@ -174,6 +185,11 @@ local payloads=$( ini_val "${sourcedir}/install.ini" install.payloads )
     [[ "${payload}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename (${payload})"
     cp -i "${sourcedir}/${payload}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
     debug "Installation file ${script} was succesful to ${targetdir}"
+  done
+
+  # Calling postinstall scripts, if any
+  for command in ${postinst}; do
+    eval "${__si_dir}/${command}"
   done
 
   info "Installation files was succesful to ${targetdir}"
