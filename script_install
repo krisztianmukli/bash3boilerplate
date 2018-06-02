@@ -225,7 +225,7 @@ local folder=${1:-}
           echo "    PATH=\"${folder}:\$PATH\" "
           echo "fi" 
         } >> "${HOME}/.profile"
-        warning "~/.profile was updated, please login again or run 'source ~/.profile' command to reload PATH variable!"
+        warning "\~/.profile was updated, please login again or run 'source \~/.profile' command to reload PATH variable!"
 
 	return 0 
       fi
