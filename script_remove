@@ -112,6 +112,14 @@ __sr_license=$"Licensed under the MIT license"
 #===============================================================================
 # Functions section
 #===============================================================================
+
+#-------------------------------------------------------------------------------
+# Main function: Determine installed filepaths and remove files
+# Arguments:
+#   None
+# Returns:
+#   exit 1, if any commands unsuccesful
+#-------------------------------------------------------------------------------
 function main() {
 local script="${__sr_arg_s}"
 local targetdir=$(dirname $(which "${script}") 2>&-)  

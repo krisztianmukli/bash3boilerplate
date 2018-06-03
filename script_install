@@ -116,6 +116,14 @@ __si_license=$"Licensed under the MIT license"
 #===============================================================================
 # Functions section
 #===============================================================================
+
+#-------------------------------------------------------------------------------
+# install_files: Copy files (and it's payloads) from sourcedir to targetdir 
+# Arguments:
+#   install_files sourcedir targetdir localetargetdir
+# Returns:
+#   exit 1 if any command was unsuccesful
+#-------------------------------------------------------------------------------
 function install_files() {
 local sourcedir=${1:-}
 local libsourcedir="${sourcedir:-}/lib"
@@ -213,6 +221,13 @@ local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
   info "Installation files was succesful to ${targetdir}"
 }
 
+#-------------------------------------------------------------------------------
+# edit_profile: Add script's targetdir to user's ~/.profile file
+# Arguments:
+#   edit_profile folder
+# Returns:
+#   return 1 if unsuccesful (there's no folder)
+#-------------------------------------------------------------------------------
 function edit_profile(){
 local folder=${1:-}
   if [[ ! -z "${folder}" ]]; then
@@ -227,13 +242,21 @@ local folder=${1:-}
         } >> "${HOME}/.profile"
         warning "\~/.profile was updated, please login again or run 'source \~/.profile' command to reload PATH variable!"
 
-	return 0 
+	    return 0 
       fi
 
   fi
   return 1
 }
 
+#-------------------------------------------------------------------------------
+# Main function: Determine targetdir based on OS-type and ini-values, then call
+# install_files and edit_profile methods
+# Arguments:
+#   None
+# Returns:
+#   exit 1, if unsupported OS detected
+#-------------------------------------------------------------------------------
 function main() {
 local sourcedir="${__si_arg_s}"
 

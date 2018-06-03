@@ -67,7 +67,6 @@ export PATH="${__b3bp_dir}/lib:$PATH"
 source log.sh
 source os_detection.sh
 source display_info.sh
-source install_script.sh
 
 #-------------------------------------------------------------------------------
 # Localization
@@ -110,6 +109,14 @@ __b3bp_license=$"Licensed under the MIT license"
 #===============================================================================
 # Functions section
 #===============================================================================
+
+#-------------------------------------------------------------------------------
+# Main function
+# Arguments:
+#   None
+# Returns:
+#   None
+#-------------------------------------------------------------------------------
 function main() {
   if [[ "${__b3bp_arg_f}" = "test" ]]; then
     echo "${__b3bp_name}"

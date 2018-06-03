@@ -1,11 +1,9 @@
-[![Build Status](https://travis-ci.org/kvz/bash3boilerplate.svg?branch=master)](https://travis-ci.org/kvz/bash3boilerplate)
-
-[This document is formatted with GitHub-Flavored Markdown.    ]:#
-[For better viewing, including hyperlinks, read it online at  ]:#
-[https://github.com/kvz/bash3boilerplate/blob/master/README.md]:#
+# BASH3 Boilerplate by krisztianmukli
+ forked and customized from [kvz/bash3boilerplate](https://github.com/kvz/bash3boilerplate)
 
 * [Overview](#overview)
 * [Goals](#goals)
+* [What we changed](#what-we-changed)
 * [Features](#features)
 * [Installation](#installation)
 * [Changelog](#changelog)
@@ -28,17 +26,63 @@ When hacking up Bash scripts, there are often things such as logging or command-
 Here's an attempt to bundle those things in a generalized way so that
 they are reusable as-is in most scripts.
 
-We call it "BASH3 Boilerplate" or b3bp for short.
+We call it "BASH3 Boilerplate by krisztianmukli" or b3bp for short.
 
 ## Goals
 
-Delete-Key-**Friendly**. Instead of introducing packages, includes, compilers, etc., we propose using [`main.sh`](http://bash3boilerplate.sh/main.sh) as a base and removing the parts you don't need.
-While this may feel a bit archaic at first, it is exactly the strength of Bash scripts that we should want to embrace.
+The aim of this project is that we create a standardized bash-script template, 
+which is contains this pre-defined functions, simple to configure and it use 
+best practices as many as possible. This template based on original 
+[BASH3 Boilerplate](https://github.com/kvz/bash3boilerplate), that we 
+customized based on some point-of view, which may not target to the original 
+project.
+
+Delete-Key-**Friendly**. Instead of introducing packages, includes, compilers, 
+etc., we propose using [`main.sh`](http://bash3boilerplate.sh/main.sh) as a 
+base and removing the parts you don't need.
+While this may feel a bit archaic at first, it is exactly the strength of Bash 
+scripts that we should want to embrace.
 
 **Portable**. We are targeting Bash 3 (OSX still ships
 with 3, for instance). If you are going to ask people to install
 Bash 4 first, you might as well pick a more advanced language as a
 dependency.
+
+## What we changed
+
+**Complex comment-structure**. We are using a pre-defined descriptive file header, 
+which is contains detailed information about the script (name, description, 
+license, todo, change-log, etc.). We are splitting four section to our scripts, 
+marked that comments:
+
+- Init section: set environment variables
+- Global section: set global variables
+- Functions section: contains functions, that is called from main section
+- Main section: parse usage string, parse and validate command-line arguments, 
+call helper and internal functions, finally start the main process.
+
+**Function headers**. Every function has a comment-header, contains a 
+description and lists of used arguments and return values of function.
+
+**Script-specific variable names**. Global variable of script use the following 
+scheme: __b3bp_var (and __b3bp_arg_a for command-line arguments). 
+
+**Coding style**. We are using 
+[Google Shell Style Guide](https://google.github.io/styleguide/shell.xml) and 
+[Fritz Mehner: Bash Style Guide And Coding Standard](https://lug.fh-swf.de/vim/vim-bash/StyleGuideShell.en.pdf) 
+(except when it conflict with Shell Style Guide)
+
+**Built-in localization**. Using bash built-in internationalizing function, 
+localizing bash scripts in a standard way is fairly possible. 
+For more information and a good tutorial, see: [http://mywiki.wooledge.org/BashFAQ/098](http://mywiki.wooledge.org/BashFAQ/098)
+
+**More modules**. We separated some reusable code-patterns to .sh-files, which are sourcable when it need. Such as log (log.sh), simple question (ask.sh), read and write ini-files (ini_val.sh), help functions (display_info.sh) and OS-detection (os_detection.sh). We are keeping original b3bp libraries: megamount.sh, parse_url and templater.sh.
+Creating more libraries is in progress...
+
+**Standalone installer and remover**. We are create a simple installer, which is detect the used OS and it can copy the specified script file and it's libraries and dependencies to an appropriate folder, and/or add them to the PATH. These is storing information about the script in the installer.ini file, which is copying to script's final destination. It could be used for initalize the script, but it's not required, in such case it will be store information only for install/remove.
+
+**Removed features:** we are removed every feature and file, that we aren't need
+or don't use it, such as files of website, npm, travis and such else...
 
 ## Features
 
@@ -46,41 +90,25 @@ dependency.
 - Safe by default (break on error, pipefail, etc.)
 - Configuration by environment variables
 - Simple command-line argument parsing that requires no external dependencies. Definitions are parsed from help info, ensuring there will be no duplication
-- Helpful magic variables like `__file` and `__dir`
-- Logging that supports colors and is compatible with [Syslog Severity levels](http://en.wikipedia.org/wiki/Syslog#Severity_levels), as well as the [twelve-factor](http://12factor.net/) guidelines
+- Helpful magic variables like `__b3p_file` and `__3bp_dir`
+- Logging that supports colors and is compatible with [Syslog Severity levels](http://en.wikipedia.org/wiki/Syslog#Severity_levels)
+
+## Limitations
+
+The original BASH3 Boilerplate project targeted to OS-agnostic way, 
+but we use scripting and testing only Debian-based systems. Maybe some our 
+modification doesn't compatible with other distributions, sorry for the inconvenience, 
+please test it carefully!
 
 ## Installation
 
-There are three different ways to install b3bp:
+### Clone the entire project
 
-### Option 1: Download the main template
-
-Use curl or wget to download the source and save it as your script. Then you can start deleting the unwanted bits, and adding your own logic.
+Besides `b3bp`, this will also get you the entire b3bp repository. This includes a few extra functions that we keep in the `./lib` directory.
 
 ```bash
-wget http://bash3boilerplate.sh/main.sh
-vim main.sh
+git clone git@github.com:krisztianmukli/bash3boilerplate.git
 ```
-
-### Option 2: Clone the entire project
-
-Besides `main.sh`, this will also get you the entire b3bp repository. This includes a few extra functions that we keep in the `./src` directory.
-
-```bash
-git clone git@github.com:kvz/bash3boilerplate.git
-```
-
-### Option 3: Require via npm
-
-As of `v1.0.3`, b3bp can also be installed as a Node module, meaning you can define it as a dependency in `package.json` via:
-
-```bash
-npm init
-npm install --save --save-exact bash3boilerplate
-```
-
-Even though this option introduces a Node.js dependency, it does allow for easy version pinning and distribution in environments that already have this prerequisite. This is, however, entirely optional and nothing prevents you from ignoring this possibility.
-
 ## Changelog
 
 Please see the [CHANGELOG.md](./CHANGELOG.md) file.
@@ -91,7 +119,7 @@ Please see the [FAQ.md](./FAQ.md) file.
 
 ## Best practices
 
-As of `v1.0.3`, b3bp offers some nice re-usable libraries in `./src`. In order to make the snippets in `./src` more useful, we recommend the following guidelines.
+As of `v1.0.0`, b3bp offers some nice re-usable libraries in `./lib`. In order to make the snippets in `./lib` more useful, we recommend the following guidelines.
 
 ### Function packaging
 
@@ -122,7 +150,7 @@ $ my_script some more args --blah
 
 1. In functions, use `local` before every variable declaration.
 1. Use `UPPERCASE_VARS` to indicate environment variables that can be controlled outside your script.
-1. Use `__double_underscore_prefixed_vars` to indicate global variables that are solely controlled inside your script, with the exception of arguments that are already prefixed with `arg_`, as well as functions, over which b3bp poses no restrictions.
+1. Use `__double_underscore_prefixed_vars` to indicate global variables that are solely controlled inside your script, with the exception of arguments that are already prefixed with `__b3bp_arg_`, as well as functions, over which b3bp poses no restrictions.
 
 ### Coding style
 
@@ -140,17 +168,12 @@ $ my_script some more args --blah
 1. Use `${BASH_SOURCE[0]}` if you refer to current file, even if it is sourced by a parent script. In other cases, use `${0}`.
 1. Use `:-` if you want to test variables that could be undeclared. For instance, with `if [ "${NAME:-}" = "Kevin" ]`, `$NAME` will evaluate to `Kevin` if the variable is empty. The variable itself will remain unchanged. The syntax to assign a default value is `${NAME:=Kevin}`.
 
-## Who uses b3bp?
-
-- [Transloadit](https://transloadit.com)
-- [OpenCoarrays](http://www.opencoarrays.org)
-- [Sourcery Institute](http://www.sourceryinstitute.org)
-- [Computational Brain Anatomy Laboratory](http://cobralab.ca/)
-
-We are looking for endorsements! Are you also using b3bp? [Let us know](https://github.com/kvz/bash3boilerplate/issues/new?title=I%20use%20b3bp) and get listed.
 
 ## Authors
 
+- [Krisztián Mukli](https://www.mukli.hu)
+
+### Original b3bp authors
 - [Kevin van Zonneveld](http://kvz.io)
 - [Izaak Beekman](https://izaakbeekman.com/)
 - [Manuel Streuhofer](https://github.com/mstreuhofer)
@@ -168,7 +191,8 @@ We are looking for endorsements! Are you also using b3bp? [Let us know](https://
 
 ## License
 
-Copyright (c) 2013 Kevin van Zonneveld and [contributors](https://github.com/kvz/bash3boilerplate#authors).
-Licensed under [MIT](https://raw.githubusercontent.com/kvz/bash3boilerplate/master/LICENSE).
+Copyright &copy; 2018 Krisztián Mukli and [contributors](https://github.com/kvz/bash3boilerplate#authors). Licensed under [MIT](https://raw.githubusercontent.com/krisztianmukli/bash3boilerplate/master/LICENSE).
+
+Copyright &copy; 2013 Kevin van Zonneveld and [contributors](https://github.com/kvz/bash3boilerplate#authors). Licensed under [MIT](https://raw.githubusercontent.com/kvz/bash3boilerplate/master/LICENSE).
 You are not obligated to bundle the LICENSE file with your b3bp projects as long
 as you leave these references intact in the header comments of your source files.

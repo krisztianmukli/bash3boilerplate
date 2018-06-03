@@ -1,4 +1,34 @@
 # Changelog
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
+and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+### Added
+- Enable aliases
+- Built-in localization
+- Sourcable modules (lib folder)
+- Simply question module (ask.sh)
+- Adding and change ini_val.sh
+- Adding OS-detection library (os_detection.sh)
+- Add display_info.sh
+- Create standalone script installer and remover
+
+### Changed
+- Change the name from BASH3 Boilerplate to BASH3 Boilerplate by krisztianmukli
+- Change base file structure (comments, headers and some functions)
+- Standardized varnames
+- megamount.sh, parse_url.sh and templater.sh move to lib folder
+
+### Removed
+- website
+- lanyon
+- travis
+- old test files
+- src folder
+
+# Original BASH3 Boilerplate changelog for archiving purposes
 
 Here's is a combined todo/done list. You can see what todos are planned for the upcoming release, as well as ideas that may/may not make into a release in `Ideas`.
 
