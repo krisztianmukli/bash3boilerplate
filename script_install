@@ -143,7 +143,7 @@ local preinst=$( ini_val "${sourcedir}/install.ini" install.preinst )
 local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
 
   # Check sourcedir is exists
-  [[ ! -d "${sourcedir}" ]] && emergency "Installation unsuccesful: ${sourcedir} is not exists!"
+  [[ ! -d "${sourcedir}" ]] && emergency $"Installation unsuccesful: ${sourcedir} is not exists!"
 
   # Calling preinstall scripts, if any
   for command in ${preinst}; do
@@ -151,61 +151,61 @@ local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
   done
 
   # Check targetdir is exists, otherwise create it
-  [[ ! -d "${targetdir}" ]] && (mkdir "${targetdir}" 2>&- || emergency "Installation unsuccesful: can not create ${targetdir}")
+  [[ ! -d "${targetdir}" ]] && (mkdir "${targetdir}" 2>&- || emergency $"Installation unsuccesful: can not create ${targetdir}")
   # Check targetdir is writable
-  [[ ! -w "${targetdir}" ]] && emergency "Installation unsuccesful: ${targetdir} not writable"
+  [[ ! -w "${targetdir}" ]] && emergency $"Installation unsuccesful: ${targetdir} not writable"
   
   # Check libraries is not empty
   if [[ "${libraries+x}" ]]; then	  
     # Check sourcedir/lib is exists
-    [[ -d "${libsourcedir}" ]] || emergency "Installation unsuccesful: ${libsourcedir} is not exists!"
+    [[ -d "${libsourcedir}" ]] || emergency $"Installation unsuccesful: ${libsourcedir} is not exists!"
     # Check targetdir/lib is exists, otherwise create it
-    [[ ! -d "${libtargetdir}" ]] && (mkdir "${libtargetdir}" 2>&- || emergency "Installation unsuccesful: can not create ${libtargetdir}")
+    [[ ! -d "${libtargetdir}" ]] && (mkdir "${libtargetdir}" 2>&- || emergency $"Installation unsuccesful: can not create ${libtargetdir}")
     # Check targetdir/lib is writable
-    [[ ! -w "${libtargetdir}" ]] && emergency "Installation unsuccesful: ${libtargetdir} not writable"
+    [[ ! -w "${libtargetdir}" ]] && emergency $"Installation unsuccesful: ${libtargetdir} not writable"
   fi
 
   # Check localedir is exists, if there is locale folder in sourcedir
   if [[ -d "${localesourcedir}" ]]; then
     # Check targetdir is exists, otherwise create it
-    [[ ! -d "${localetargetdir}" ]] && (mkdir "${localetargetdir}" 2>&- || emergency "Installation unsuccesful: can not create ${localetargetdir}")
+    [[ ! -d "${localetargetdir}" ]] && (mkdir "${localetargetdir}" 2>&- || emergency $"Installation unsuccesful: can not create ${localetargetdir}")
     # Check targetdir is writable
-    [[ ! -w "${localetargetdir}" ]] && emergency "Installation unsuccesful: ${localetargetdir} not writable"
+    [[ ! -w "${localetargetdir}" ]] && emergency $"Installation unsuccesful: ${localetargetdir} not writable"
   fi
 
   for script in ${scripts}; do
     # Check filename can't pipe to upper directory
-    [[ "${script}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename (${script})"
+    [[ "${script}" = *".."* ]] && emergency $"Installation unsuccesful: unsupported filename (${script})"
     if [[ "${__si_arg_f:?}" = "1" ]]; then
-      cp -f "${sourcedir}/${script}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
-      cp -f "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || (emergency "Installation unsuccesful: there was an error during copying files")
+      cp -f "${sourcedir}/${script}" "${targetdir}" || (emergency $"Installation unsuccesful: there was an error during copying files")
+      cp -f "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || (emergency $"Installation unsuccesful: there was an error during copying files")
     else
-      cp -i "${sourcedir}/${script}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
-      cp -i "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || (emergency "Installation unsuccesful: there was an error during copying files")
+      cp -i "${sourcedir}/${script}" "${targetdir}" || (emergency $"Installation unsuccesful: there was an error during copying files")
+      cp -i "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || (emergency $"Installation unsuccesful: there was an error during copying files")
     fi
-    [[ ! -x "${targetdir}/${script}" ]] && (chmod +x "${targetdir}/${script}" || error "Set executable permission was unsuccesful for file ${targetdir}/${script}! Maybe it need higher privileges!")
-    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    [[ ! -x "${targetdir}/${script}" ]] && (chmod +x "${targetdir}/${script}" || error $"Set executable permission was unsuccesful for file ${targetdir}/${script}! Maybe it need higher privileges!")
+    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency $"Installation unsuccesful: there was an error during copying files")
     # Save localetargetdir for removing
     ini_val "${targetdir}/${script}.ini" install.locale "${localetargetdir}"
-    debug "Installation file ${script} was succesful to ${targetdir}"
+    debug $"Installation file ${script} was succesful to ${targetdir}"
   done
 
   for lib in ${libraries}; do
-    [[ "${lib}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename ($lib)"i
+    [[ "${lib}" = *".."* ]] && emergency $"Installation unsuccesful: unsupported filename ($lib)"i
     if [[ "${__si_arg_f:?}" = "1" ]]; then
-      cp -f "${libsourcedir}/${lib}" "${libtargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+      cp -f "${libsourcedir}/${lib}" "${libtargetdir}" || (emergency $"Installation unsuccesful: there was an error during copying files")
     else
-      cp -i "${libsourcedir}/${lib}" "${libtargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+      cp -i "${libsourcedir}/${lib}" "${libtargetdir}" || (emergency $"Installation unsuccesful: there was an error during copying files")
     fi
-    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
-    debug "Installation file ${lib} was succesful to ${libtargetdir}"
+    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency $"Installation unsuccesful: there was an error during copying files")
+    debug $"Installation file ${lib} was succesful to ${libtargetdir}"
   done
 
   for payload in ${payloads}; do
     # Check filename can't pipe to upper directory
-    [[ "${payload}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename (${payload})"
-    cp -i "${sourcedir}/${payload}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
-    debug "Installation file ${script} was succesful to ${targetdir}"
+    [[ "${payload}" = *".."* ]] && emergency $"Installation unsuccesful: unsupported filename (${payload})"
+    cp -i "${sourcedir}/${payload}" "${targetdir}" || (emergency $"Installation unsuccesful: there was an error during copying files")
+    debug $"Installation file ${script} was succesful to ${targetdir}"
   done
 
   # Install dependencies  
@@ -221,7 +221,7 @@ local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
     eval "${__si_dir}/${command}"
   done
 
-  info "Installation files was succesful to ${targetdir}"
+  info $"Installation files was succesful to ${targetdir}"
 }
 
 #-------------------------------------------------------------------------------
@@ -243,7 +243,7 @@ local folder=${1:-}
           echo "    PATH=\"${folder}:\$PATH\" "
           echo "fi" 
         } >> "${HOME}/.profile"
-        warning "\~/.profile was updated, please login again or run 'source \~/.profile' command to reload PATH variable!"
+        warning $"\~/.profile was updated, please login again or run 'source \~/.profile' command to reload PATH variable!"
 
 	    return 0 
       fi
