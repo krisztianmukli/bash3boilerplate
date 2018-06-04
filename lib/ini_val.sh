@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
-# BASH3 Boilerplate: ini_val
+#===============================================================================
+# Reading and writing .ini files (ini_val.sh)
+# Licensed under the MIT license
 #
-# This file:
+# This file, can read and write .ini files using pure bash
+# 
+# The MIT License (MIT)
+# Copyright (c) 2018 Krisztián Mukli
+# https://www.github.com/krisztianmukli/bash3boilerplate
 #
-#  - Can read and write .ini files using pure bash
+# Copyright (c) 2013 Kevin van Zonneveld and contributors
+# You are not obligated to bundle the LICENSE file with your b3bp projects as long
+# as you leave these references intact in the header comments of your source files.
 #
-# Limitations:
-#
-#  - All keys inside the .ini file must be unique, regardless of the use of sections
+# Notes
+#-------------------------------------------------------------------------------
+# Quickstart
 #
 # Usage as a function:
 #
@@ -18,13 +26,26 @@
 #
 #  ini_val.sh data.ini connection.host 127.0.0.1
 #
-# Based on a template by BASH3 Boilerplate v2.3.0
-# http://bash3boilerplate.sh/#authors
+# Setup information
+# Changelog
+# ToDo
+# Known bugs and limitations
+# * All keys inside the .ini file must be unique, regardless of the use of sections
 #
-# The MIT License (MIT)
-# Copyright (c) 2013 Kevin van Zonneveld and contributors
-# You are not obligated to bundle the LICENSE file with your b3bp projects as long
-# as you leave these references intact in the header comments of your source files.
+# Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
+#===============================================================================
+# Functions section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# ini_val: Read and write .ini file
+# Arguments:
+#   ini_val inifile section[.key] [value]
+# - section.key separation is optional
+# - read value if not sepcified, otherwise write it
+# Returns:
+#   exit 1, if not sourced
+#-------------------------------------------------------------------------------
 function ini_val() {
   local file="${1:-}"
   local sectionkey="${2:-}"
@@ -90,3 +111,7 @@ else
   ini_val "${@}"
   exit ${?}
 fi
+
+#===============================================================================
+# END OF FILE
+#===============================================================================

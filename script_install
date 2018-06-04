@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 #===============================================================================
 # Standalone script installer (script_install)
-# Licensed under the MIT license
 #
 # This file can install bash-script and it's dependencies from a specified
 # folder, using install.ini file. 
 # It is part of BASH3 Boilerplate by krisztianmukli project.
 # 
+# The MIT License (MIT)
 # Copyright (c) 2018 Krisztián Mukli
 # https://www.github.com/krisztianmukli/bash3boilerplate
+#
+# Copyright (c) 2013 Kevin van Zonneveld and contributors
+# You are not obligated to bundle the LICENSE file with your b3bp projects as long
+# as you leave these references intact in the header comments of your source files.
 #
 # Notes
 #-------------------------------------------------------------------------------
@@ -20,7 +24,6 @@
 # Changelog
 # ToDo
 # Known bugs and limitations
-#
 # * When targetfile unwritable and cp ask 'try anyway?' and user choose No, 
 #   it will exit 0, and script_install say installation was succesful.
 # * Preinstall and postinstall script must be locate in source directory

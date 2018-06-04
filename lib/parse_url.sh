@@ -1,13 +1,23 @@
 #!/usr/bin/env bash
-# BASH3 Boilerplate: parse_url
+#===============================================================================
+# Parse url (parse_url.sh)
 #
-# This file:
-#
-#  - Takes a URL and parses protocol, user, pass, host, port, path.
-#
+# Takes a URL and parses protocol, user, pass, host, port, path.
 # Based on:
 #
 #  - http://stackoverflow.com/a/6174447/151666
+#
+# The MIT License (MIT)
+# Copyright (c) 2018 Krisztián Mukli
+# https://www.github.com/krisztianmukli/bash3boilerplate
+#
+# Copyright (c) 2013 Kevin van Zonneveld and contributors
+# You are not obligated to bundle the LICENSE file with your b3bp projects as long
+# as you leave these references intact in the header comments of your source files.
+#
+# Notes
+#-------------------------------------------------------------------------------
+# Quickstart
 #
 # Usage as a function:
 #
@@ -18,14 +28,24 @@
 #
 #  parse_url.sh 'http://johndoe:abc123@example.com:8080/index.html'
 #
-# Based on a template by BASH3 Boilerplate v2.3.0
-# http://bash3boilerplate.sh/#authors
+# Setup information
+# Changelog
+# ToDo
+# Known bugs and limitations
 #
-# The MIT License (MIT)
-# Copyright (c) 2013 Kevin van Zonneveld and contributors
-# You are not obligated to bundle the LICENSE file with your b3bp projects as long
-# as you leave these references intact in the header comments of your source files.
+# Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
+#===============================================================================
+# Functions section
+#===============================================================================
 
+#-------------------------------------------------------------------------------
+# parse_url: Takes a URL and parses protocol, user, pass, host, port, path
+# Arguments:
+#   parse_url url [returnvalue]
+# Returns:
+#   if specified returnvalue, parse_url echoing that 1 variable, otherwise 
+# echoing all parsed values
+#-------------------------------------------------------------------------------
 function parse_url() {
   local parse="${1}"
   local need="${2:-}"
@@ -82,3 +102,7 @@ else
   parse_url "${@}"
   exit ${?}
 fi
+
+#===============================================================================
+# END OF FILE
+#===============================================================================

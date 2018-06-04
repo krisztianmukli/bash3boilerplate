@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 #===============================================================================
 # Simple question library (ask.sh)
-# Licensed under the MIT license
 #
 # Simple choice question with default value
 # 
+# The MIT License (MIT)
 # Copyright (c) 2018 Krisztián Mukli
 # https://www.github.com/krisztianmukli/bash3boilerplate
+#
+# Copyright (c) 2013 Kevin van Zonneveld and contributors
+# You are not obligated to bundle the LICENSE file with your b3bp projects as long
+# as you leave these references intact in the header comments of your source files.
 #
 # Notes
 #-------------------------------------------------------------------------------
@@ -14,11 +18,9 @@
 # Setup information
 # Changelog
 # ToDo
-# Known bugs
+# Known bugs and limitations
 #
 # Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
-#===============================================================================
-
 #===============================================================================
 # Functions section
 #===============================================================================
