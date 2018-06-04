@@ -1,21 +1,13 @@
 #!/usr/bin/env bash
-#===============================================================================
-# Reading and writing .ini files (ini_val.sh)
-# Licensed under the MIT license
+# BASH3 Boilerplate: ini_val
 #
-# This file, can read and write .ini files using pure bash
-# 
-# The MIT License (MIT)
-# Copyright (c) 2018 Krisztián Mukli
-# https://www.github.com/krisztianmukli/bash3boilerplate
+# This file:
 #
-# Copyright (c) 2013 Kevin van Zonneveld and contributors
-# You are not obligated to bundle the LICENSE file with your b3bp projects as long
-# as you leave these references intact in the header comments of your source files.
+#  - Can read and write .ini files using pure bash
 #
-# Notes
-#-------------------------------------------------------------------------------
-# Quickstart
+# Limitations:
+#
+#  - All keys inside the .ini file must be unique, regardless of the use of sections
 #
 # Usage as a function:
 #
@@ -26,26 +18,13 @@
 #
 #  ini_val.sh data.ini connection.host 127.0.0.1
 #
-# Setup information
-# Changelog
-# ToDo
-# Known bugs and limitations
-# * All keys inside the .ini file must be unique, regardless of the use of sections
+# Based on a template by BASH3 Boilerplate v2.3.0
+# http://bash3boilerplate.sh/#authors
 #
-# Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
-#===============================================================================
-# Functions section
-#===============================================================================
-
-#-------------------------------------------------------------------------------
-# ini_val: Read and write .ini file
-# Arguments:
-#   ini_val inifile section[.key] [value]
-# - section.key separation is optional
-# - read value if not sepcified, otherwise write it
-# Returns:
-#   exit 1, if not sourced
-#-------------------------------------------------------------------------------
+# The MIT License (MIT)
+# Copyright (c) 2013 Kevin van Zonneveld and contributors
+# You are not obligated to bundle the LICENSE file with your b3bp projects as long
+# as you leave these references intact in the header comments of your source files.
 function ini_val() {
   local file="${1:-}"
   local sectionkey="${2:-}"
@@ -111,7 +90,3 @@ else
   ini_val "${@}"
   exit ${?}
 fi
-
-#===============================================================================
-# END OF FILE
-#===============================================================================

@@ -1,0 +1,51 @@
+#: script_remove:92
+msgid ""
+"-s --script [scriptfile] Remove specified scriptfile and it's localization and payloads. Required.\n"
+"  -l --with-libraries      Remove specified scriptfile and it's libraries, if any\n"
+"  -D --with-dependencies   Remove specified scriptfile and it's dependencies\n"
+"  -d --debug               Enables debug mode\n"
+"  -f --force               Force remove commands\n"
+"  -h --help                This page\n"
+"  -n --no-color            Disable color output\n"
+"  -v                       Enable verbose mode, print script as it is executed\n"
+"  -V --version             Display version and license information"
+msgstr ""
+#: script_remove:102
+msgid ""
+"This command can uninstall bash-script and it's dependencies from a specified folder, \n"
+"using script own ini file. \n"
+" It is part of BASH3 Boilerplate by krisztianmukli project."
+msgstr ""
+#: script_remove:105
+msgid "Default"
+msgstr ""
+#: script_remove:106
+msgid "Required"
+msgstr ""
+#: script_remove:107
+msgid "Standalone script uninstaller"
+msgstr ""
+#: script_remove:109
+msgid "Licensed under the MIT license"
+msgstr ""
+#: script_remove:306
+msgid "Invalid use of script: ${*}"
+msgstr ""
+#: script_remove:355
+msgid "Help using ${0}"
+msgstr ""
+#: script_remove:366
+msgid "Setting a filename with -s or --source is required"
+msgstr ""
+#: script_remove:367
+msgid "Cannot continue without LOG_LEVEL. "
+msgstr ""
+#: script_remove:384
+msgid "Option -${__sr_tmp_opt_short}${__sr_tmp_opt_long:-} requires an argument"
+msgstr ""
+#: script_remove:408
+msgid "Cleaning up. Done"
+msgstr ""
+#: script_remove:416
+msgid "Error in ${__sr_file} in function ${1} on line ${2}"
+msgstr ""

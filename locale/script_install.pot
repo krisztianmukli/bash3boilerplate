@@ -1,0 +1,53 @@
+#: script_install:96
+msgid ""
+"-c --check-dependencies  Check dependencies of specified script\n"
+"  -d --debug               Enables debug mode\n"
+"  -f --force               Forcing commands (e.g. overwrite existing files)\n"
+"  -h --help                This page\n"
+"  -i --ini [inifile]       Ini-file using the installation. Default="
+msgstr ""
+#: script_install:107
+msgid ""
+"This command can install bash-script and it's dependencies from a specified\n"
+" folder, using install.ini file. \n"
+" It is part of BASH3 Boilerplate by krisztianmukli project."
+msgstr ""
+#: script_install:110
+msgid "Default"
+msgstr ""
+#: script_install:111
+msgid "Required"
+msgstr ""
+#: script_install:112
+msgid "Standalone script installer"
+msgstr ""
+#: script_install:114
+msgid "Licensed under the MIT license"
+msgstr ""
+#: script_install:296
+msgid "Unsupported operating system."
+msgstr ""
+#: script_install:296
+msgid ""
+"Install script manually: \n"
+"* Copy the script and the lib folder to your PATH.\n"
+"* Copy to locale folder to your locale folder."
+msgstr ""
+#: script_install:390
+msgid "Invalid use of script: ${*}"
+msgstr ""
+#: script_install:439
+msgid "Help using ${0}"
+msgstr ""
+#: script_install:450
+msgid "Cannot continue without LOG_LEVEL. "
+msgstr ""
+#: script_install:467
+msgid "Option -${__si_tmp_opt_short}${__si_tmp_opt_long:-} requires an argument"
+msgstr ""
+#: script_install:491
+msgid "Cleaning up. Done"
+msgstr ""
+#: script_install:499
+msgid "Error in ${__si_file} in function ${1} on line ${2}"
+msgstr ""

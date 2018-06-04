@@ -7,13 +7,8 @@
 # folder, using script.ini file. 
 # It is part of BASH3 Boilerplate by krisztianmukli project.
 # 
-# The MIT License (MIT)
 # Copyright (c) 2018 Krisztián Mukli
 # https://www.github.com/krisztianmukli/bash3boilerplate
-#
-# Copyright (c) 2013 Kevin van Zonneveld and contributors
-# You are not obligated to bundle the LICENSE file with your b3bp projects as long
-# as you leave these references intact in the header comments of your source files.
 #
 # Notes
 #-------------------------------------------------------------------------------
@@ -94,8 +89,7 @@ export TEXTDOMAIN="${__sr_base}"
 #-------------------------------------------------------------------------------
 # Usage 
 #-------------------------------------------------------------------------------
-[[ "${__sr_usage+x}" ]] || __sr_usage=$"
-  -s --script [scriptfile] Remove specified scriptfile and it's localization and payloads. Required.
+[[ "${__sr_usage+x}" ]] || __sr_usage=$"-s --script [scriptfile] Remove specified scriptfile and it's localization and payloads. Required.
   -l --with-libraries      Remove specified scriptfile and it's libraries, if any
   -D --with-dependencies   Remove specified scriptfile and it's dependencies
   -d --debug               Enables debug mode
@@ -105,7 +99,7 @@ export TEXTDOMAIN="${__sr_base}"
   -v                       Enable verbose mode, print script as it is executed
   -V --version             Display version and license information"
 
-[[ "${__sr_helptext+x}" ]] || __sr_helptext=$"This command can install bash-script and it's dependencies from a specified folder, 
+[[ "${__sr_helptext+x}" ]] || __sr_helptext=$"This command can uninstall bash-script and it's dependencies from a specified folder, 
 using script own ini file. 
  It is part of BASH3 Boilerplate by krisztianmukli project."
 __sr_defaulttext=$"Default"
@@ -142,10 +136,10 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
     libraries=$( ini_val "${targetdir}/${script}.ini" install.libraries )
 
     # Check targetdir is exists
-    [[ ! -d "${targetdir}" ]] && emergency $"Removing script unsuccesful: ${targetdir} is not exists!"
+    [[ ! -d "${targetdir}" ]] && emergency "Removing script unsuccesful: ${targetdir} is not exists!"
     
     # Check targetdir is writable
-    [[ ! -w "${targetdir}" ]] && emergency $"Removing script unsuccesful: ${targetdir} is not writable! It may need higher privileges."
+    [[ ! -w "${targetdir}" ]] && emergency "Removing script unsuccesful: ${targetdir} is not writable! It may need higher privileges."
 
     # Calling prerm script
     for command in ${prerm:-}; do
@@ -154,42 +148,42 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
 
     #Remove script
     for script in ${scripts}; do
-      [[ "$script" = *".."* ]] && emergency $"Removing scrip was unsuccesful: unsupported filename ($script)"
-      if [[ $"{__sr_arg_f:?}" = "1" ]]; then
-        rm -f "${targetdir}/${script}" || emergency $"Removing script was unsuccesful: there was an error during removing file ${script}"
-        rm -f "${targetdir}/${script}.ini" || emergency $"Removing script was unsuccesful: there was an error during removing file ${script}"
-        find "${localetargetdir}" -name "${script}.mo" -exec rm -f {} \; || emergency $"Removing unsuccesful: there was an error during removing files"  
+      [[ "$script" = *".."* ]] && emergency "Removing scrip was unsuccesful: unsupported filename ($script)"
+      if [[ "${__sr_arg_f:?}" = "1" ]]; then
+        rm -f "${targetdir}/${script}" || emergency "Removing script was unsuccesful: there was an error during removing file ${script}"
+        rm -f "${targetdir}/${script}.ini" || emergency "Removing script was unsuccesful: there was an error during removing file ${script}"
+        find "${localetargetdir}" -name "${script}.mo" -exec rm -f {} \; || emergency "Removing unsuccesful: there was an error during removing files"  
       else
-        rm "${targetdir}/${script}" || emergency $"Removing script was unsuccesful: there was an error during removing file ${script}"
-        rm "${targetdir}/${script}.ini" || emergency $"Removing script was unsuccesful: there was an error during removing file ${script}"
-        find "${localetargetdir}" -name "${script}.mo" -exec rm {} \; || emergency $"Removing unsuccesful: there was an error during removing files"  
+        rm "${targetdir}/${script}" || emergency "Removing script was unsuccesful: there was an error during removing file ${script}"
+        rm "${targetdir}/${script}.ini" || emergency "Removing script was unsuccesful: there was an error during removing file ${script}"
+        find "${localetargetdir}" -name "${script}.mo" -exec rm {} \; || emergency "Removing unsuccesful: there was an error during removing files"  
       fi
-      debug $"Removing file ${targetdir}/${script} was succesfully removed" 
+      debug "Removing file ${targetdir}/${script} was succesfully removed" 
     done    
 
     # Remove payloads
     for payload in ${payloads}; do
-      [[ "${payload}" = *".."* ]] && emergency $"Removing payloads was unsuccesful: unsupported filename (${payload})"
-      if [[ $"{__sr_arg_f:?}" = "1" ]]; then
-        rm -f "${targetdir}/${payload}" || emergency $"Removing payloads was unsuccesful: there was an error during removing files"
+      [[ "${payload}" = *".."* ]] && emergency "Removing payloads was unsuccesful: unsupported filename (${payload})"
+      if [[ "${__sr_arg_f:?}" = "1" ]]; then
+        rm -f "${targetdir}/${payload}" || emergency "Removing payloads was unsuccesful: there was an error during removing files"
       else
-        rm "${targetdir}/${payload}" || emergency $"Removing payloads was unsuccesful: there was an error during removing files"
+        rm "${targetdir}/${payload}" || emergency "Removing payloads was unsuccesful: there was an error during removing files"
       fi
-      debug $"The file ${sourcedir}/${payload} was succesfully removed."
+      debug "The file ${sourcedir}/${payload} was succesfully removed."
     done 
 
     # Remove libraries
     if [[ "${__sr_arg_l:?}" = "1" ]]; then
       for lib in ${libraries}; do
-        [[ "${lib}" = *".."* ]] && emergency $"Removing libraries was unsuccesful: unsupported filename ($lib)"
+        [[ "${lib}" = *".."* ]] && emergency "Removing libraries was unsuccesful: unsupported filename ($lib)"
         if [[ "${__sr_arg_f}" = "1" ]]; then
-          rm -f "${libtargetdir}/${lib}" || emergency $"Removing libraries was unsuccesful: there was an error during removing files"
-          find "${localetargetdir}" -name "${lib}.mo" -exec rm -f {} \; || emergency $"Removing libraries was unsuccesful: there was an error during removing files"
+          rm -f "${libtargetdir}/${lib}" || emergency "Removing libraries was unsuccesful: there was an error during removing files"
+          find "${localetargetdir}" -name "${lib}.mo" -exec rm -f {} \; || emergency "Removing libraries was unsuccesful: there was an error during removing files"
         else
-          rm -r "${libtargetdir}/${lib}" || emergency $"Removing libraries was unsuccesful: there was an error during removing files"
-          find "${localetargetdir}" -name "${lib}.mo" -exec rm {} \; || emergency $"Removing libraries was unsuccesful: there was an error during removing files"
+          rm -r "${libtargetdir}/${lib}" || emergency "Removing libraries was unsuccesful: there was an error during removing files"
+          find "${localetargetdir}" -name "${lib}.mo" -exec rm {} \; || emergency "Removing libraries was unsuccesful: there was an error during removing files"
         fi
-        debug $"Removing file ${targetdir}/lib/${lib} was succesful"
+        debug "Removing file ${targetdir}/lib/${lib} was succesful"
       done
     fi
    
@@ -206,7 +200,7 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
           sudo apt-get remove ${dependencies}
         fi
       else
-        warning $"Unsupported operating system! You can remove dependencies manually."
+        warning "Unsupported operating system! You can remove dependencies manually."
       fi
 
     fi
@@ -216,10 +210,10 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
       eval "${command}"
     done
     
-    info $"Removing script was success."
+    info "Removing script was success."
   else
     echo "${targetdir}"
-    emergency $"Script is unavailable or doesn't exists!"
+    emergency "Script is unavailable or doesn't exists!"
   fi
 }
 
@@ -419,7 +413,7 @@ trap __sr_cleanup_before_exit EXIT
 __sr_err_report() {
     local error_code
     error_code=${?}
-    error $"Error in ${__file} in function ${1} on line ${2}"
+    error $"Error in ${__sr_file} in function ${1} on line ${2}"
     exit ${error_code}
 }
 # Uncomment the following line for always providing an error backtrace

@@ -1,24 +1,11 @@
 #!/usr/bin/env bash
-#===============================================================================
-# Mount the specified url (megamount.sh)
+# BASH3 Boilerplate: megamount
 #
 # This file:
 #
 #  - Takes a URL (smb, nfs, afs) and tries to mount it at a given target directory
 #  - Forcefully unmounts any active mount at the target directory first
 #  - Displays the mount's contents for verification
-#
-# The MIT License (MIT)
-# Copyright (c) 2018 Krisztián Mukli
-# https://www.github.com/krisztianmukli/bash3boilerplate
-#
-# Copyright (c) 2013 Kevin van Zonneveld and contributors
-# You are not obligated to bundle the LICENSE file with your b3bp projects as long
-# as you leave these references intact in the header comments of your source files.
-#
-# Notes
-#-------------------------------------------------------------------------------
-# Quickstart
 #
 # Depends on:
 #
@@ -33,38 +20,19 @@
 #
 #  megamount.sh smb://janedoe:abc123@192.168.0.1/documents /mnt/documents
 #
-# Setup information
-# Changelog
-# ToDo
-# Known bugs and limitations
+# Based on a template by BASH3 Boilerplate v2.3.0
+# http://bash3boilerplate.sh/#authors
 #
-# Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
-#===============================================================================
-# Globals section
-#===============================================================================
+# The MIT License (MIT)
+# Copyright (c) 2013 Kevin van Zonneveld and contributors
+# You are not obligated to bundle the LICENSE file with your b3bp projects as long
+# as you leave these references intact in the header comments of your source files.
 
-#-------------------------------------------------------------------------------
-# Environment variables
-#-------------------------------------------------------------------------------
-__megamount_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-#-------------------------------------------------------------------------------
-# Sourced files
-#-------------------------------------------------------------------------------
-# shellcheck source=lib/parse_url.sh
-source "${__megamount_dir}/parse_url.sh"
+# shellcheck source=src/parse_url.sh
+source "${__dir}/parse_url.sh"
 
-#===============================================================================
-# Functions section
-#===============================================================================
-
-#-------------------------------------------------------------------------------
-# megamount: Takes a URL (smb, nfs, afs) and tries to mount it at a given target directory
-# Arguments:
-#   megamount url target
-# Returns:
-#   exit if not sourced
-#-------------------------------------------------------------------------------
 function megamount () {
   local url="${1}"
   local target="${2}"
@@ -108,7 +76,3 @@ else
   megamount "${@}"
   exit ${?}
 fi
-
-#===============================================================================
-# END OF FILE
-#===============================================================================

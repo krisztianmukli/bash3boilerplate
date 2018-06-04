@@ -1,27 +1,10 @@
 #!/usr/bin/env bash
-#===============================================================================
-# Templater (templater.sh)
+# BASH3 Boilerplate: templater
 #
 # This file:
 #
 #  - takes a source (template) & destination (config) filepath argument
 #  - then replaces placeholders with variables found in the environment
-#
-# The MIT License (MIT)
-# Copyright (c) 2018 Krisztián Mukli
-# https://www.github.com/krisztianmukli/bash3boilerplate
-#
-# Copyright (c) 2013 Kevin van Zonneveld and contributors
-# You are not obligated to bundle the LICENSE file with your b3bp projects as long
-# as you leave these references intact in the header comments of your source files.
-#
-# Notes
-#-------------------------------------------------------------------------------
-# Quickstart
-
-# Depends on:
-#
-#  - ./log.sh
 #
 # Usage as a function:
 #
@@ -33,23 +16,14 @@
 #
 #  ALLOW_REMAINDERS=1 templater.sh input.cfg output.cfg
 #
-# Setup information
-# Changelog
-# ToDo
-# Known bugs and limitations
+# Based on a template by BASH3 Boilerplate v2.3.0
+# http://bash3boilerplate.sh/#authors
 #
-# Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
-#===============================================================================
-# Functions section
-#===============================================================================
+# The MIT License (MIT)
+# Copyright (c) 2013 Kevin van Zonneveld and contributors
+# You are not obligated to bundle the LICENSE file with your b3bp projects as long
+# as you leave these references intact in the header comments of your source files.
 
-#-------------------------------------------------------------------------------
-# templater: Replaces placeholders with variables found in the environment
-# Arguments:
-#   templater template-config outputdir
-# Returns:
-#   exit if not sourced
-#-------------------------------------------------------------------------------
 function templater() {
   ALLOW_REMAINDERS="${ALLOW_REMAINDERS:-0}"
 
@@ -92,7 +66,3 @@ else
   templater "${@}"
   exit ${?}
 fi
-
-#===============================================================================
-# END OF FILE
-#===============================================================================
