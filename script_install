@@ -205,8 +205,8 @@ local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
     debug "Installation file ${script} was succesful to ${targetdir}"
   done
 
-  # Install dependencies  
-  eval "${pkgmanagercmd} ${dependencies}"
+  # Install dependencies
+  [[ "${dependencies}" ]] && eval "${pkgmanagercmd} ${dependencies}"
 
   # Calling thirdparty scripts, if any
   for command in ${thirdparties}; do
