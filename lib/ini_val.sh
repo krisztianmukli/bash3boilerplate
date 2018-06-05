@@ -47,6 +47,10 @@ function ini_val() {
     if [[ -e "${file}" && -r "${file}" ]]; then
       # get a value
       current=$(awk -F "${delim}" "/^${key}${delim}/ {for (i=2; i<NF; i++) printf \$i \" \"; print \$NF}" "${file}")
+      # remove leading whitespace characters
+      current="${current#"${current%%[![:space:]]*}"}"
+      # remove trailing whitespace characters
+      current="${current%"${current##*[![:space:]]}"}" 
       echo "${current}"
     fi
   else
