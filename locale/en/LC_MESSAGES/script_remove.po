@@ -8,8 +8,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: en\n"
-"X-Generator: Poedit 1.6.10\n"
+"Language: en_US\n"
+"X-Generator: Poedit 2.0.6\n"
 
 #: script_remove:92
 msgid ""

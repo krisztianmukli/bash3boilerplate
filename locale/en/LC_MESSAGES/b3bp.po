@@ -5,11 +5,11 @@ msgstr ""
 "PO-Revision-Date: \n"
 "Last-Translator: Mukli Krisztián <krisztianmukli@mukli.hu>\n"
 "Language-Team: Krisztián Mukli <krisztianmukli@mukli.hu>\n"
-"Language: en\n"
+"Language: en_US\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.6.10\n"
+"X-Generator: Poedit 2.0.6\n"
 
 #: b3bp:89
 msgid ""
@@ -145,7 +145,7 @@ msgstr "Press any key to continue"
 
 #: b3bp:242
 msgid "Invalid use of script: ${*}"
-msgstr "Invalid use of script: ${*} "
+msgstr "Invalid use of script: ${*}"
 
 #: b3bp:291
 msgid "Help using ${0}"

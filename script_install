@@ -97,7 +97,7 @@ export TEXTDOMAIN="${__si_base}"
   -d --debug               Enables debug mode
   -f --force               Forcing commands (e.g. overwrite existing files)
   -h --help                This page
-  -i --ini [inifile]       Ini-file using the installation. Default="install.ini"
+  -i --ini [inifile]       Ini-file using the installation. Default=\"install.ini\"
   -n --no-color            Disable color output
   -s --source [sourcedir]  Source dir of script. Default=.
   -t --target [targetdir]  Target directory. Optional, if not specified, installer use /usr/local/bin or ~/.local/bin
@@ -260,6 +260,8 @@ local folder=${1:-}
 function main() {
 local sourcedir="${__si_arg_s}"
 
+  echo ${__si_arg_s}
+  echo ${__si_arg_i}
   # Check OS 
   if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
 

@@ -4,7 +4,12 @@ msgid ""
 "  -d --debug               Enables debug mode\n"
 "  -f --force               Forcing commands (e.g. overwrite existing files)\n"
 "  -h --help                This page\n"
-"  -i --ini [inifile]       Ini-file using the installation. Default="
+"  -i --ini [inifile]       Ini-file using the installation. Default=\\\"install.ini\\\"\n"
+"  -n --no-color            Disable color output\n"
+"  -s --source [sourcedir]  Source dir of script. Default=.\n"
+"  -t --target [targetdir]  Target directory. Optional, if not specified, installer use /usr/local/bin or ~/.local/bin\n"
+"  -v                       Enable verbose mode, print script as it is executed\n"
+"  -V --version             Display version and license information"
 msgstr ""
 #: script_install:107
 msgid ""
@@ -24,30 +29,30 @@ msgstr ""
 #: script_install:114
 msgid "Licensed under the MIT license"
 msgstr ""
-#: script_install:296
+#: script_install:298
 msgid "Unsupported operating system."
 msgstr ""
-#: script_install:296
+#: script_install:298
 msgid ""
 "Install script manually: \n"
 "* Copy the script and the lib folder to your PATH.\n"
 "* Copy to locale folder to your locale folder."
 msgstr ""
-#: script_install:390
+#: script_install:392
 msgid "Invalid use of script: ${*}"
 msgstr ""
-#: script_install:439
+#: script_install:441
 msgid "Help using ${0}"
 msgstr ""
-#: script_install:450
+#: script_install:452
 msgid "Cannot continue without LOG_LEVEL. "
 msgstr ""
-#: script_install:467
+#: script_install:469
 msgid "Option -${__si_tmp_opt_short}${__si_tmp_opt_long:-} requires an argument"
 msgstr ""
-#: script_install:491
+#: script_install:493
 msgid "Cleaning up. Done"
 msgstr ""
-#: script_install:499
+#: script_install:501
 msgid "Error in ${__si_file} in function ${1} on line ${2}"
 msgstr ""
