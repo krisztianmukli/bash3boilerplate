@@ -21,7 +21,7 @@
 # * Can not automatically remove third party scripts and programmes, but postrm
 # usable for such cases.
 #
-# Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
+# Based on BASH3 Boilerplate by krisztianmukli v1.0.0
 #===============================================================================
 # Init section
 #===============================================================================
@@ -65,7 +65,7 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 #-------------------------------------------------------------------------------
 # Sourced files
 #-------------------------------------------------------------------------------
-export PATH="${__sr_dir}/lib:$PATH"
+export PATH="${__sr_dir}:${__sr_dir}/lib:$PATH"
 source log.sh
 source os_detection.sh
 source display_info.sh
