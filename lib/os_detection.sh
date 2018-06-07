@@ -20,7 +20,7 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
   elif [[ -x /sbin/apk ]]; then DISTROTYPE="alpinelinux"; # Alpine Linux
   elif [[ -x /usr/bin/urpmi ]]; then DISTROTYPE="openmandriva"; # OpenMandriva Linux
   elif [[ -x /usr/bin/eopkg ]]; then DISTROTYPE="soluslinux"; # Solus Linux
-  elif [[ -x /bin/opkg ]]; then DISTROTYPE="lede"; # Linux Embedded Development Environment
+  elif [[ -x /bin/opkg ]]; then DISTROTYPE="openwrt"; # OpenWRT and LEDE
   elif [[ -x /usr/bin/emerge ]]; then DISTROTYPE="gentoo"; # Gentoo
   fi
 elif [[ "$OSTYPE" == "linux-android" ]]; then DISTROTYPE="android-termux"; # Android (termux)
