@@ -117,6 +117,86 @@ __si_license=$"Licensed under the MIT license"
 # Functions section
 #===============================================================================
 
+function install_dependencies() {
+local sudocmd=$( [[ $EUID != 0 ]] && echo "sudo" || echo "" )
+local forcearg=""
+local pkgmanagercmd=""
+
+  # Check OS and set OS-specific folders and commands
+  if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "suse-based" ]]; then
+    
+    [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--non-interactive"
+    pkgmanagercmd="apt-get install"
+
+  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
+
+    [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--yes"
+    pkgmanagercmd="apt-get install"
+
+  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "fedora-based" ]]; then
+
+    [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--assumeyes"
+    pkgmanagercmd="dnf install"
+
+  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "redhat-based" ]]; then
+
+    [[ "${__si_arg_f:?}" = "1" ]] && forcearg="-y"
+    pkgmanagercmd="yum install"
+
+  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "arch-based" ]]; then
+
+    [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--noconfirm"
+    pkgmanagercmd="pacman -S"
+
+  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "clearlinux" ]]; then
+
+    pkgmanagercmd="swupd bundle-add" 
+
+  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "sabayon" ]]; then
+
+    [[ "${__si_arg_f:?}" = "1" ]] || forcearg="--ask" # reverse force
+    pkgmanagercmd="equo install" 
+
+  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "voidlinux" ]]; then
+
+    pkgmanagercmd="xbps-install -S" 
+
+  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "slackware" ]]; then
+
+    pkgmanagercmd="netpkg" 
+
+  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "alpinelinux" ]]; then
+
+    pkgmanagercmd="apk add" 
+
+  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "openmandriva" ]]; then
+
+    [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--force"
+    pkgmanagercmd="urpmi" 
+
+  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "soluslinux" ]]; then
+
+    [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--yes-all"
+    pkgmanagercmd="eopkg install" 
+
+  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "openwrt" ]]; then
+
+    pkgmanagercmd="opkg install" 
+
+  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "gentoo" ]]; then
+    
+    pkgmanagercmd="emerge"
+
+  # Unsupported OS
+  else
+    # display_info exit 1
+    display_info $"Unsupported operating system." $"Install script manually: 
+    * Copy the script and the lib folder to your PATH.
+    * Copy to locale folder to your locale folder."
+  fi
+
+}
+
 #-------------------------------------------------------------------------------
 # install_files: Copy files (and it's payloads) from sourcedir to targetdir 
 # Arguments:
@@ -138,6 +218,7 @@ local dependencies=$( ini_val "${sourcedir}/install.ini" install.dependencies )
 local thirdparties=$( ini_val "${sourcedir}/install.ini" install.thirdparties )
 local preinst=$( ini_val "${sourcedir}/install.ini" install.preinst )
 local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
+local installcmd="${4:-}"
 
   # Check sourcedir is exists
   [[ ! -d "${sourcedir}" ]] && emergency "Installation unsuccesful: ${sourcedir} is not exists!"
@@ -206,7 +287,7 @@ local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
   done
 
   # Install dependencies
-  [[ "${dependencies}" ]] && eval "${pkgmanagercmd} ${dependencies}"
+  [[ "${dependencies}" ]] && eval "${installcmd} ${dependencies}"
 
   # Calling thirdparty scripts, if any
   for command in ${thirdparties}; do
@@ -249,6 +330,14 @@ local folder=${1:-}
   return 1
 }
 
+function check_dependencies(){
+local sourcedir=${1:-}
+local dependencies=$( ini_val "${sourcedir}/install.ini" install.dependencies )
+
+
+}
+
+
 #-------------------------------------------------------------------------------
 # Main function: Determine targetdir based on OS-type and ini-values, then call
 # install_files and edit_profile methods
@@ -259,47 +348,49 @@ local folder=${1:-}
 #-------------------------------------------------------------------------------
 function main() {
 local sourcedir="${__si_arg_s}"
+#local sudocmd=""
+#local forcearg=""
+#local pkgmanagercmd=""
+#local installcmd=""
 
   echo ${__si_arg_s}
   echo ${__si_arg_i}
-  # Check OS 
-  if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
 
-    if [[ "${__si_arg_f:?}" = "1" ]]; then
-      pkgmanagercmd="sudo apt-get install --yes "
+  
+  if [[ $EUID != 0 ]]; then
+
+    #sudocmd="sudo"
+
+    if [[ ! -z "${__si_arg_t}" ]]; then
+      targetdir="${__si_arg_t}"
+      targetdirtext="${__si_arg_t}"
     else
-      pkgmanagercmd="sudo apt-get install "
-    fi
-    # Check permissions
-    if [[ $EUID != 0 ]]; then
-
-      if [[ ! -z "${__si_arg_t}" ]]; then
-        targetdir="${__si_arg_t}"
-        targetdirtext="${__si_arg_t}"
-      else
-        targetdir="${HOME}/.local/bin"
-        targetdirtext="\$HOME/.local/bin"
-      fi
-
-      localedir="${__si_arg_t:-${HOME}/.local/share}"
-      install_files "${sourcedir}" "${targetdir}" "${localedir}"
-      edit_profile "${targetdirtext}" && source "${HOME}/.profile" && export PATH
-
-    else
-      targetdir="${__si_arg_t:-/usr/local/bin}"
-      targetdirtext="${__si_arg_t:-}"
-      localedir="${__si_arg_t:-/usr/local/share/locale}"
-
-      install_files "${sourcedir}" "${targetdir}" "${localedir}"
-      edit_profile "${targetdirtext}" && source "${HOME}/.profile" && export PATH
+      targetdir="${HOME}/.local/bin"
+      targetdirtext="\$HOME/.local/bin"
     fi
 
-   else
-     display_info $"Unsupported operating system." $"Install script manually: 
-* Copy the script and the lib folder to your PATH.
-* Copy to locale folder to your locale folder."
+    localedir="${__si_arg_t:-${HOME}/.local/share}"
+    
+  else
+    
+    targetdir="${__si_arg_t:-/usr/local/bin}"
+    targetdirtext="${__si_arg_t:-}"
+    localedir="${__si_arg_t:-/usr/local/share/locale}"
 
-   fi
+  fi
+
+  
+
+  if [[ "${__si_arg_c:?}" = "0" ]] ; then   
+
+    # Install script
+    #installcmd="${sudocmd} ${pkgmanagercmd} ${forcearg}"
+    install_files "${sourcedir}" "${targetdir}" "${localedir}" "${sudocmd} ${pkgmanagercmd} ${forcearg}"
+    edit_profile "${targetdirtext}" && source "${HOME}/.profile" && export PATH
+ 
+  else
+     # Check dependencies
+  fi
 
 }
 
