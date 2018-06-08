@@ -116,83 +116,160 @@ __si_license=$"Licensed under the MIT license"
 #===============================================================================
 # Functions section
 #===============================================================================
+function check_dependencies(){
+local dependencies=$( ini_val "${1:-}" install.dependencies )
+local checkcmd=""
+  
+  if [[ "${dependencies+x}" ]]; then
 
-function install_dependencies() {
+    # Check OS and set OS-specific folders and commands
+    if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "suse-based" ]]; then
+      
+      checkcmd="apt-get install"
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
+
+      checkcmd="apt-get install"
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "fedora-based" ]]; then
+
+      checkcmd="dnf install"
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "redhat-based" ]]; then
+
+      checkcmd="yum install"
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "arch-based" ]]; then
+
+      checkcmd="pacman -S"
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "clearlinux" ]]; then
+
+      checkcmd="swupd bundle-add" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "sabayon" ]]; then
+
+      checkcmd="equo install" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "voidlinux" ]]; then
+
+      checkcmd="xbps-install -S" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "slackware" ]]; then
+
+      checkcmd="netpkg" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "alpinelinux" ]]; then
+
+      checkcmd="apk add" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "openmandriva" ]]; then
+
+      checkcmd="urpmi" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "soluslinux" ]]; then
+
+      checkcmd="eopkg install" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "openwrt" ]]; then
+
+      checkcmd="opkg install" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "gentoo" ]]; then
+      
+      checkcmd="emerge"
+
+    # Unsupported OS
+    else
+      echo
+    fi
+
+  fi
+
+}
+
+function check_and_install_dependencies() {
+local dependencies={$1:-}
 local sudocmd=$( [[ $EUID != 0 ]] && echo "sudo" || echo "" )
 local forcearg=""
 local pkgmanagercmd=""
+local checkcmd=""
 
-  # Check OS and set OS-specific folders and commands
-  if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "suse-based" ]]; then
-    
-    [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--non-interactive"
-    pkgmanagercmd="apt-get install"
+  if [[ "${dependencies+x}" ]]; then
 
-  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
+    # Check OS and set OS-specific folders and commands
+    if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "suse-based" ]]; then
+      
+      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--non-interactive"
+      pkgmanagercmd="zypper install"
 
-    [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--yes"
-    pkgmanagercmd="apt-get install"
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
 
-  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "fedora-based" ]]; then
+      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--yes"
+      pkgmanagercmd="apt-get install"
 
-    [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--assumeyes"
-    pkgmanagercmd="dnf install"
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "fedora-based" ]]; then
 
-  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "redhat-based" ]]; then
+      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--assumeyes"
+      pkgmanagercmd="dnf install"
 
-    [[ "${__si_arg_f:?}" = "1" ]] && forcearg="-y"
-    pkgmanagercmd="yum install"
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "redhat-based" ]]; then
 
-  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "arch-based" ]]; then
+      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="-y"
+      pkgmanagercmd="yum install"
 
-    [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--noconfirm"
-    pkgmanagercmd="pacman -S"
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "arch-based" ]]; then
 
-  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "clearlinux" ]]; then
+      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--noconfirm"
+      pkgmanagercmd="pacman -S"
 
-    pkgmanagercmd="swupd bundle-add" 
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "clearlinux" ]]; then
 
-  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "sabayon" ]]; then
+      pkgmanagercmd="swupd bundle-add" 
 
-    [[ "${__si_arg_f:?}" = "1" ]] || forcearg="--ask" # reverse force
-    pkgmanagercmd="equo install" 
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "sabayon" ]]; then
 
-  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "voidlinux" ]]; then
+      [[ "${__si_arg_f:?}" = "1" ]] || forcearg="--ask" # reverse force
+      pkgmanagercmd="equo install" 
 
-    pkgmanagercmd="xbps-install -S" 
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "voidlinux" ]]; then
 
-  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "slackware" ]]; then
+      pkgmanagercmd="xbps-install -S" 
 
-    pkgmanagercmd="netpkg" 
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "slackware" ]]; then
 
-  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "alpinelinux" ]]; then
+      pkgmanagercmd="netpkg" 
 
-    pkgmanagercmd="apk add" 
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "alpinelinux" ]]; then
 
-  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "openmandriva" ]]; then
+      pkgmanagercmd="apk add" 
 
-    [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--force"
-    pkgmanagercmd="urpmi" 
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "openmandriva" ]]; then
 
-  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "soluslinux" ]]; then
+      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--force"
+      pkgmanagercmd="urpmi" 
 
-    [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--yes-all"
-    pkgmanagercmd="eopkg install" 
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "soluslinux" ]]; then
 
-  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "openwrt" ]]; then
+      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--yes-all"
+      pkgmanagercmd="eopkg install" 
 
-    pkgmanagercmd="opkg install" 
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "openwrt" ]]; then
 
-  elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "gentoo" ]]; then
-    
-    pkgmanagercmd="emerge"
+      pkgmanagercmd="opkg install" 
 
-  # Unsupported OS
-  else
-    # display_info exit 1
-    display_info $"Unsupported operating system." $"Install script manually: 
-    * Copy the script and the lib folder to your PATH.
-    * Copy to locale folder to your locale folder."
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "gentoo" ]]; then
+      
+      pkgmanagercmd="emerge"
+
+    # Unsupported OS
+    else
+      # display_info exit 1
+      display_info $"Unsupported operating system." $"Install script manually: 
+      * Copy the script and the lib folder to your PATH.
+      * Copy to locale folder to your locale folder."
+    fi
+
   fi
 
 }
@@ -330,14 +407,6 @@ local folder=${1:-}
   return 1
 }
 
-function check_dependencies(){
-local sourcedir=${1:-}
-local dependencies=$( ini_val "${sourcedir}/install.ini" install.dependencies )
-
-
-}
-
-
 #-------------------------------------------------------------------------------
 # Main function: Determine targetdir based on OS-type and ini-values, then call
 # install_files and edit_profile methods
@@ -348,6 +417,7 @@ local dependencies=$( ini_val "${sourcedir}/install.ini" install.dependencies )
 #-------------------------------------------------------------------------------
 function main() {
 local sourcedir="${__si_arg_s}"
+#local checkcmd=""
 #local sudocmd=""
 #local forcearg=""
 #local pkgmanagercmd=""
@@ -359,7 +429,7 @@ local sourcedir="${__si_arg_s}"
   
   if [[ $EUID != 0 ]]; then
 
-    #sudocmd="sudo"
+    sudocmd="sudo"
 
     if [[ ! -z "${__si_arg_t}" ]]; then
       targetdir="${__si_arg_t}"
@@ -379,7 +449,82 @@ local sourcedir="${__si_arg_s}"
 
   fi
 
-  
+  if [[ "${dependencies+x}" ]]; then
+
+    # Check OS and set OS-specific folders and commands
+    if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "suse-based" ]]; then
+      
+      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--non-interactive"
+      pkgmanagercmd="zypper install"
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
+
+      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--yes"
+      pkgmanagercmd="apt-get install"
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "fedora-based" ]]; then
+
+      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--assumeyes"
+      pkgmanagercmd="dnf install"
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "redhat-based" ]]; then
+
+      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="-y"
+      pkgmanagercmd="yum install"
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "arch-based" ]]; then
+
+      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--noconfirm"
+      pkgmanagercmd="pacman -S"
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "clearlinux" ]]; then
+
+      pkgmanagercmd="swupd bundle-add" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "sabayon" ]]; then
+
+      [[ "${__si_arg_f:?}" = "1" ]] || forcearg="--ask" # reverse force
+      pkgmanagercmd="equo install" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "voidlinux" ]]; then
+
+      pkgmanagercmd="xbps-install -S" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "slackware" ]]; then
+
+      pkgmanagercmd="netpkg" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "alpinelinux" ]]; then
+
+      pkgmanagercmd="apk add" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "openmandriva" ]]; then
+
+      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--force"
+      pkgmanagercmd="urpmi" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "soluslinux" ]]; then
+
+      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--yes-all"
+      pkgmanagercmd="eopkg install" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "openwrt" ]]; then
+
+      pkgmanagercmd="opkg install" 
+
+    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "gentoo" ]]; then
+      
+      pkgmanagercmd="emerge"
+
+    # Unsupported OS
+    else
+      # display_info exit 1
+      display_info $"Unsupported operating system." $"Install script manually: 
+      * Copy the script and the lib folder to your PATH.
+      * Copy to locale folder to your locale folder."
+    fi
+
+  fi
 
   if [[ "${__si_arg_c:?}" = "0" ]] ; then   
 
