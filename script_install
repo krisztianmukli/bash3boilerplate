@@ -122,67 +122,6 @@ local checkcmd=""
   
   if [[ "${dependencies+x}" ]]; then
 
-    # Check OS and set OS-specific folders and commands
-    if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "suse-based" ]]; then
-      
-      checkcmd="apt-get install"
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
-
-      checkcmd="apt-get install"
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "fedora-based" ]]; then
-
-      checkcmd="dnf install"
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "redhat-based" ]]; then
-
-      checkcmd="yum install"
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "arch-based" ]]; then
-
-      checkcmd="pacman -S"
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "clearlinux" ]]; then
-
-      checkcmd="swupd bundle-add" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "sabayon" ]]; then
-
-      checkcmd="equo install" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "voidlinux" ]]; then
-
-      checkcmd="xbps-install -S" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "slackware" ]]; then
-
-      checkcmd="netpkg" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "alpinelinux" ]]; then
-
-      checkcmd="apk add" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "openmandriva" ]]; then
-
-      checkcmd="urpmi" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "soluslinux" ]]; then
-
-      checkcmd="eopkg install" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "openwrt" ]]; then
-
-      checkcmd="opkg install" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "gentoo" ]]; then
-      
-      checkcmd="emerge"
-
-    # Unsupported OS
-    else
-      echo
-    fi
 
   fi
 
@@ -197,78 +136,7 @@ local checkcmd=""
 
   if [[ "${dependencies+x}" ]]; then
 
-    # Check OS and set OS-specific folders and commands
-    if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "suse-based" ]]; then
-      
-      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--non-interactive"
-      pkgmanagercmd="zypper install"
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
-
-      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--yes"
-      pkgmanagercmd="apt-get install"
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "fedora-based" ]]; then
-
-      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--assumeyes"
-      pkgmanagercmd="dnf install"
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "redhat-based" ]]; then
-
-      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="-y"
-      pkgmanagercmd="yum install"
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "arch-based" ]]; then
-
-      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--noconfirm"
-      pkgmanagercmd="pacman -S"
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "clearlinux" ]]; then
-
-      pkgmanagercmd="swupd bundle-add" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "sabayon" ]]; then
-
-      [[ "${__si_arg_f:?}" = "1" ]] || forcearg="--ask" # reverse force
-      pkgmanagercmd="equo install" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "voidlinux" ]]; then
-
-      pkgmanagercmd="xbps-install -S" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "slackware" ]]; then
-
-      pkgmanagercmd="netpkg" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "alpinelinux" ]]; then
-
-      pkgmanagercmd="apk add" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "openmandriva" ]]; then
-
-      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--force"
-      pkgmanagercmd="urpmi" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "soluslinux" ]]; then
-
-      [[ "${__si_arg_f:?}" = "1" ]] && forcearg="--yes-all"
-      pkgmanagercmd="eopkg install" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "openwrt" ]]; then
-
-      pkgmanagercmd="opkg install" 
-
-    elif [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "gentoo" ]]; then
-      
-      pkgmanagercmd="emerge"
-
-    # Unsupported OS
-    else
-      # display_info exit 1
-      display_info $"Unsupported operating system." $"Install script manually: 
-      * Copy the script and the lib folder to your PATH.
-      * Copy to locale folder to your locale folder."
-    fi
+    
 
   fi
 
