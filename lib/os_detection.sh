@@ -47,7 +47,6 @@ function install_pkgs(){
 local pkgs="${1:-}"
 local force="${2:-}"
 local installcmd=$( install_cmd "${force}" )
-local root=$( [[ $EUID != 0 ]] && echo "sudo" || echo "" )
   
   if [[ ! -z "${pkgs}" ]] && [[ ! -z "${installcmd}" ]]; then
     if [[ $EUID != 0 ]]; then
@@ -93,3 +92,37 @@ else DISTROTYPE="unknown" # Unknown operating system
 fi
 
 export DISTROTYPE
+
+if [[ "$OSTYPE" = "linux-gnu" ]]; then
+  # Determine distribution
+  if [[ -f /etc/os-release ]]; then __distro=$(grep ^NAME < /etc/os-release | sed s/NAME=// | sed s/\"//g);
+  elif [[ -f /etc/centos-release ]]; then read __distro < /etc/centos-release;
+  elif [[ -f /etc/redhat-release ]]; then read __distro < /etc/redhat-release;
+  elif [[ -f /etc/fedora-release ]]; then read __distro < /etc/fedora-release;
+  elif [[ -f /etc/SuSE-release ]]; then read __distro < /etc/SuSE-release;
+  elif [[ -f /etc/system-release ]]; then read __distro < /etc/system-release;
+  elif [[ -f /etc/sl-release ]]; then read __distro < /etc/sl-release;
+  elif [[ which lsb_release ]]; then 
+  else
+    __distro="unknown"
+  fi
+  # Check /etc/os-release
+  # If not, check lsb-release 
+  # If not, check distro-specific files
+  # If not, check package-managers
+
+else 
+  __ostype="unknown"
+  __distrotype="unknown"
+  __distro="unknown"
+  __release="unknown"
+  __kernel="unknown"
+  __arch="unknown"
+fi
+
+export __ostype
+export __distrotype
+export __distro
+export __release
+export __kernel
+export __arch 
