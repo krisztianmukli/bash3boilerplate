@@ -5,8 +5,15 @@
 # * https://github.com/dylanaraps/neofetch/issues/433
 # * https://gist.github.com/marcusandre/4b88c2428220ea255b83
 # * https://github.com/phoronix-test-suite/phoronix-test-suite/blob/master/phoronix-test-suite
+# * https://gist.github.com/natefoo/814c5bf936922dad97ff
+# * https://www.freedesktop.org/software/systemd/man/os-release.html
+# * http://linuxmafia.com/faq/Admin/release-files.html
+# * https://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-PDA/LSB-PDA/lsbrelease.html
+# * https://unix.stackexchange.com/questions/6345/how-can-i-get-distribution-name-and-version-number-in-a-simple-shell-script
 # NOT TESTED IN EVERY CASE!!
-
+#===============================================================================
+# Functions section
+#===============================================================================
 function install_cmd(){
 local force="${1:-}"
 
@@ -59,6 +66,9 @@ local installcmd=$( install_cmd "${force}" )
   return $?
   
 }
+#===============================================================================
+# Main section
+#===============================================================================
 
 if [[ "$OSTYPE" == "linux-gnu" ]]; then 
   if [[ -x /usr/bin/zypper ]]; then DISTROTYPE="suse-based"; # SUSE / openSUSE
@@ -92,37 +102,154 @@ else DISTROTYPE="unknown" # Unknown operating system
 fi
 
 export DISTROTYPE
+#-------------------------------------------------------------------------------
+# Set initial values
+#-------------------------------------------------------------------------------
+__ostype="${OSTYPE:-unknown}"
+__osfamily="unknown"
+__osname="unknown"
+__osversion="unknown"
+__kernelversion="unknown"
+__arch="unknown"
+#-------------------------------------------------------------------------------
+# Linux
+#-------------------------------------------------------------------------------
+if [[ "${__ostype}" = "linux-gnu" ]]; then
+#-------------------------------------------------------------------------------
+# /etc/os-release
+#-------------------------------------------------------------------------------
+  if [[ -f /etc/os-release ]]; then
+    source /etc/os-release; 
+    
+    # Scientific Linux and older Fedora use 'rhel' as ID
+    if [[ "${ID}" = "rhel" ]]; then 
+      # Check /etc/redhat-release file
+      if [[ -f /etc/redhat-release ]]; then
+        __tmp_id=$(tr '[:upper:]' '[:lower:]' < /etc/redhat-release)
+        if [[ "${__tmp_id}" = *"red hat"* ]]; then __osname="redhat";
+        elif [[ "${__tmp_id}" = *"scientific"* ]]; then __osname="scientific";
+        elif [[ "${__tmp_id}" = *"fedora"* ]]; then __osname="fedora";
+        else __osname=$(echo "${__tmp_id}" | sed s/\ release.*//g | sed s/\ /-/g); # Get words before 'release' and replaces spaces to dash
+        fi
+        unset -v __tmp_id
+      # Check lsb_release command
+      elif type lsb_release >/dev/null 2>&1; then
+        __osname=$(lsb_release -si | tr '[:upper:]' '[:lower:]')
+      # Check /etc/lsb-release file
+      elif [[ -f /etc/lsb-release ]]; then
+        source /etc/lsb-release
+        __osname=$(echo $DISTRIB_ID | tr '[:upper:]' '[:lower:]') 
+      fi
+    else
+      # Otherwise use ID variable as distro
+      __osname="${ID}";
+    fi
 
-if [[ "$OSTYPE" = "linux-gnu" ]]; then
-  # Determine distribution
-  if [[ -f /etc/os-release ]]; then __distro=$(grep ^NAME < /etc/os-release | sed s/NAME=// | sed s/\"//g);
-  elif [[ -f /etc/centos-release ]]; then read __distro < /etc/centos-release;
-  elif [[ -f /etc/redhat-release ]]; then read __distro < /etc/redhat-release;
-  elif [[ -f /etc/fedora-release ]]; then read __distro < /etc/fedora-release;
-  elif [[ -f /etc/SuSE-release ]]; then read __distro < /etc/SuSE-release;
-  elif [[ -f /etc/system-release ]]; then read __distro < /etc/system-release;
-  elif [[ -f /etc/sl-release ]]; then read __distro < /etc/sl-release;
-  elif [[ which lsb_release ]]; then 
-  else
-    __distro="unknown"
+    # Debian's os-release file doesn't include a version or version_id.
+    if [[ "${__osname}" = "debian" ]]; then
+      # version detection falls through to the "legacy" method of reading from /etc/debian_version
+      if [[ -f /etc/debian_version ]]; then read __osversion < /etc/debian_version;
+      # if no debian_version file, check lsb_release command
+      elif type lsb_release >/dev/null 2>&1; then __osversion=$(lsb_release -sr);
+      # There are any chance, that have /etc/lsb-release file, without lsb_release command
+      elif [[ -f /etc/lsb-release ]]; then
+        source /etc/lsb-release
+        __osversion="${DISTRIB_RELEASE}"
+      fi
+    # Arch's os-release file doesn't include a version or version_id.
+    if [[ "${__osname}" = "arch" ]]; then
+      __osversion="rolling"
+    else
+      # Use VERSION_ID as release
+      __osversion="${VERSION_ID}"
+    fi
+#-------------------------------------------------------------------------------
+# lsb_release
+#-------------------------------------------------------------------------------
+  elif type lsb_release >/dev/null 2>&1; then
+    __osname=$(lsb_release -si | tr '[:upper:]' '[:lower:]')
+    __osversion=$(lsb_release -sr)
+    if [[ "${__osname}" = "amazonami" ]]; then __osname="amzn";
+    elif [[ "${__osname}" = "opensuse project" ]]; then __osname="opensuse";
+    elif [[ "${__osname}" = "suse linux" ]]; then __osname="sles"; 
+    fi
+#-------------------------------------------------------------------------------
+# /etc/lsb-release
+#-------------------------------------------------------------------------------
+  elif [[ -f /etc/lsb-release ]]; then
+    source /etc/lsb-release
+    __osname=$(echo "${DISTRIB_ID}" | tr '[:upper:]' '[:lower:]')
+    __osversion="${DISTRIB_ID}"
+    if [[ "${__osname}" = "amazonami" ]]; then __osname="amzn";
+    elif [[ "${__osname}" = "opensuse project" ]]; then __osname="opensuse";
+    elif [[ "${__osname}" = "suse linux" ]]; then __osname="sles"; 
+    fi
+#-------------------------------------------------------------------------------
+# /etc/*-release
+#-------------------------------------------------------------------------------
+  elif [[ -f /etc/centos-release ]]; then # CentOS
+    __osname="centos"; 
+    __osversion=$(sed s/.*release\ // /etc/centos-release | sed s/\ .*//)
+  elif [[ -f /etc/fedora-release ]]; then # Fedora
+    __osname="fedora"; 
+    __osversion=$(sed s/.*release\ // /etc/fedora-release | sed s/\ .*//)
+  elif [[ -f /etc/redhat-release ]]; then # Red Hat and derivaties
+    __tmp_id=$(tr '[:upper:]' '[:lower:]' < /etc/redhat-release)
+    __osversion=$(sed s/.*release\ // /etc/redhat-release | sed s/\ .*//)
+    if [[ "${__tmp_id}" = *"red hat"* ]]; then __osname="redhat";
+    elif [[ "${__tmp_id}" = *"scientific"* ]]; then __osname="scientific";
+    elif [[ "${__tmp_id}" = *"fedora"* ]]; then __osname="fedora";
+    else __osname=$(echo "${__tmp_id}" | sed s/\ release.*//g | sed s/\ /-/g); # Get words before 'release' and replaces spaces to dash
+    fi
+    unset -v __tmp_id
+  elif [[ -f /etc/SuSE-release ]]; then # SuSE and derivates
+    __tmp_id=$(tr "\n" ' ' < /etc/SuSE-release | sed s/VERSION.*// | tr '[:upper:]' '[:lower:]');
+    __osversion=$(grep VERSION /etc/SuSE-release | sed s/VERSION\ *=\ *//)
+    if [[ "${__tmp_id}" = *"suse linux"* ]]; then __osname="sles";
+    elif [[ "${__tmp_id}" = *"opensuse"* ]]; then __osname="opensuse";
+    else __osname=$(echo "${__tmp_id}" | sed s/\ /-/g); # Get words and replaces spaces to dash
+    fi
+    unset -v __tmp_id
+  elif [[ -f /etc/system-release ]]; then
+    __tmp_id=$(tr '[:upper:]' '[:lower:]' < /etc/system-release)
+    __osversion=$(sed s/.*release\ // /etc/system-release | sed s/\ .*//)
+    if [[ "${__tmp_id}" = *"amazon"* ]]; then __osname="amzn";
+    elif [[ "${__tmp_id}" = *"centos"* ]]; then __osname="centos";
+    elif [[ "${__tmp_id}" = *"fedora"* ]]; then __osname="fedora";
+    elif [[ "${__tmp_id}" = *"scientific"* ]]; then __osname="scientific";
+    else __osname=$(echo "${__tmp_id}" | sed s/\ release.*//g | sed s/\ /-/g); # Get words before 'release' and replaces spaces to dash
+    fi
+    unset -v __tmp_id
+  elif [[ -f /etc/sl-release ]]; then read __osname < /etc/sl-release; # Older Scientific Linux
+    __tmp_id=$(tr '[:upper:]' '[:lower:]' < /etc/sl-release)
+    __osversion=$(sed s/.*release\ // /etc/sl-release | sed s/\ .*//)
+    if [[ "${__tmp_id}" = *"scientific"* ]]; then __osname="scientific";
+    else __osname=$(echo "${__tmp_id}" | sed s/\ release.*//g | sed s/\ /-/g); # Get words before 'release' and replaces spaces to dash
+    fi
+    unset -v __tmp_id
+#-------------------------------------------------------------------------------
+# legacy distro-specific files
+#-------------------------------------------------------------------------------
+  elif [[ -f /etc/arch-version ]]; then 
+    __osname="arch"
+    __osversion="rolling"
+  elif [[ -f /etc/slackware-version ]]; then 
+    __osname=$(tr '[:upper:]' '[:lower:]' < /etc/slackware-version | sed s/\ [0-9.-\(\)]*//g)
+    __osversion=
+  elif [[ -f /etc/debian_version ]]; then 
+    __osname="debian"
+    read __osversion < /etc/debian_version
   fi
   # Check /etc/os-release
   # If not, check lsb-release 
   # If not, check distro-specific files
   # If not, check package-managers
 
-else 
-  __ostype="unknown"
-  __distrotype="unknown"
-  __distro="unknown"
-  __release="unknown"
-  __kernel="unknown"
-  __arch="unknown"
 fi
 
 export __ostype
-export __distrotype
-export __distro
-export __release
-export __kernel
+export __osfamily
+export __osname
+export __osversion
+export __kernelversion
 export __arch 
