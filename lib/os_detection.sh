@@ -51,8 +51,8 @@ local force="${1:-}"
     fi
 
   elif [[ "${__osfamily}" = "darwin" ]]; then # Mac OSX, requires Homebrew or Macports
-    if which brew ; then echo "brew install"; # Homebrew
-    elif which port ; then echo "port install" # MacPorts
+    if which brew ; then echo "brew install"; # Homebrew: https://brew.sh/
+    elif which port ; then echo "port install" # MacPorts: https://www.macports.org/
     else echo "echo \"For installing following packages in macOS, you must use Homebrew or Macports:\""
     fi
 
@@ -66,13 +66,14 @@ local force="${1:-}"
 
   elif [[ "${__osfamily}" = "cygwin" ]]; then # POSIX compatibility layer and Linux environment emulation for Windows, requires apt-cyg
     if which apt-cyg > /dev/null 2>/dev/null ; then
-      echo "apt-cyg install"; #TODO: check and install apt-cyg if it is necessary https://github.com/transcode-open/apt-cyg
+      echo "apt-cyg install"; #https://github.com/transcode-open/apt-cyg
     else
       echo "echo \"Installing following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: \""
     fi
   elif [[ "${__osfamily}" = "msys" ]]; then echo "mingw-get install"; # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
   elif [[ "${__osfamily}" = "msys2" ]]; [[ "${force}" = "0" ]] && echo "pacman -S" || echo "pacman -S --noconfirm";  # MSYS2 software distro and building platform for Windows
   elif [[ "${__osfamily}" = "haiku" ]]; then echo "installoptionalpackage -a" # Haiku
+  elif [[ "${__osfamily}" = "minix" ]]; then echo "pkgin install" # Minix
   else echo "echo \"Unknown or unsupported operating system, cannot install following packages:\" "; # Unknown or unsupported operating system
   fi
 }
@@ -109,8 +110,8 @@ local force="${1:-}"
     fi
 
   elif [[ "${__osfamily}" = "darwin" ]]; then # Mac OSX
-    if which brew ; then echo "brew remove"; # Homebrew
-    elif which port ; then echo "port uninstall" # MacPorts
+    if which brew ; then echo "brew remove"; # Homebrew: https://brew.sh/
+    elif which port ; then echo "port uninstall" # MacPorts: https://www.macports.org/
     else echo "echo \"For removing following packages in macOS, you must use Homebrew or Macports:\""
     fi
 
@@ -122,10 +123,16 @@ local force="${1:-}"
     elif [[ "${__osname=}" = "openbsd" ]]; then echo "mport delete"; # MidnightBSD
     fi
 
-  elif [[ "${__osfamily}" = "cygwin" ]]; then echo "apt-cyg remove"; # POSIX compatibility layer and Linux environment emulation for Windows, requires apt-cyg,TODO: check and install apt-cyg if it is necessary https://github.com/transcode-open/apt-cyg
+  elif [[ "${__osfamily}" = "cygwin" ]]; then echo "apt-cyg remove"; # POSIX compatibility layer and Linux environment emulation for Windows, requires apt-cyg
+    if which apt-cyg > /dev/null 2>/dev/null ; then
+      echo "apt-cyg remove"; # https://github.com/transcode-open/apt-cyg
+    else
+      echo "echo \"Removing following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: \""
+    fi
   elif [[ "${__osfamily}" = "msys" ]]; then echo "mingw-get remove"; # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
   elif [[ "${__osfamily}" = "msys2" ]]; [[ "${force}" = "0" ]] && echo "pacman -R" || echo "pacman -R --noconfirm";  # MSYS2 software distro and building platform for Windows
   elif [[ "${__osfamily}" = "haiku" ]]; then echo "echo \"Proper package management not implemeted in Haiku, yet!\"" # Haiku
+  elif [[ "${__osfamily}" = "minix" ]]; then echo "pkgin remove" # Minix
   else echo "echo \"Unknown or unsupported operating system, cannot remove following packages:\""; # Unknown or unsupported operating system
   fi
 }
@@ -140,7 +147,7 @@ local installcmd=$( install_cmd "${force}" )
       if which sudo; then # Check sudo is exits
         eval "sudo ${installcmd} ${pkgs}"
       else
-        echo "You have higher privileges for this operation!"
+        echo "You need higher privileges for this operation!"
       fi
     else
       eval "${installcmd} ${pkgs}"
@@ -161,10 +168,34 @@ local removecmd=$( remove_cmd "${force}" )
       if which sudo; then # Check sudo is exits
         eval "sudo ${removecmd} ${pkgs}"
       else
-        echo "You have higher privileges for this operation!"
+        echo "You need higher privileges for this operation!"
       fi
     else
       eval "${removecmd} ${pkgs}"
+    fi
+  fi
+
+  return $?
+  
+}
+
+function check_pkgs(){
+local pkgs="${1:-}"
+local checkcmd=$( check_cmd )
+local missingpkgs=""
+  
+  if [[ ! -z "${pkgs}" ]] && [[ ! -z "${checkcmd}" ]]; then
+    if [[ $EUID != 0 ]]; then
+      if which sudo; then # Check sudo is exits
+        for pkg in "$pkgs[@]"; do
+          if ! eval "sudo ${checkcmd} ${pkgs}" ; then missingpkgs+=" ${pkg}"; fi
+        done
+        eval "sudo ${checkcmd} ${pkgs}"
+      else
+        echo "You need higher privileges for this operation!"
+      fi
+    else
+      if ! eval "${checkcmd} ${pkgs}" ; then missingpkgs+=" ${pkg}"; fi
     fi
   fi
 
@@ -294,7 +325,7 @@ elif [[ "${__ostype}" = "dragonfly"* ]]; then # DragonFlyBSD
   __osfamily="bsd"
   __osname="dragonflybsd"
   __osversion=$(uname -r)
-elif [[ "${__ostype}" = "midnightbsd" ]]; then # DragonFlyBSD
+elif [[ "${__ostype}" = "midnightbsd" ]]; then # MidnightBSD
   __osfamily="bsd"
   __osname="midnightbsd"
   __osversion=$(uname -r)
@@ -329,6 +360,10 @@ elif [[ "${__ostype}" = "cygwin" ]] || [[ "${__ostype}" = "msys" ]]; then
 elif [[ "${__ostype}" = "haiku" ]]; then # Haiku
   __osfamily="haiku"; 
   __osname="haiku"
+  __osversion=$(uname -r)
+elif [[ "${__ostype}" = "minix" ]]; then # Haiku
+  __osfamily="minix"; 
+  __osname="minix"
   __osversion=$(uname -r)
 fi
 
