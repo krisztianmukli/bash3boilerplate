@@ -182,7 +182,7 @@ local missingpkgs=""
  if [[ ! -z "${pkgs}" ]]; then
    if [[ "${__osfamily}" = "suse-based" ]]; then # SUSE / openSUSE
      for pkg in "${pkgs[@]}"; do
-       if ! zypper -is | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
+       if ! zypper search --installed-only --match-exact  "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
      done
     elif [[ "${__osfamily}" = "debian-based" ]]; then # Debian / Ubuntu Based Systems
      for pkg in "${pkgs[@]}"; do 
@@ -190,11 +190,11 @@ local missingpkgs=""
      done     
     elif [[ "${__osfamily}" = "fedora-based" ]]; then # Modern Fedora and derivatives
      for pkg in "${pkgs[@]}"; do 
-       if ! dnf list installed | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
+       if ! dnf list installed "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
      done     
     elif [[ "${__osfamily}" = "redhat-based" ]]; then # Red Hat / Fedora or derivatives
      for pkg in "${pkgs[@]}"; do 
-       if ! yum list installed | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
+       if ! yum list installed "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
      done         
     elif [[ "${__osfamily}" = "arch-based" ]]; then # Arch Linux or derivates
      for pkg in "${pkgs[@]}"; do 
@@ -203,24 +203,24 @@ local missingpkgs=""
     elif [[ "${__osfamily}" = "slackware-based" ]]; then
       if [[ -x /usr/sbin/slackpkg ]]; then # Slackware
        for pkg in "${pkgs[@]}"; do 
-         if ! slackpkg search "${pkg}" | grep "installed" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
+         if [[ -z "$(find "/var/log/packages" -name "${pkg}" 2>/dev/null)" ]]; then missingpkgs+=" ${pkg}"; fi
        done      
       elif [[ -x /usr/sbin/slapt-get ]]; then # Vector Linux / Slackware
        for pkg in "${pkgs[@]}"; do 
-         if ! slapt-get --installed | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
+         if [[ -z "$(find "/var/log/packages" -name "${pkg}" 2>/dev/null)" ]]; then missingpkgs+=" ${pkg}"; fi
        done       
       elif [[ -x /usr/sbin/netpkg ]]; then # Zenwalk / Slackware
        for pkg in "${pkgs[@]}"; do 
-         if ! netpk list I | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
+         if [[ -z "$(find "/var/log/packages" -name "${pkg}" 2>/dev/null)" ]]; then missingpkgs+=" ${pkg}"; fi
        done       
       fi
     elif [[ "${__osfamily}" = "mandriva-based" ]]; then # OpenMandriva Linux
       for pkg in "${pkgs[@]}"; do 
-        if ! rpm -qa | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
+        if [[ -z $(rpm -qa "${pkg}" 2>/dev/null) ]]; then missingpkgs+=" ${pkg}"; fi
       done 
     elif [[ "${__osfamily}" = "gentoo-based" ]]; then # Gentoo
       for pkg in "${pkgs[@]}"; do 
-        if ! qlist -I | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
+        if ! qlist -I "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
       done
     elif [[ "${__osfamily}" = "clearlinux" ]]; then # Clear Linux
       for pkg in "${pkgs[@]}"; do 
