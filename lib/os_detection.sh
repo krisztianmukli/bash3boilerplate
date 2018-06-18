@@ -53,7 +53,7 @@ local force="${1:-}"
   elif [[ "${__osfamily}" = "darwin" ]]; then # Mac OSX, requires Homebrew or Macports
     if which brew ; then echo "brew install"; # Homebrew: https://brew.sh/
     elif which port ; then echo "port install" # MacPorts: https://www.macports.org/
-    else echo "echo \"For installing following packages in macOS, you must use Homebrew or Macports:\""
+    else echo "echo \"For installing following packages in macOS, you must use Homebrew or Macports:\"" # return -2
     fi
 
   elif [[ "${__osfamily}" = "bsd" ]]; then
@@ -68,13 +68,13 @@ local force="${1:-}"
     if which apt-cyg > /dev/null 2>/dev/null ; then
       echo "apt-cyg install";
     else
-      echo "echo \"Installing following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: \""
+      echo "echo \"Installing following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: \"" # return -3
     fi
   elif [[ "${__osfamily}" = "msys" ]]; then echo "mingw-get install"; # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
   elif [[ "${__osfamily}" = "msys2" ]]; then [[ "${force}" = "0" ]] && echo "pacman -S" || echo "pacman -S --noconfirm";  # MSYS2 software distro and building platform for Windows
   elif [[ "${__osfamily}" = "haiku" ]]; then echo "installoptionalpackage -a" # Haiku
   elif [[ "${__osfamily}" = "minix" ]]; then echo "pkgin install" # Minix
-  else echo "echo \"Unknown or unsupported operating system, cannot install following packages:\" "; # Unknown or unsupported operating system
+  else echo "echo \"Unknown or unsupported operating system, cannot install following packages:\" "; # Unknown or unsupported operating system # return -4
   fi
 }
 function install_pkgs(){
@@ -87,7 +87,7 @@ local installcmd=$( install_cmd "${force}" )
       if which sudo; then # Check sudo is exits
         eval "sudo ${installcmd} ${pkgs}"
       else
-        echo "You need higher privileges for this operation!"
+        echo "You need higher privileges for this operation!" # return -1
       fi
     else
       eval "${installcmd} ${pkgs}"
@@ -131,7 +131,7 @@ local force="${1:-}"
   elif [[ "${__osfamily}" = "darwin" ]]; then # Mac OSX
     if which brew ; then echo "brew remove"; # Homebrew: https://brew.sh/
     elif which port ; then echo "port uninstall" # MacPorts: https://www.macports.org/
-    else echo "echo \"For removing following packages in macOS, you must use Homebrew or Macports:\""
+    else echo "echo \"For removing following packages in macOS, you must use Homebrew or Macports:\"" # return -2
     fi
 
   elif [[ "${__osfamily}" = "bsd" ]]; then
@@ -146,15 +146,16 @@ local force="${1:-}"
     if which apt-cyg > /dev/null 2>/dev/null ; then
       echo "apt-cyg remove";
     else
-      echo "echo \"Removing following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: \""
+      echo "echo \"Removing following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: \"" # return -3
     fi
   elif [[ "${__osfamily}" = "msys" ]]; then echo "mingw-get remove"; # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
   elif [[ "${__osfamily}" = "msys2" ]]; then [[ "${force}" = "0" ]] && echo "pacman -R" || echo "pacman -R --noconfirm";  # MSYS2 software distro and building platform for Windows
   elif [[ "${__osfamily}" = "haiku" ]]; then echo "echo \"Proper package management not implemeted in Haiku, yet!\"" # Haiku
   elif [[ "${__osfamily}" = "minix" ]]; then echo "pkgin remove" # Minix
-  else echo "echo \"Unknown or unsupported operating system, cannot remove following packages:\""; # Unknown or unsupported operating system
+  else echo "echo \"Unknown or unsupported operating system, cannot remove following packages:\""; # Unknown or unsupported operating system # return -4
   fi
 }
+
 function remove_pkgs(){
 local pkgs="${1:-}"
 local force="${2:-}"
@@ -165,7 +166,7 @@ local removecmd=$( remove_cmd "${force}" )
       if which sudo; then # Check sudo is exits
         eval "sudo ${removecmd} ${pkgs}"
       else
-        echo "You need higher privileges for this operation!"
+        echo "You need higher privileges for this operation!" # return -1
       fi
     else
       eval "${removecmd} ${pkgs}"
@@ -176,156 +177,147 @@ local removecmd=$( remove_cmd "${force}" )
   
 }
 function check_pkgs(){
-local pkgs="${1:-}"
+local pkgs=($1)
 local missingpkgs=""
 
- if [[ ! -z "${pkgs}" ]]; then
-   if [[ "${__osfamily}" = "suse-based" ]]; then # SUSE / openSUSE
-     for pkg in "${pkgs[@]}"; do
-       if ! zypper search --installed-only --match-exact  "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-     done
+  if [[ ! -z "${pkgs}" ]]; then
+    if [[ "${__osfamily}" = "suse-based" ]]; then # SUSE / openSUSE
+      for pkg in "${pkgs[@]}"; do
+        if ! zypper search --installed-only --match-exact "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
+      done
     elif [[ "${__osfamily}" = "debian-based" ]]; then # Debian / Ubuntu Based Systems
-     for pkg in "${pkgs[@]}"; do 
-       if ! dpkg -l "${pkg}" | grep ii >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-     done     
+      for pkg in "${pkgs[@]}"; do 
+        if ! dpkg -l "${pkg}" 2>/dev/null | grep "ii" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
+      done
     elif [[ "${__osfamily}" = "fedora-based" ]]; then # Modern Fedora and derivatives
-     for pkg in "${pkgs[@]}"; do 
-       if ! dnf list installed "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-     done     
+      for pkg in "${pkgs[@]}"; do 
+        if ! dnf list installed "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
+      done
     elif [[ "${__osfamily}" = "redhat-based" ]]; then # Red Hat / Fedora or derivatives
-     for pkg in "${pkgs[@]}"; do 
-       if ! yum list installed "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-     done         
+      for pkg in "${pkgs[@]}"; do
+        if ! yum list installed "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
+      done
     elif [[ "${__osfamily}" = "arch-based" ]]; then # Arch Linux or derivates
-     for pkg in "${pkgs[@]}"; do 
-       if ! pacman -Qi "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-     done     
+      for pkg in "${pkgs[@]}"; do 
+        if ! pacman -Qi "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
+      done
     elif [[ "${__osfamily}" = "slackware-based" ]]; then
       if [[ -x /usr/sbin/slackpkg ]]; then # Slackware
-       for pkg in "${pkgs[@]}"; do 
-         if [[ -z "$(find "/var/log/packages" -name "${pkg}" 2>/dev/null)" ]]; then missingpkgs+=" ${pkg}"; fi
-       done      
+        for pkg in "${pkgs[@]}"; do 
+          if [[ -z $(find "/var/log/packages" -name "${pkg}" 2>/dev/null) ]]; then missingpkgs+="${pkg} "; fi # Not exact match!
+        done
       elif [[ -x /usr/sbin/slapt-get ]]; then # Vector Linux / Slackware
-       for pkg in "${pkgs[@]}"; do 
-         if [[ -z "$(find "/var/log/packages" -name "${pkg}" 2>/dev/null)" ]]; then missingpkgs+=" ${pkg}"; fi
-       done       
+        for pkg in "${pkgs[@]}"; do 
+          if [[ -z $(find "/var/log/packages" -name "${pkg}" 2>/dev/null) ]]; then missingpkgs+="${pkg} "; fi # Not exact match!
+        done
       elif [[ -x /usr/sbin/netpkg ]]; then # Zenwalk / Slackware
-       for pkg in "${pkgs[@]}"; do 
-         if [[ -z "$(find "/var/log/packages" -name "${pkg}" 2>/dev/null)" ]]; then missingpkgs+=" ${pkg}"; fi
-       done       
+        for pkg in "${pkgs[@]}"; do 
+          if [[ -z $(find "/var/log/packages" -name "${pkg}" 2>/dev/null) ]]; then missingpkgs+="${pkg} "; fi # Not exact match!
+        done
       fi
     elif [[ "${__osfamily}" = "mandriva-based" ]]; then # OpenMandriva Linux
       for pkg in "${pkgs[@]}"; do 
-        if [[ -z $(rpm -qa "${pkg}" 2>/dev/null) ]]; then missingpkgs+=" ${pkg}"; fi
-      done 
+        if [[ -z $(rpm -qa "${pkg}" 2>/dev/null) ]]; then missingpkgs+="${pkg} "; fi
+      done
     elif [[ "${__osfamily}" = "gentoo-based" ]]; then # Gentoo
       for pkg in "${pkgs[@]}"; do 
-        if ! qlist -I "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
+        if ! qlist -I "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
       done
     elif [[ "${__osfamily}" = "clearlinux" ]]; then # Clear Linux
       for pkg in "${pkgs[@]}"; do 
-        if ! swupd bundle-list | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-      done    
+        if ! swupd bundle-list | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi # Not exact match!
+      done
     elif [[ "${__osfamily}" = "sabayon" ]]; then # Sabayon
       for pkg in "${pkgs[@]}"; do 
-        if ! equo q list installed | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-      done      
+        if ! equo q list installed | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi # Not exact match!
+      done
     elif [[ "${__osfamily}" = "voidlinux" ]]; then # Void Linux
       for pkg in "${pkgs[@]}"; do 
-        if ! xbps-query -l | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-      done    
+        if ! xbps-query -l | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi # Not exact match!
+      done
     elif [[ "${__osfamily}" = "alpinelinux" ]]; then # Alpine Linux
       for pkg in "${pkgs[@]}"; do 
-        if ! apk info | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-      done     
+        if ! apk info "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
+      done
     elif [[ "${__osfamily}" = "soluslinux" ]]; then echo # Solus Linux
       for pkg in "${pkgs[@]}"; do 
-        if ! eopkg list-installed | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-      done       
+        if [[ -n $(eopkg info "${pkg}" 2>/dev/null | grep "not installed") ]]; then missingpkgs+="${pkg} "; fi
+      done
     elif [[ "${__osfamily}" = "openwrt" ]]; then # OpenWRT
       for pkg in "${pkgs[@]}"; do 
-        if ! opkg list-installed | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-      done      
-    elif [[ "${__osfamily}" = "android-termux" ]]; then # Android (termux)
-      for pkg in "${pkgs[@]}"; do 
-       if ! dpkg -l "${pkg}" | grep ii >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
+        if [[ -z $(opkg status"${pkg}" 2>/dev/null) ]]; then missingpkgs+="${pkg} "; fi
       done
-      
+    elif [[ "${__osfamily}" = "android-termux" ]]; then # Android (termux), assuming identical to Debian
+      for pkg in "${pkgs[@]}"; do 
+        if ! dpkg -l "${pkg}" | grep "ii" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
+      done
+
     elif [[ "${__osfamily}" = "solaris-based" ]]; then 
-      if [[ "${__osname=}" = "solaris" ]]; then # Solaris
+      if [[ "${__osname=}" = "solaris" ]]; then # Solaris, not tested assuming identical to OpenIndiana
         for pkg in "${pkgs[@]}"; do 
-         if ! pkg list "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
+          if ! pkg list "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
         done       
       elif [[ "${__osname=}" = "openindiana" ]]; then # OpenIndiana 
         for pkg in "${pkgs[@]}"; do 
-         if ! pkg list "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-        done        
-      elif [[ "${__osname=}" = "smartos" ]]; then echo "pkgin in" # SmartOS
-        for pkg in "${pkgs[@]}"; do 
-          if ! pkgin ls | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
+          if ! pkg list "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
         done
-      elif [[ "${__osname=}" = "omnios" ]]; then # OmniOS
+      elif [[ "${__osname=}" = "smartos" ]]; then echo "pkgin in" # SmartOS, not tested
         for pkg in "${pkgs[@]}"; do 
-         if ! pkg list "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-        done      
-      elif [[ "${__osname=}" = "nexentastor" ]]; then # NexentaStor
+          if ! pkgin ls | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
+        done
+      elif [[ "${__osname=}" = "omnios" ]]; then # OmniOS,not tested assuming identical to OpenIndiana
         for pkg in "${pkgs[@]}"; do 
-         if ! dpkg -l "${pkg}" | grep ii >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-        done      
+          if ! pkg list "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
+        done
+      elif [[ "${__osname=}" = "nexentastor" ]]; then # NexentaStor, assuming identical to Debian
+        for pkg in "${pkgs[@]}"; do 
+          if ! dpkg -l "${pkg}" | grep "ii" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
+        done
       fi
-      
-    elif [[ "${__osfamily}" = "darwin" ]]; then # Mac OSX, requires Homebrew or Macports
+
+    elif [[ "${__osfamily}" = "darwin" ]]; then # Mac OSX, requires Homebrew or Macports, not tested
       if which brew; then # Homebrew: https://brew.sh/
         for pkg in "${pkgs[@]}"; do 
-          if ! brew list | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-        done
-      elif which port; then # MacPorts: https://www.macports.org/
-        for pkg in "${pkgs[@]}"; do 
-          if ! port installed | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-        done      
-      fi
+          if ! brew list | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi # Not exact match!
+      done
+    elif which port; then # MacPorts: https://www.macports.org/
+      for pkg in "${pkgs[@]}"; do 
+        if ! port installed | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi # Not exact match!
+      done
+    fi
 
     elif [[ "${__osfamily}" = "bsd" ]]; then
       if [[ "${__osname=}" = "freebsd" ]]; then # FreeBSD
         for pkg in "${pkgs[@]}"; do 
-         if ! pkg info --all | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-        done      
+          if ! pkg info --all | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi # Not exact match!
+        done
       elif [[ "${__osname=}" = "openbsd" ]]; then # OpenBSD
+        for pkg in "${pkgs[@]}"; do 		
+          if [[ -z $(pkg_info "${pkg}" 2>/dev/null) ]]; then missingpkgs+="${pkg} "; fi
+        done
+      elif [[ "${__osname=}" = "netbsd" ]]; then # NetBSD, not tested	    
         for pkg in "${pkgs[@]}"; do 
-         if ! pkg_info -a | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-        done        
-      elif [[ "${__osname=}" = "netbsd" ]]; then # NetBSD
-        for pkg in "${pkgs[@]}"; do 
-         if ! pkg_info -a | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-        done        
+          if ! pkg_info -a | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi # Not exact match!
+        done
       elif [[ "${__osname}" = "dragonflybsd" ]]; then # DragonFlyBSD
         for pkg in "${pkgs[@]}"; do 
-         if ! pkg info | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-        done      
-      elif [[ "${__osname=}" = "openbsd" ]]; then # MidnightBSD
+          if ! pkg info "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
+        done
+      elif [[ "${__osname=}" = "midnightbsd" ]]; then # MidnightBSD, poorly tested
         for pkg in "${pkgs[@]}"; do 
-         if ! mport list | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
+          if ! mport list | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi # Not exact match!
         done
       fi
 
-    elif [[ "${__osfamily}" = "cygwin" ]] && which apt-cyg > /dev/null 2>/dev/null; then # Cygwin, requires apt-cyg - https://github.com/transcode-open/apt-cyg
-      for pkg in "${pkgs[@]}"; do 
-        if ! cygcheck -l | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-      done    
-    elif [[ "${__osfamily}" = "msys" ]]; then # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
-      for pkg in "${pkgs[@]}"; do 
-        if ! mingw-get-info installed | grep "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-      done     
     elif [[ "${__osfamily}" = "msys2" ]]; then # MSYS2 software distro and building platform for Windows
       for pkg in "${pkgs[@]}"; do 
-        if ! pacman -Qi "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+=" ${pkg}"; fi
-      done    
-    elif [[ "${__osfamily}" = "haiku" ]]; then missingpkgs="${pkgs}" # Haiku, there is no usable method
-    elif [[ "${__osfamily}" = "minix" ]]; then missingpkgs="${pkgs}" # Minix, there is no usable method
+        if ! pacman -Qi "${pkg}" >/dev/null 2>/dev/null; then missingpkgs+="${pkg} "; fi
+      done
+    else missingpkgs="${pkgs}" # Some OS has not method for checking installed packages: cygwin, msys, haiku, minix
     fi
- fi
- 
- echo "${missingpkgs}"
+  fi
+
+  echo "${missingpkgs}"
 }
 
 #===============================================================================
