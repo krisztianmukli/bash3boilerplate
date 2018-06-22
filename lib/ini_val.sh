@@ -25,6 +25,24 @@
 # Copyright (c) 2013 Kevin van Zonneveld and contributors
 # You are not obligated to bundle the LICENSE file with your b3bp projects as long
 # as you leave these references intact in the header comments of your source files.
+function get_ini_val() {
+local inifile="${1:-}"
+local key="${2:-}"
+local value=""
+
+  value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname.$__osversion.$__kernelversion.$__arch.$__subsystem" )
+  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname.$__osversion.$__kernelversion.$__arch" )
+  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname.$__osversion.$__kernelversion.$__subsystem" )
+  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname.$__osversion.$__kernelversion" )
+  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname.$__osversion.$__arch" )
+  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname.$__osversion.$__subsystem" )
+  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname.$__osversion" )
+  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname" )
+  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily" )
+  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype" )
+  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key" )
+  echo "${value}"
+}
 function ini_val() {
   local file="${1:-}"
   local sectionkey="${2:-}"
