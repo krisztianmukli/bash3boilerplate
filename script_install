@@ -118,26 +118,6 @@ __si_license=$"Licensed under the MIT license"
 #===============================================================================
 # Functions section
 #===============================================================================
-
-function get_ini_val() {
-local inifile="${1:-}"
-local key="${2:-}"
-local value=""
-
-  value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname.$__osversion.$__kernelversion.$__arch.$__subsystem" )
-  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname.$__osversion.$__kernelversion.$__arch" )
-  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname.$__osversion.$__kernelversion.$__subsystem" )
-  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname.$__osversion.$__kernelversion" )
-  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname.$__osversion.$__arch" )
-  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname.$__osversion.$__subsystem" )
-  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname.$__osversion" )
-  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily.$__osname" )
-  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype.$__osfamily" )
-  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key.$__ostype" )
-  [[ -z "${value}" ]] && value=$( ini_val "${inifile}" "$key" )
-  echo "${value}"
-}
-
 function install_dependencies(){
 local missingpkgs="${1:-}"
 local force=${2:-0}
@@ -203,7 +183,7 @@ local thirdparties=$( get_ini_val "${inifile}" "install.thirdparties" )
 local preinst=$( get_ini_val "${inifile}" "install.preinst" )
 local postinst=$( get_ini_val "${inifile}" "install.postinst" )
 local force=${5:-0}
-local missingpkgs result
+local missingpkgs result actpwd
 
   # Check sourcedir is exists
   [[ ! -d "${sourcedir}" ]] && emergency $"Installation unsuccesful: ${sourcedir} is not exists!"
@@ -247,7 +227,9 @@ local missingpkgs result
       cp -i "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || emergency $"Installation unsuccesful: there was an error during copying files"
     fi
     [[ ! -x "${targetdir}/${script}" ]] && (chmod +x "${targetdir}/${script}" || error $"Set executable permission was unsuccesful for file ${targetdir}/${script}! Maybe it need higher privileges!")
-    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
+    actpwd=$(pwd) && cd "${sourcedir}"
+    find locale/ -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
+    cd ${actpwd}
     # Save localetargetdir for removing
     ini_val "${targetdir}/${script}.ini" install.locale "${localetargetdir}"
     debug $"Installation file ${script} was succesful to ${targetdir}"
@@ -312,7 +294,7 @@ local folder=${1:-}
           echo "    PATH=\"${folder}:\$PATH\" "
           echo "fi" 
         } >> "${__si_user_home}/.profile"
-        warning $"\~/.profile was updated, please login again or run 'source \~/.profile' command to reload PATH variable!"
+        warning $"~/.profile was updated, please login again or run 'source ~/.profile' command to reload PATH variable!"
 
 	    return 0 
       fi
