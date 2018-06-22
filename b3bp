@@ -42,11 +42,11 @@ set -o pipefail
 #-------------------------------------------------------------------------------
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
   __b3bp_srcd=1
-  if [[ "${__b3bp_usage+x}" ]]; then
+  if [[ "${BASH_SOURCE[1]+x}" ]]; then
     [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __b3bp_srcd=0
-    __b3bp_external_usage=1
     __b3bp_tmp_source_idx=1
-  fi 
+  fi
+  [[ "${__b3bp_usage+x}" ]] && __b3bp_external_usage=1
 else
   __b3bp_srcd=0
   [[ "${__b3bp_usage+x}" ]] && unset -v __b3bp_usage

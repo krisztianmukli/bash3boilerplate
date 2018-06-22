@@ -19,12 +19,17 @@
 #===============================================================================
 # Functions section
 #===============================================================================
+# Must be called in a following block:
+# set +o errexit; 
+# install_pkgs "pkgs" "force"
+# result=$?
+# set -o errexit; 
 function install_pkgs(){
 local pkgs="${1:-}"
-local force="${2:-}"
+local force="${2:-0}"
 
-  if [[ -z "${pkgs}" ]]; then return 0; fi # "No valid packages, is not an error"
-  if [[ $EUID != 0 ]]; then return 1; fi # "You need higher privileges for this operation!"
+  if [[ -z "${pkgs}" ]]; then return 1; fi # "No valid packages, is not an error"
+  if [[ $EUID != 0 ]]; then return 2; fi # "You need higher privileges for installing packages!"
 
   if [[ "${__osfamily}" = "suse-based" ]]; then [[ "${force}" = "0" ]] && zypper install "${pkgs}" || zypper install --non-interactive "${pkgs}"; # SUSE / openSUSE      
   elif [[ "${__osfamily}" = "debian-based" ]]; then [[ "${force}" = "0" ]] && apt-get install "${pkgs}" || apt-get install --yes "${pkgs}"; # Debian / Ubuntu Based Systems
@@ -57,7 +62,7 @@ local force="${2:-}"
   elif [[ "${__osfamily}" = "darwin" ]]; then # Mac OSX, requires Homebrew or Macports
     if which brew ; then brew install "${pkgs}"; # Homebrew: https://brew.sh/
     elif which port ; then port install "${pkgs}"; # MacPorts: https://www.macports.org/
-    else return 2 # "For installing following packages in macOS, you must use Homebrew or Macports:"
+    else return 3; # "For installing following packages in macOS, you must use Homebrew or Macports:"
     fi
 
   elif [[ "${__osfamily}" = "bsd" ]]; then
@@ -72,24 +77,28 @@ local force="${2:-}"
     if which apt-cyg > /dev/null 2>/dev/null ; then
       apt-cyg install "${pkgs}"
     else
-      return 3 #"Installing following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe:"
+      return 4; #"Install the following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe:"
     fi
   elif [[ "${__osfamily}" = "msys" ]]; then mingw-get install "${pkgs}"; # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
   elif [[ "${__osfamily}" = "msys2" ]]; then [[ "${force}" = "0" ]] && pacman -S "${pkgs}" || pacman -S --noconfirm "${pkgs}";  # MSYS2 software distro and building platform for Windows
   elif [[ "${__osfamily}" = "haiku" ]]; then installoptionalpackage -a "${pkgs}"; # Haiku
   elif [[ "${__osfamily}" = "minix" ]]; then pkgin install "${pkgs}"; # Minix
-  else return 255 # "Unknown or unsupported operating system, cannot install following packages; # Unknown or unsupported operating system
+  else return 255; # "Unknown or unsupported operating system, cannot install following packages; # Unknown or unsupported operating system
   fi
 
   return $?
 }
-
+# Must be called in a following block:
+# set +o errexit; 
+# install_pkgs "pkgs" "force"
+# result=$?
+# set -o errexit; 
 function remove_pkgs() {
 local pkgs="${1:-}"
 local force="${2:-}"
 
-  if [[ -z "${pkgs}" ]]; then return 0; fi # "No valid packages, is not an error"
-  if [[ $EUID != 0 ]]; then return 1; fi # "You need higher privileges for this operation!"
+  if [[ -z "${pkgs}" ]]; then return 1; fi # "No valid packages, is not an error"
+  if [[ $EUID != 0 ]]; then return 2; fi # "You need higher privileges for this operation!"
 
   if [[ "${__osfamily}" = "suse-based" ]]; then [[ "${force}" = "0" ]] && zypper remove "${pkgs}" || zypper remove --non-interactive "${pkgs}"; # SUSE / openSUSE
   elif [[ "${__osfamily}" = "debian-based" ]]; then [[ "${force}" = "0" ]] && apt-get remove "${pkgs}" || apt-get remove --yes "${pkgs}"; # Debian / Ubuntu Based Systems
@@ -122,7 +131,7 @@ local force="${2:-}"
   elif [[ "${__osfamily}" = "darwin" ]]; then # Mac OSX
     if which brew; then brew remove "${pkgs}"; # Homebrew: https://brew.sh/
     elif which port; then port uninstall "${pkgs}"; # MacPorts: https://www.macports.org/
-    else return 2; # "For removing following packages in macOS, you must use Homebrew or Macports:"
+    else return 3; # "For removing following packages in macOS, you must use Homebrew or Macports:"
     fi
 
   elif [[ "${__osfamily}" = "bsd" ]]; then
@@ -137,11 +146,11 @@ local force="${2:-}"
     if which apt-cyg > /dev/null 2>/dev/null ; then
       apt-cyg remove "${pkgs}"
     else
-      return 3 # "Removing following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe:" 
+      return 4 # "Removing following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe:" 
     fi
   elif [[ "${__osfamily}" = "msys" ]]; then mingw-get remove "${pkgs}"; # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
   elif [[ "${__osfamily}" = "msys2" ]]; then [[ "${force}" = "0" ]] && pacman -R "${pkgs}" || pacman -R --noconfirm "${pkgs}";  # MSYS2 software distro and building platform for Windows
-  elif [[ "${__osfamily}" = "haiku" ]]; then return 4; #"Proper package management not implemented in Haiku. # Haiku
+  elif [[ "${__osfamily}" = "haiku" ]]; then return 5; #"Proper package management not implemented in Haiku. # Haiku
   elif [[ "${__osfamily}" = "minix" ]]; then pkgin remove "${pkgs}"; # Minix
   else return 255; # "Unknown or unsupported operating system, cannot remove following packages:"; # Unknown or unsupported operating system
   fi

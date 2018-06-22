@@ -45,11 +45,11 @@ set -o pipefail
 #-------------------------------------------------------------------------------
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
   __sr_srcd=1
-  if [[ "${__sr_usage+x}" ]]; then
+  if [[ "${BASH_SOURCE[1]+x}" ]]; then
     [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __sr_srcd=0
-    __sr_external_usage=1
     __sr_tmp_source_idx=1
-  fi 
+  fi
+  [[ "${__sr_usage+x}" ]] && __sr_external_usage=1
 else
   __sr_srcd=0
   [[ "${__sr_usage+x}" ]] && unset -v __sr_usage
