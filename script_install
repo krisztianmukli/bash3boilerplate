@@ -25,7 +25,7 @@
 #   it will exit 0, and script_install say installation was succesful.
 # * Preinstall and postinstall script must be locate in source directory
 #
-# Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
+# Based on BASH3 Boilerplate by krisztianmukli v1.0.0
 #===============================================================================
 # Init section
 #===============================================================================
@@ -49,11 +49,11 @@ set -o pipefail
 #-------------------------------------------------------------------------------
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
   __si_srcd=1
-  if [[ "${__si_usage+x}" ]]; then
+  if [[ "${BASH_SOURCE[1]+x}" ]]; then
     [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __si_srcd=0
-    __si_external_usage=1
     __si_tmp_source_idx=1
-  fi 
+  fi
+  [[ "${__si_usage+x}" ]] && __si_external_usage=1
 else
   __si_srcd=0
   [[ "${__si_usage+x}" ]] && unset -v __si_usage
@@ -62,6 +62,7 @@ fi
 __si_dir="$(cd "$(dirname "${BASH_SOURCE[${__si_tmp_source_idx:-0}]}")" && pwd)"
 __si_file="${__si_dir}/$(basename "${BASH_SOURCE[${__si_tmp_source_idx:-0}]}")"
 __si_base="$(basename "${__si_file}" .sh)"
+__si_user_home="$([[ "${SUDO_USER+x}" ]] && getent passwd "${SUDO_USER}" | cut -d: -f6 || echo "$HOME")"
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
@@ -69,16 +70,17 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 #-------------------------------------------------------------------------------
 # Sourced files
 #-------------------------------------------------------------------------------
-export PATH="${__si_dir}/lib:$PATH"
+export PATH="${__si_dir}:${__si_dir}/lib:$PATH"
 source log.sh
 source os_detection.sh
 source display_info.sh
 source ini_val.sh
+source ask.sh
 
 #-------------------------------------------------------------------------------
 # Localization
 #-------------------------------------------------------------------------------
-__si_localepath=( "${__si_dir}/locale" "${HOME}/.local/share/locale" "/usr/local/share/locale" "/usr/share/locale" )
+__si_localepath=( "${__si_dir}/locale" "${__si_user_home}/.local/share/locale" "/usr/local/share/locale" "/usr/share/locale" )
   for folder in "${__si_localepath[@]}"; do
     if [[ -d "${folder}" ]]; then
       count=$(find "${folder}" -name "${__si_base}.mo" | wc -l )
@@ -97,9 +99,9 @@ export TEXTDOMAIN="${__si_base}"
   -d --debug               Enables debug mode
   -f --force               Forcing commands (e.g. overwrite existing files)
   -h --help                This page
-  -i --ini [inifile]       Ini-file using the installation. Default="install.ini"
+  -i --ini [inifile]       Ini-file using the installation. If not set, installer use [sourcedir]/install.ini
   -n --no-color            Disable color output
-  -s --source [sourcedir]  Source dir of script. Default=.
+  -s --source [sourcedir]  Source dir of script. Default=\"$(pwd)\"
   -t --target [targetdir]  Target directory. Optional, if not specified, installer use /usr/local/bin or ~/.local/bin
   -v                       Enable verbose mode, print script as it is executed
   -V --version             Display version and license information"
@@ -116,165 +118,268 @@ __si_license=$"Licensed under the MIT license"
 #===============================================================================
 # Functions section
 #===============================================================================
+function install_dependencies(){
+local missingpkgs="${1:-}"
+local force=${2:-0}
+local result
+
+  debug "Starting package-installation"
+  set +o errexit # Not exit on error, neccesary for logging package-management return codes
+  install_pkgs "${missingpkgs}" "${force}" 2>&1 | while read line; do info "${line}"; done;
+  result=$?
+  set -o errexit # Exit on error
+  case $result in 
+    0) 
+      info $"Installation of following dependencies was succesful: ${missingpkgs}"
+      return 0
+      ;;
+    1)
+      warning "No valid packages"
+      return 1
+      ;;
+    2)
+      error "You need higher privileges for installing packages!"
+      return 1
+      ;;
+    3)
+      error "For installing following packages in macOS, you must use Homebrew or Macports: ${missingpkgs}"
+      return 1
+      ;;
+    4)
+      error "Install the following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: ${missingpkgs}"
+      return 1
+      ;;     
+    255)
+      error "Unknown or unsupported operating system, cannot install following packages: ${missingpkgs}"
+      return 1
+      ;;
+    *)
+      error "Unknown error during installing packages!"
+      return 1
+      ;;
+  esac
+  debug "Finished the package-installation"
+}
+#-------------------------------------------------------------------------------
+# install_files: Copy files (and it's payloads) from sourcedir to targetdir 
+# Arguments:
+#   install_files sourcedir targetdir localetargetdir
+# Returns:
+#   exit 1 if any command was unsuccesful
+#-------------------------------------------------------------------------------
 function install_files() {
 local sourcedir=${1:-}
 local libsourcedir="${sourcedir:-}/lib"
 local localesourcedir="${sourcedir:-}/locale"
-local targetdir=${2:-}
+local inifile=${2:-}
+local targetdir=${3:-}
 local libtargetdir="${targetdir:-}/lib"
-local localetargetdir="${3:-}"
-local scripts=$( ini_val "${sourcedir}/install.ini" install.scripts )
-local libraries=$( ini_val "${sourcedir}/install.ini" install.libraries )
-local payloads=$( ini_val "${sourcedir}/install.ini" install.payloads )
-local dependencies=$( ini_val "${sourcedir}/install.ini" install.dependencies )
-local thirdparties=$( ini_val "${sourcedir}/install.ini" install.thirdparties )
-local preinst=$( ini_val "${sourcedir}/install.ini" install.preinst )
-local postinst=$( ini_val "${sourcedir}/install.ini" install.postinst )
+local localetargetdir="${4:-}"
+local scripts=$( get_ini_val "${inifile}" "install.scripts" )
+local libraries=$( get_ini_val "${inifile}" "install.libraries" )
+local payloads=$( get_ini_val "${inifile}" "install.payloads" )
+local dependencies=$( get_ini_val "${inifile}" "install.dependencies" )
+local thirdparties=$( get_ini_val "${inifile}" "install.thirdparties" )
+local preinst=$( get_ini_val "${inifile}" "install.preinst" )
+local postinst=$( get_ini_val "${inifile}" "install.postinst" )
+local force=${5:-0}
+local missingpkgs result actpwd
 
   # Check sourcedir is exists
-  [[ ! -d "${sourcedir}" ]] && emergency "Installation unsuccesful: ${sourcedir} is not exists!"
+  [[ ! -d "${sourcedir}" ]] && emergency $"Installation unsuccesful: ${sourcedir} is not exists!"
 
   # Calling preinstall scripts, if any
   for command in ${preinst}; do
-    eval "${__si_dir}/${command}"
+    eval "${command}"
   done
 
   # Check targetdir is exists, otherwise create it
-  [[ ! -d "${targetdir}" ]] && (mkdir "${targetdir}" 2>&- || emergency "Installation unsuccesful: can not create ${targetdir}")
+  [[ ! -d "${targetdir}" ]] && (mkdir "${targetdir}" 2>&- || emergency $"Installation unsuccesful: can not create ${targetdir}")
   # Check targetdir is writable
-  [[ ! -w "${targetdir}" ]] && emergency "Installation unsuccesful: ${targetdir} not writable"
+  [[ ! -w "${targetdir}" ]] && emergency $"Installation unsuccesful: ${targetdir} not writable"
   
   # Check libraries is not empty
   if [[ "${libraries+x}" ]]; then	  
     # Check sourcedir/lib is exists
-    [[ -d "${libsourcedir}" ]] || emergency "Installation unsuccesful: ${libsourcedir} is not exists!"
+    [[ -d "${libsourcedir}" ]] || emergency $"Installation unsuccesful: ${libsourcedir} is not exists!"
     # Check targetdir/lib is exists, otherwise create it
-    [[ ! -d "${libtargetdir}" ]] && (mkdir "${libtargetdir}" 2>&- || emergency "Installation unsuccesful: can not create ${libtargetdir}")
+    [[ ! -d "${libtargetdir}" ]] && (mkdir "${libtargetdir}" 2>&- || emergency $"Installation unsuccesful: can not create ${libtargetdir}")
     # Check targetdir/lib is writable
-    [[ ! -w "${libtargetdir}" ]] && emergency "Installation unsuccesful: ${libtargetdir} not writable"
+    [[ ! -w "${libtargetdir}" ]] && emergency $"Installation unsuccesful: ${libtargetdir} not writable"
   fi
 
   # Check localedir is exists, if there is locale folder in sourcedir
   if [[ -d "${localesourcedir}" ]]; then
     # Check targetdir is exists, otherwise create it
-    [[ ! -d "${localetargetdir}" ]] && (mkdir "${localetargetdir}" 2>&- || emergency "Installation unsuccesful: can not create ${localetargetdir}")
+    [[ ! -d "${localetargetdir}" ]] && (mkdir "${localetargetdir}" 2>&- || emergency $"Installation unsuccesful: can not create ${localetargetdir}")
     # Check targetdir is writable
-    [[ ! -w "${localetargetdir}" ]] && emergency "Installation unsuccesful: ${localetargetdir} not writable"
+    [[ ! -w "${localetargetdir}" ]] && emergency $"Installation unsuccesful: ${localetargetdir} not writable"
   fi
 
   for script in ${scripts}; do
     # Check filename can't pipe to upper directory
-    [[ "${script}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename (${script})"
-    if [[ "${__si_arg_f:?}" = "1" ]]; then
-      cp -f "${sourcedir}/${script}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
-      cp -f "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || (emergency "Installation unsuccesful: there was an error during copying files")
+    [[ "${script}" = *".."* ]] && emergency $"Installation unsuccesful: unsupported filename (${script})"
+    if [[ "${force}" = "1" ]]; then
+      cp -f "${sourcedir}/${script}" "${targetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
+      cp -f "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || emergency $"Installation unsuccesful: there was an error during copying files"
     else
-      cp -i "${sourcedir}/${script}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
-      cp -i "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || (emergency "Installation unsuccesful: there was an error during copying files")
+      cp -i "${sourcedir}/${script}" "${targetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
+      cp -i "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || emergency $"Installation unsuccesful: there was an error during copying files"
     fi
-    [[ ! -x "${targetdir}/${script}" ]] && (chmod +x "${targetdir}/${script}" || error "Set executable permission was unsuccesful for file ${targetdir}/${script}! Maybe it need higher privileges!")
-    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    [[ ! -x "${targetdir}/${script}" ]] && (chmod +x "${targetdir}/${script}" || error $"Set executable permission was unsuccesful for file ${targetdir}/${script}! Maybe it need higher privileges!")
+    actpwd=$(pwd) && cd "${sourcedir}"
+    find locale/ -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
+    cd ${actpwd}
     # Save localetargetdir for removing
     ini_val "${targetdir}/${script}.ini" install.locale "${localetargetdir}"
-    debug "Installation file ${script} was succesful to ${targetdir}"
+    debug $"Installation file ${script} was succesful to ${targetdir}"
   done
 
   for lib in ${libraries}; do
-    [[ "${lib}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename ($lib)"i
-    if [[ "${__si_arg_f:?}" = "1" ]]; then
-      cp -f "${libsourcedir}/${lib}" "${libtargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+    [[ "${lib}" = *".."* ]] && emergency $"Installation unsuccesful: unsupported filename ($lib)"i
+    if [[ "${force}" = "1" ]]; then
+      cp -f "${libsourcedir}/${lib}" "${libtargetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
     else
-      cp -i "${libsourcedir}/${lib}" "${libtargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
+      cp -i "${libsourcedir}/${lib}" "${libtargetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
     fi
-    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
-    debug "Installation file ${lib} was succesful to ${libtargetdir}"
+    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
+    debug $"Installation file ${lib} was succesful to ${libtargetdir}"
   done
 
   for payload in ${payloads}; do
     # Check filename can't pipe to upper directory
-    [[ "${payload}" = *".."* ]] && emergency "Installation unsuccesful: unsupported filename (${payload})"
-    cp -i "${sourcedir}/${payload}" "${targetdir}" || (emergency "Installation unsuccesful: there was an error during copying files")
-    debug "Installation file ${script} was succesful to ${targetdir}"
+    [[ "${payload}" = *".."* ]] && emergency $"Installation unsuccesful: unsupported filename (${payload})"
+    cp -i "${sourcedir}/${payload}" "${targetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
+    debug $"Installation file ${script} was succesful to ${targetdir}"
   done
 
-  # Install dependencies  
-  eval "${pkgmanagercmd} ${dependencies}"
+  # Install dependencies
+  if [[ -n "${dependencies}" ]]; then
+    missingpkgs=$(check_pkgs "${dependencies}")
+    if [[ -n "${missingpkgs}" ]]; then 
+      debug "Missing dependencies: ${missingpkgs}"
+      install_dependencies "${missingpkgs}" "${force}" || emergency $"Installation unsuccesful: there was an error during installing dependencies"
+    fi
+  fi
 
   # Calling thirdparty scripts, if any
   for command in ${thirdparties}; do
-    eval "${__si_dir}/${command}"
+    eval "${command}"
   done
 
   # Calling postinstall scripts, if any
   for command in ${postinst}; do
-    eval "${__si_dir}/${command}"
+    eval "${command}"
   done
 
-  info "Installation files was succesful to ${targetdir}"
+  info $"Installation files was succesful to ${targetdir}"
 }
 
+#-------------------------------------------------------------------------------
+# edit_profile: Add script's targetdir to user's ~/.profile file
+# Arguments:
+#   edit_profile folder
+# Returns:
+#   return 1 if unsuccesful (there's no folder)
+#-------------------------------------------------------------------------------
 function edit_profile(){
 local folder=${1:-}
   if [[ ! -z "${folder}" ]]; then
 
-      if ! grep -q "${folder}" "${HOME}/.profile"; then
+      if ! grep -q "${folder}" "${__si_user_home}/.profile"; then
         {
           echo "" 
           echo "# set PATH so it includes user's private bin if it exists - Added by b3bp installer"
           echo "if [ -d \"${folder}\" ] ; then"
           echo "    PATH=\"${folder}:\$PATH\" "
           echo "fi" 
-        } >> "${HOME}/.profile"
-        warning "\~/.profile was updated, please login again or run 'source \~/.profile' command to reload PATH variable!"
+        } >> "${__si_user_home}/.profile"
+        warning $"~/.profile was updated, please login again or run 'source ~/.profile' command to reload PATH variable!"
 
-	return 0 
+	    return 0 
       fi
 
   fi
   return 1
 }
 
+function check_dependencies() {
+local sourcedir=${1:-}
+local inifile=${2:-}
+local force=${2:-0}
+local dependencies=$( get_ini_val "${inifile}" "install.dependencies" )
+local preinst=$( get_ini_val "${inifile}" "install.preinst" )
+local postinst=$( get_ini_val "${inifile}" "install.postinst" )
+
+  if [[ ! -z "${dependencies}" ]]; then
+    missingpkgs=$(check_pkgs "${dependencies}")
+    if [[ ! -z "${missingpkgs}" ]]; then
+      debug "Missing dependencies: ${missingpkgs}"
+      if ask $"Following packages are missing: ${missingpkgs}, would you like to install them?" "Y"; then
+
+        # Calling preinstall scripts, if any
+        for command in ${preinst}; do
+          eval "${command}"
+        done
+
+        install_dependencies "${missingpkgs}" "${force}" || emergency $"Installation unsuccesful: there was an error during installing dependencies"
+
+        # Calling postinstall scripts, if any
+        for command in ${postinst}; do
+          eval "${command}"
+        done
+
+      fi
+    fi
+  fi
+}
+#-------------------------------------------------------------------------------
+# Main function: Determine targetdir based on OS-type and ini-values, then call
+# install_files and edit_profile methods
+# Arguments:
+#   None
+# Returns:
+#   exit 1, if unsupported OS detected
+#-------------------------------------------------------------------------------
 function main() {
 local sourcedir="${__si_arg_s}"
+local force="${__si_arg_f}"
 
-  # Check OS 
-  if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
+  # Check supported OS
+  if [[ "${__osfamily}" = "unknown" ]]; then
+    debug $"Unsupported operating system. Installation is not possible."
 
-    if [[ "${__si_arg_f:?}" = "1" ]]; then
-      pkgmanagercmd="sudo apt-get install --yes "
-    else
-      pkgmanagercmd="sudo apt-get install "
-    fi
-    # Check permissions
-    if [[ $EUID != 0 ]]; then
+    # exit 1
+    display_info $"Unsupported operating system. Installation is not possible." $"Install script manually: 
+    * Copy the script and the lib folder to your PATH.
+    * Copy to locale folder to your locale folder.
+    * Install dependencies."
+  fi
 
-      if [[ ! -z "${__si_arg_t}" ]]; then
-        targetdir="${__si_arg_t}"
-        targetdirtext="${__si_arg_t}"
-      else
-        targetdir="${HOME}/.local/bin"
-        targetdirtext="\$HOME/.local/bin"
-      fi
+  if [[ "${__si_arg_c:?}" = "0" ]] ; then   
+    __si_arg_t=$(sed "s|~|$HOME|g" <<< "${__si_arg_t:-}") # Workaround for such cases: "~/path/to/file"
 
-      localedir="${__si_arg_t:-${HOME}/.local/share}"
-      install_files "${sourcedir}" "${targetdir}" "${localedir}"
-      edit_profile "${targetdirtext}" && source "${HOME}/.profile" && export PATH
+    targetdir=$([[ $EUID != 0 ]] && echo "${__si_arg_t:-$__si_user_home/.local/bin}" || echo "${__si_arg_t:-/usr/local/bin}")  
+    targetdirtext=$([[ $EUID != 0 ]] && sed "s|$HOME|\$HOME|g" <<< "${__si_arg_t:-$__si_user_home/.local/bin}" || sed "s|$HOME|\$HOME|g" <<< "${__si_arg_t:-}")
+    localedir=$([[ $EUID != 0 ]] && echo "${__si_arg_t:-$__si_user_home/.local/share}" || echo "${__si_arg_t:-/usr/local/share/locale}")
+    inifile="${__si_arg_i:-$sourcedir/install.ini}"
 
-    else
-      targetdir="${__si_arg_t:-/usr/local/bin}"
-      targetdirtext="${__si_arg_t:-}"
-      localedir="${__si_arg_t:-/usr/local/share/locale}"
+    debug $"User's home dir: ${__si_user_home}"
+    debug $"Source dir: ${sourcedir}"
+    debug $"Defined target dir: ${__si_arg_t:-Not defined}"
+    debug $"Target directory, to the script will install: ${targetdir}"
+    debug $"Target directory, which is added to ~/.profile file: ${targetdirtext}"
+    debug $"Target directory for locale files: ${localedir}"
+    debug $"Ini-file: ${inifile}"
 
-      install_files "${sourcedir}" "${targetdir}" "${localedir}"
-      edit_profile "${targetdirtext}" && source "${HOME}/.profile" && export PATH
-    fi
-
-   else
-     display_info $"Unsupported operating system." $"Install script manually: 
-* Copy the script and the lib folder to your PATH.
-* Copy to locale folder to your locale folder."
-
-   fi
+    # Install files and edit ~/.profile file
+    install_files "${sourcedir}" "${inifile}" "${targetdir}" "${localedir}" "${force}"
+    edit_profile "${targetdirtext}" && source "${__si_user_home}/.profile" && export PATH
+ 
+  else
+     # Check dependencies
+     check_dependencies "${sourcedir}" "${inifile}"
+  fi
 
 }
 
@@ -337,10 +442,29 @@ while read -r __si_tmp_line; do
           __si_tmp_init="${BASH_REMATCH[1]}"
         fi
       fi
-    fi
+    fi 
+  elif [[ "${__si_tmp_line}" =~ ^Default= ]] || [[ "${__si_tmp_line}" =~ \.\ *Default= ]]; then
+    # ignore default value if option does not have an argument
+    __si_tmp_varname="__si_tmp_has_arg_${__si_tmp_opt:0:1}"
+
+    if [[ "${!__si_tmp_varname}" != "0" ]]; then
+      __si_tmp_init="${__si_tmp_line##*Default=}"
+      __si_tmp_re='^"(.*)"$'
+      if [[ "${__si_tmp_init}" =~ ${__si_tmp_re} ]]; then
+        __si_tmp_init="${BASH_REMATCH[1]}"
+      else
+        __si_tmp_re="^'(.*)'$"
+        if [[ "${__si_tmp_init}" =~ ${__si_tmp_re} ]]; then
+          __si_tmp_init="${BASH_REMATCH[1]}"
+        fi
+      fi
+    fi 
   fi
 
   if [[ "${__si_tmp_line}" =~ ^"${__si_requiredtext}"\. ]] || [[ "${__si_tmp_line}" =~ \.\ *"${__si_requiredtext}"\. ]]; then
+    # remember that this option requires an argument
+    printf -v "__si_tmp_has_arg_${__si_tmp_opt:0:1}" '%s' "2"
+  elif [[ "${__si_tmp_line}" =~ ^Required\. ]] || [[ "${__si_tmp_line}" =~ \.\ *Required\. ]]; then
     # remember that this option requires an argument
     printf -v "__si_tmp_has_arg_${__si_tmp_opt:0:1}" '%s' "2"
   fi
@@ -473,7 +597,7 @@ trap __si_cleanup_before_exit EXIT
 __si_err_report() {
     local error_code
     error_code=${?}
-    error $"Error in ${__file} in function ${1} on line ${2}"
+    error $"Error in ${__si_file} in function ${1} on line ${2}"
     exit ${error_code}
 }
 # Uncomment the following line for always providing an error backtrace

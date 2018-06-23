@@ -16,7 +16,7 @@
 # ToDo
 # Known bugs
 #
-# Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
+# Based on BASH3 Boilerplate by krisztianmukli v1.0.0
 #===============================================================================
 # Init section
 #===============================================================================
@@ -42,11 +42,11 @@ set -o pipefail
 #-------------------------------------------------------------------------------
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
   __b3bp_srcd=1
-  if [[ "${__b3bp_usage+x}" ]]; then
+  if [[ "${BASH_SOURCE[1]+x}" ]]; then
     [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __b3bp_srcd=0
-    __b3bp_external_usage=1
     __b3bp_tmp_source_idx=1
-  fi 
+  fi
+  [[ "${__b3bp_usage+x}" ]] && __b3bp_external_usage=1
 else
   __b3bp_srcd=0
   [[ "${__b3bp_usage+x}" ]] && unset -v __b3bp_usage
@@ -63,11 +63,10 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 #-------------------------------------------------------------------------------
 # Sourced files
 #-------------------------------------------------------------------------------
-export PATH="${__b3bp_dir}/lib:$PATH"
+export PATH="${__b3bp_dir}:${__b3bp_dir}/lib:$PATH"
 source log.sh
 source os_detection.sh
 source display_info.sh
-source install_script.sh
 
 #-------------------------------------------------------------------------------
 # Localization
@@ -94,9 +93,7 @@ export TEXTDOMAIN="${__b3bp_base}"
   -h --help        This page
   -n --no-color    Disable color output
   -1 --one         Do just one thing
-  -V --version     Display version and license information
-  -I --install     Install script
-  -U --uninstall   Uninstall script"
+  -V --version     Display version and license information"
 
 [[ "${__b3bp_helptext+x}" ]] || __b3bp_helptext=$"This is Bash3 Boilerplate's help text. Feel free to add any description of your
  program or elaborate more on command-line arguments. This section is not
@@ -110,6 +107,14 @@ __b3bp_license=$"Licensed under the MIT license"
 #===============================================================================
 # Functions section
 #===============================================================================
+
+#-------------------------------------------------------------------------------
+# Main function
+# Arguments:
+#   None
+# Returns:
+#   None
+#-------------------------------------------------------------------------------
 function main() {
   if [[ "${__b3bp_arg_f}" = "test" ]]; then
     echo "${__b3bp_name}"
@@ -349,7 +354,7 @@ trap __b3bp_cleanup_before_exit EXIT
 __b3bp_err_report() {
     local error_code
     error_code=${?}
-    error $"Error in ${__file} in function ${1} on line ${2}"
+    error $"Error in ${__b3bp_file} in function ${1} on line ${2}"
     exit ${error_code}
 }
 # Uncomment the following line for always providing an error backtrace

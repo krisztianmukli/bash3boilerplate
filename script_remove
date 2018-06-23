@@ -21,7 +21,7 @@
 # * Can not automatically remove third party scripts and programmes, but postrm
 # usable for such cases.
 #
-# Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
+# Based on BASH3 Boilerplate by krisztianmukli v1.0.0
 #===============================================================================
 # Init section
 #===============================================================================
@@ -45,11 +45,11 @@ set -o pipefail
 #-------------------------------------------------------------------------------
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
   __sr_srcd=1
-  if [[ "${__sr_usage+x}" ]]; then
+  if [[ "${BASH_SOURCE[1]+x}" ]]; then
     [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __sr_srcd=0
-    __sr_external_usage=1
     __sr_tmp_source_idx=1
-  fi 
+  fi
+  [[ "${__sr_usage+x}" ]] && __sr_external_usage=1
 else
   __sr_srcd=0
   [[ "${__sr_usage+x}" ]] && unset -v __sr_usage
@@ -58,6 +58,7 @@ fi
 __sr_dir="$(cd "$(dirname "${BASH_SOURCE[${__sr_tmp_source_idx:-0}]}")" && pwd)"
 __sr_file="${__sr_dir}/$(basename "${BASH_SOURCE[${__sr_tmp_source_idx:-0}]}")"
 __sr_base="$(basename "${__sr_file}" .sh)"
+__sr_user_home="$([[ "${SUDO_USER+x}" ]] && getent passwd "${SUDO_USER}" | cut -d: -f6 || echo "$HOME")"
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
@@ -89,8 +90,7 @@ export TEXTDOMAIN="${__sr_base}"
 #-------------------------------------------------------------------------------
 # Usage 
 #-------------------------------------------------------------------------------
-[[ "${__sr_usage+x}" ]] || __sr_usage=$"
-  -s --script [scriptfile] Remove specified scriptfile and it's localization and payloads. Required.
+[[ "${__sr_usage+x}" ]] || __sr_usage=$"-s --script [scriptfile] Remove specified scriptfile and it's localization and payloads. Required.
   -l --with-libraries      Remove specified scriptfile and it's libraries, if any
   -D --with-dependencies   Remove specified scriptfile and it's dependencies
   -d --debug               Enables debug mode
@@ -100,7 +100,7 @@ export TEXTDOMAIN="${__sr_base}"
   -v                       Enable verbose mode, print script as it is executed
   -V --version             Display version and license information"
 
-[[ "${__sr_helptext+x}" ]] || __sr_helptext=$"This command can install bash-script and it's dependencies from a specified folder, 
+[[ "${__sr_helptext+x}" ]] || __sr_helptext=$"This command can uninstall bash-script and it's dependencies from a specified folder, 
 using script own ini file. 
  It is part of BASH3 Boilerplate by krisztianmukli project."
 __sr_defaulttext=$"Default"
@@ -112,21 +112,80 @@ __sr_license=$"Licensed under the MIT license"
 #===============================================================================
 # Functions section
 #===============================================================================
+function remove_dependencies(){
+local dependencies="${1:-}"
+local force=${2:-0}
+local result
+
+  debug "Starting package-remove"
+  set +o errexit # Not exit on error, neccesary for logging package-management return codes
+  remove_pkgs "${dependencies}" "${force}" 2>&1 | while read line; do info "${line}"; done;
+  result=$?
+  set -o errexit # Exit on error
+  case $result in 
+    0) 
+      info $"Removing of following dependencies was succesful: ${dependencies}"
+      return 0
+      ;;
+    1)
+      warning "No valid packages"
+      return 1
+      ;;
+    2)
+      error "You need higher privileges for removing packages!"
+      return 1
+      ;;
+    3)
+      error "For removing following packages in macOS, you must use Homebrew or Macports: ${dependencies}"
+      return 1
+      ;;
+    4)
+      error "Removing following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe:: ${dependencies}"
+      return 1
+      ;;     
+    255)
+      error "Unknown or unsupported operating system, cannot remove following packages:: ${dependencies}"
+      return 1
+      ;;
+    *)
+      error "Unknown error during removing packages!"
+      return 1
+      ;;
+  esac
+  debug "Finished the package-removing"
+}
+#-------------------------------------------------------------------------------
+# Main function: Determine installed filepaths and remove files
+# Arguments:
+#   None
+# Returns:
+#   exit 1, if any commands unsuccesful
+#-------------------------------------------------------------------------------
 function main() {
 local script="${__sr_arg_s}"
-local targetdir=$(dirname $(which "${script}") 2>&-)  
+local force="${__sr_arg_f}"
+local targetdir=$(dirname $(which "${script}") 2>&-)
 
-  if [[ ! -z "${targetdir}" ]]; then
+  if [[ -z "${targetdir}" ]]; then
+    debug "Assuming local install, trying to user's PATH"
+    source "${__sr_user_home}/.profile"
+    targetdir=$(dirname $(which "${script}") 2>&-)
+  fi
+
+  debug "Targetdir, where installed script were: ${targetdir}"
+  
+  if [[ -n "${targetdir}" ]]; then
     localetargetdir=$( ini_val "${targetdir}/${script}.ini" install.locale )
     libtargetdir="${targetdir}/lib"
+    inifile="${targetdir}/${script}.ini"
 
     # Get variable arrays
-    prerm=$( ini_val "${targetdir}/${script}.ini" install.prerm )
-    postrm=$( ini_val "${targetdir}/${script}.ini" install.postrm )
-    payloads=$( ini_val "${targetdir}/${script}.ini" install.payloads )
-    dependencies=$( ini_val "${targetdir}/${script}.ini" install.dependencies )
-    scripts=$( ini_val "${targetdir}/${script}.ini" install.scripts )
-    libraries=$( ini_val "${targetdir}/${script}.ini" install.libraries )
+    prerm=$( get_ini_val "${inifile}" "install.prerm" )
+    postrm=$( get_ini_val "${inifile}" "install.postrm" )
+    payloads=$( get_ini_val "${inifile}" "install.payloads" )
+    dependencies=$( get_ini_val "${inifile}" "install.dependencies" )
+    scripts=$( get_ini_val "${inifile}" "install.scripts" )
+    libraries=$( get_ini_val "${inifile}" "install.libraries" )
 
     # Check targetdir is exists
     [[ ! -d "${targetdir}" ]] && emergency "Removing script unsuccesful: ${targetdir} is not exists!"
@@ -141,8 +200,8 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
 
     #Remove script
     for script in ${scripts}; do
-      [[ "$script" = *".."* ]] && emergency "Removing scrip was unsuccesful: unsupported filename ($script)"
-      if [[ $"{__sr_arg_f:?}" = "1" ]]; then
+      [[ "$script" = *".."* ]] && emergency "Removing script was unsuccesful: unsupported filename ($script)"
+      if [[ "${__sr_arg_f:?}" = "1" ]]; then
         rm -f "${targetdir}/${script}" || emergency "Removing script was unsuccesful: there was an error during removing file ${script}"
         rm -f "${targetdir}/${script}.ini" || emergency "Removing script was unsuccesful: there was an error during removing file ${script}"
         find "${localetargetdir}" -name "${script}.mo" -exec rm -f {} \; || emergency "Removing unsuccesful: there was an error during removing files"  
@@ -157,7 +216,7 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
     # Remove payloads
     for payload in ${payloads}; do
       [[ "${payload}" = *".."* ]] && emergency "Removing payloads was unsuccesful: unsupported filename (${payload})"
-      if [[ $"{__sr_arg_f:?}" = "1" ]]; then
+      if [[ "${__sr_arg_f:?}" = "1" ]]; then
         rm -f "${targetdir}/${payload}" || emergency "Removing payloads was unsuccesful: there was an error during removing files"
       else
         rm "${targetdir}/${payload}" || emergency "Removing payloads was unsuccesful: there was an error during removing files"
@@ -186,14 +245,11 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
     #Remove dependencies
     if [[ "${__sr_arg_D}" = "1" ]]; then
 
-      if [[ "${OSTYPE}" = "linux-gnu" && "${DISTROTYPE:-}" = "debian-based" ]]; then
-        if [[ "${__sr_arg_f:?}" = "1" ]]; then
-          sudo apt-get remove --yes ${dependencies}
-        else
-          sudo apt-get remove ${dependencies}
+      if [[ -n "${dependencies}" ]]; then
+        if ask "Script use the following packages as dependencies: "${dependencies}".\nWould you like to remove them? It can effect to other softwares, don't do it if you don't understand!" "N"; then
+          debug "Removing dependencies: ${dependencies}"
+          remove_dependencies "${dependencies}" "${force}" || emergency $"Removing packages unsuccesful: there was an error during removing dependencies"
         fi
-      else
-        warning "Unsupported operating system! You can remove dependencies manually."
       fi
 
     fi
@@ -205,7 +261,6 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
     
     info "Removing script was success."
   else
-    echo "${targetdir}"
     emergency "Script is unavailable or doesn't exists!"
   fi
 }
@@ -406,7 +461,7 @@ trap __sr_cleanup_before_exit EXIT
 __sr_err_report() {
     local error_code
     error_code=${?}
-    error $"Error in ${__file} in function ${1} on line ${2}"
+    error $"Error in ${__sr_file} in function ${1} on line ${2}"
     exit ${error_code}
 }
 # Uncomment the following line for always providing an error backtrace
