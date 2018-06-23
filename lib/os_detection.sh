@@ -129,8 +129,8 @@ local force="${2:-}"
     fi
 
   elif [[ "${__osfamily}" = "darwin" ]]; then # Mac OSX
-    if which brew; then brew remove "${pkgs}"; # Homebrew: https://brew.sh/
-    elif which port; then port uninstall "${pkgs}"; # MacPorts: https://www.macports.org/
+    if which brew > /dev/null 2>/dev/null; then brew remove "${pkgs}"; # Homebrew: https://brew.sh/
+    elif which port > /dev/null 2>/dev/null; then port uninstall "${pkgs}"; # MacPorts: https://www.macports.org/
     else return 3; # "For removing following packages in macOS, you must use Homebrew or Macports:"
     fi
 
