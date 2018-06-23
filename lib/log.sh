@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
+LOG_TIMEZONE="${LOG_TIMEZONE:-0}" # 0 = UTC -> >0 = local
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 function __b3bp_log () {
   local log_level="${1}"
@@ -38,7 +39,11 @@ function __b3bp_log () {
   local log_line=""
 
   while IFS=$'\n' read -r log_line; do
-    echo -e "$(date -u +"%Y-%m-%d %H:%M:%S %Z") ${color}$(printf "[%9s]" "${log_level}")${color_reset} ${log_line}" 1>&2
+    if [[ "${LOG_TIMEZONE:-0}" -gt 0 ]]; then
+      echo -e "$(date +"%Y-%m-%d %H:%M:%S %Z") ${color}$(printf "[%9s]" "${log_level}")${color_reset} ${log_line}" 1>&2
+    else
+      echo -e "$(date -u +"%Y-%m-%d %H:%M:%S %Z") ${color}$(printf "[%9s]" "${log_level}")${color_reset} ${log_line}" 1>&2
+    fi
   done <<< "${@:-}"
 }
 

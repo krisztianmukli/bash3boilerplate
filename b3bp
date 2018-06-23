@@ -58,6 +58,7 @@ __b3bp_base="$(basename "${__b3bp_file}" .sh)"
 __b3bp_tmpdir="${TMPDIR:=/tmp}/${__b3bp_base}.$RANDOM.$RANDOM.$RANDOM.$$" 
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
+LOG_TIMEZONE="${LOG_TIMEZONE:-1}" # 0 = UTC -> >0 = local
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 
 #-------------------------------------------------------------------------------
@@ -67,6 +68,13 @@ export PATH="${__b3bp_dir}:${__b3bp_dir}/lib:$PATH"
 source log.sh
 source os_detection.sh
 source display_info.sh
+# b3bp needs GNU gettext and gettext.sh for localization!
+if ! which gettext.sh > /dev/null 2>/dev/null; then
+  echo "Fatal error: Cannot find GNU gettext and gettext.sh!"
+  exit 1
+else
+  source gettext.sh
+fi
 
 #-------------------------------------------------------------------------------
 # Localization

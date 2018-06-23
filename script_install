@@ -65,6 +65,7 @@ __si_base="$(basename "${__si_file}" .sh)"
 __si_user_home="$([[ "${SUDO_USER+x}" ]] && getent passwd "${SUDO_USER}" | cut -d: -f6 || echo "$HOME")"
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
+LOG_TIMEZONE="${LOG_TIMEZONE:-0}" # 0 = UTC -> >0 = local
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 
 #-------------------------------------------------------------------------------
