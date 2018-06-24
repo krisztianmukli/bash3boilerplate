@@ -1,0 +1,401 @@
+#!/usr/bin/env bash
+#===============================================================================
+# Generate locale file for a bash script (genlocale)
+# Licensed under the MIT license
+#
+# Generate or update locale files for specified script
+# 
+# Copyright (c) 2018 Krisztián Mukli
+# https://www.mukli.hu
+#
+# Notes
+#-------------------------------------------------------------------------------
+# Quickstart
+# Setup information
+# Changelog
+# ToDo
+# Known bugs
+#
+# Based on BASH4 Boilerplate 20170818-dev and BASH3 Boilerplate v2.3.0
+#===============================================================================
+# Init section
+#===============================================================================
+# Allowing aliases
+shopt -s expand_aliases
+# Exit on error 
+set -o errexit 
+# Exit on error inside any functions or subshells
+set -o errtrace
+# Do not allow use of undefined vars. Use ${VAR:-} to use an undefined VAR
+set -o nounset 
+# Catch the error when mysqldump fails (but gzip succeeds) in `mysqldump |gzip`
+set -o pipefail 
+# Turn on traces, useful while debugging but commented out by default
+#set -o xtrace
+
+#===============================================================================
+# Globals section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Environment variables
+#-------------------------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
+  __gl_srcd=1
+  if [[ "${__gl_usage+x}" ]]; then
+    [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __gl_srcd=0
+    __gl_external_usage=1
+    __gl_tmp_source_idx=1
+  fi 
+else
+  __gl_srcd=0
+  [[ "${__gl_usage+x}" ]] && unset -v __gl_usage
+  [[ "${__gl_helptext+x}" ]] && unset -v __gl_helptext
+fi
+__gl_dir="$(cd "$(dirname "${BASH_SOURCE[${__gl_tmp_source_idx:-0}]}")" && pwd)"
+__gl_file="${__gl_dir}/$(basename "${BASH_SOURCE[${__gl_tmp_source_idx:-0}]}")"
+__gl_base="$(basename "${__gl_file}" .sh)"
+
+LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
+NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
+
+#-------------------------------------------------------------------------------
+# Sourced files
+#-------------------------------------------------------------------------------
+export PATH="${__gl_dir}/lib:$PATH"
+source log.sh
+source ini_val.sh
+source display_info.sh
+
+#-------------------------------------------------------------------------------
+# Localization
+#-------------------------------------------------------------------------------
+__gl_localepath=( "${__gl_dir}/locale" "${HOME}/.local/share/locale" "/usr/local/share/locale" "/usr/share/locale" )
+  for folder in "${__gl_localepath[@]}"; do
+    if [[ -d "${folder}" ]]; then
+      count=$(find "${folder}" -name "${__gl_base}.mo" | wc -l )
+      if [[ $count -gt 0 ]]; then
+        export TEXTDOMAINDIR="${folder}"
+        break
+      fi
+    fi
+  done
+export TEXTDOMAIN="${__gl_base}"
+
+#-------------------------------------------------------------------------------
+# Usage 
+#-------------------------------------------------------------------------------
+[[ "${__gl_usage+x}" ]] || __gl_usage=$"-b --bash           Use BASH built-in localization, otherwise use gettext.
+  -f --file  [arg]    Filename to process. Required.
+  -u --update         Only update locale files
+  -l --locale [langs] Language code list of generated locale files (comma or space separated)
+  -v                  Enable verbose mode, print script as it is executed
+  -d --debug          Enables debug mode
+  -h --help           This page
+  -n --no-color       Disable color output
+  -V --version        Display version and license information"
+
+[[ "${__gl_helptext+x}" ]] || __gl_helptext=$"This file can generate or update localization files for a bash script"
+__gl_defaulttext=$"Default"
+__gl_requiredtext=$"Required"
+__gl_name=$"Generate locale"
+__gl_version="v1.0.0"
+__gl_license=$"Licensed under the MIT license"
+
+#===============================================================================
+# Functions section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Main function
+# Arguments:
+#   None
+# Returns:
+#   None
+#-------------------------------------------------------------------------------
+function main() {
+local script=$(basename "${__gl_arg_f}" .sh)
+local folder=$(dirname "${__gl_arg_f}")
+
+  # Check if locale folder is exist
+  if [[ ! -d "${folder}"/locale/ ]]; then mkdir "${folder}"/locale/ || emergency $"Cannot create locale folder!"; fi
+  
+  # Generate new .pot file
+  if [[ "$__gl_arg_b:-0" = "1" ]]; then    
+    # Bash built-in localization 
+    bash --dump-po-strings "${script}" > "${folder}/locale/${script}.pot" | while read line; do info "${line}"; done;
+  else
+    # Gettext/XGettext
+    xgettext -L Shell -o "${folder}/locale/${script}.pot" "${script}" | while read line; do info "${line}"; done;
+  fi 
+  
+  # Get specified languages
+  if [[ -z "${__gl_arg_l:-}" ]]; then
+    locales=$( ini_val "${folder}/install.ini" genlocale.locales )
+  else
+    if [[ "${__gl_arg_l:-}" = *","* ]]; then
+      IFS=',' read -r -a locales <<< ${__gl_arg_l}
+    else
+      locales=${__gl_arg_l:-}
+    fi
+  fi
+  
+  # Generate locale .po files, or update existing files
+  if [[ "${__gl_arg_u:?}" = "1" ]]; then
+    # Update locale files    
+    for loc in ${locales[@]}; do
+      msgmerge --update "${folder}/locale/${loc}/LC_MESSAGES/${script}.po" "${folder}/locale/${script}.pot" || emergency $"Update locale failed: "${folder}/locale/${loc}/LC_MESSAGES/${script}.po"!" | while read line; do info "${line}"; done;
+    done
+    
+    info $"Update locale success"
+  else
+  
+    # Generate locale files
+
+    for loc in ${locales[@]}; do
+      mkdir -p "${folder}/locale/${loc}/LC_MESSAGES" || emergency $"Create directory failed: ${folder}/locale/${loc}/LC_MESSAGES!"
+    done
+
+    for loc in ${locales[@]}; do
+      cp "${folder}/locale/${script}.pot" "${folder}/locale/${loc}/LC_MESSAGES/${script}.po" || emergency $"Copy locale failed!"
+    done
+
+    info $"Generate locale success"
+    
+  fi
+
+}
+
+#===============================================================================
+# Main section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Parse usage string
+#-------------------------------------------------------------------------------
+while read -r __gl_tmp_line; do
+  if [[ "${__gl_tmp_line}" =~ ^- ]]; then
+    # fetch single character version of option string
+    __gl_tmp_opt="${__gl_tmp_line%% *}"
+    __gl_tmp_opt="${__gl_tmp_opt:1}"
+
+    # fetch long version if present
+    __gl_tmp_long_opt=""
+
+    if [[ "${__gl_tmp_line}" = *"--"* ]]; then
+      __gl_tmp_long_opt="${__gl_tmp_line#*--}"
+      __gl_tmp_long_opt="${__gl_tmp_long_opt%% *}"
+    fi
+
+    # map opt long name to+from opt short name
+    printf -v "__gl_tmp_opt_long2short_${__gl_tmp_long_opt//-/_}" '%s' "${__gl_tmp_opt}"
+    printf -v "__gl_tmp_opt_short2long_${__gl_tmp_opt}" '%s' "${__gl_tmp_long_opt//-/_}"
+
+    # check if option takes an argument
+    if [[ "${__gl_tmp_line}" =~ \[.*\] ]]; then
+      __gl_tmp_opt="${__gl_tmp_opt}:" # add : if opt has arg
+      __gl_tmp_init=""  # it has an arg. init with ""
+      printf -v "__gl_tmp_has_arg_${__gl_tmp_opt:0:1}" '%s' "1"
+    elif [[ "${__gl_tmp_line}" =~ \{.*\} ]]; then
+      __gl_tmp_opt="${__gl_tmp_opt}:" # add : if opt has arg
+      __gl_tmp_init=""  # it has an arg. init with ""
+      # remember that this option requires an argument
+      printf -v "__gl_tmp_has_arg_${__gl_tmp_opt:0:1}" '%s' "2"
+    else
+      __gl_tmp_init="0" # it's a flag. init with 0
+      printf -v "__gl_tmp_has_arg_${__gl_tmp_opt:0:1}" '%s' "0"
+    fi
+    __gl_tmp_opts="${__gl_tmp_opts:-}${__gl_tmp_opt}"
+  fi
+
+  [[ "${__gl_tmp_opt:-}" ]] || continue
+
+  if [[ "${__gl_tmp_line}" =~ ^"${__gl_defaulttext}"= ]] || [[ "${__gl_tmp_line}" =~ \.\ *"${__gl_defaulttext}"= ]]; then
+    # ignore default value if option does not have an argument
+    __gl_tmp_varname="__gl_tmp_has_arg_${__gl_tmp_opt:0:1}"
+
+    if [[ "${!__gl_tmp_varname}" != "0" ]]; then
+      __gl_tmp_init="${__gl_tmp_line##*${__gl_defaulttext}=}"
+      __gl_tmp_re='^"(.*)"$'
+      if [[ "${__gl_tmp_init}" =~ ${__gl_tmp_re} ]]; then
+        __gl_tmp_init="${BASH_REMATCH[1]}"
+      else
+        __gl_tmp_re="^'(.*)'$"
+        if [[ "${__gl_tmp_init}" =~ ${__gl_tmp_re} ]]; then
+          __gl_tmp_init="${BASH_REMATCH[1]}"
+        fi
+      fi
+    fi
+  fi
+
+  if [[ "${__gl_tmp_line}" =~ ^"${__gl_requiredtext}"\. ]] || [[ "${__gl_tmp_line}" =~ \.\ *"${__gl_requiredtext}"\. ]]; then
+    # remember that this option requires an argument
+    printf -v "__gl_tmp_has_arg_${__gl_tmp_opt:0:1}" '%s' "2"
+  fi
+
+  printf -v "__gl_arg_${__gl_tmp_opt:0:1}" '%s' "${__gl_tmp_init}"
+done <<< "${__gl_usage:-}"
+
+#-------------------------------------------------------------------------------
+# Parse command-line arguments
+#-------------------------------------------------------------------------------
+# run getopts only if options were specified in __usage
+if [[ "${__gl_tmp_opts:-}" ]]; then
+  # Allow long options like --this
+  __gl_tmp_opts="${__gl_tmp_opts}-:"
+
+  # Reset in case getopts has been used previously in the shell.
+  OPTIND=1
+
+  # start parsing command line
+  set +o nounset # unexpected arguments will cause unbound variables
+                 # to be dereferenced
+  # Overwrite $arg_<flag> defaults with the actual CLI options
+  while getopts "${__gl_tmp_opts}" __gl_tmp_opt; do
+    [[ "${__gl_tmp_opt}" = "?" ]] && display_info $"Invalid use of script: ${*}" "${__gl_usage}" "${__gl_helptext}"
+
+    if [[ "${__gl_tmp_opt}" = "-" ]]; then
+      # OPTARG is long-option-name or long-option=value
+      if [[ "${OPTARG}" =~ .*=.* ]]; then
+        # --key=value format
+        __gl_tmp_long_opt=${OPTARG/=*/}
+        # Set opt to the short option corresponding to the long option
+        __gl_tmp_varname="__gl_tmp_opt_long2short_${__gl_tmp_long_opt//-/_}"
+        printf -v "__gl_tmp_opt" '%s' "${!__gl_tmp_varname}"
+        OPTARG=${OPTARG#*=}
+      else
+        # --key value format
+        # Map long name to short version of option
+        __gl_tmp_varname="__gl_tmp_opt_long2short_${OPTARG//-/_}"
+        printf -v "__gl_tmp_opt" '%s' "${!__gl_tmp_varname}"
+        # Only assign OPTARG if option takes an argument
+        __gl_tmp_varname="__gl_tmp_has_arg_${__gl_tmp_opt}"
+        printf -v "OPTARG" '%s' "${@:OPTIND:${!__gl_tmp_varname}}"
+        # shift over the argument if argument is expected
+        ((OPTIND+=__gl_tmp_has_arg_${__gl_tmp_opt}))
+      fi
+      # we have set opt/OPTARG to the short value and the argument as OPTARG if it exists
+    fi
+    __gl_tmp_varname="__gl_arg_${__gl_tmp_opt:0:1}"
+    __gl_tmp_default="${!__gl_tmp_varname}"
+
+    __gl_tmp_value="${OPTARG}"
+    if [[ -z "${OPTARG}" ]]; then
+      __gl_tmp_value=$((__gl_tmp_default + 1))
+    fi
+
+    printf -v "${__gl_tmp_varname}" '%s' "${__gl_tmp_value}"
+    debug "cli arg ${__gl_tmp_varname} = (${__gl_tmp_default}) -> ${!__gl_tmp_varname}"
+  done
+  set -o nounset # no more unbound variable references expected
+
+  shift $((OPTIND-1))
+
+  if [[ "${1:-}" = "--" ]] ; then
+    shift
+  fi
+fi
+
+#-------------------------------------------------------------------------------
+# Helper functions
+#-------------------------------------------------------------------------------
+if [[ "${__gl_arg_h:?}" = "1" ]]; then
+  # Help exists with code 1
+  display_info $"Help using ${0}" "${__gl_usage}" "${__gl_helptext}"
+fi
+
+if [[ "${__gl_arg_V:?}" = "1" ]]; then
+  # Version exists with code 1
+  display_info "${__gl_name}" "${__gl_version}" "${__gl_license}"
+fi
+
+#-------------------------------------------------------------------------------
+# Validate required arguments
+#-------------------------------------------------------------------------------
+[[ "${__gl_arg_f:-}" ]] || display_info $"Setting a filename with -f or --file is required" "${__gl_usage}" "${__gl_helptext}"  
+[[ "${LOG_LEVEL:-}" ]] || emergency $"Cannot continue without LOG_LEVEL. "
+
+#-------------------------------------------------------------------------------
+# Validate required option arguments
+#-------------------------------------------------------------------------------
+for __gl_tmp_varname in ${!__gl_tmp_has_arg_*}; do
+  # validate only options which required an argument
+  [[ "${!__gl_tmp_varname}" = "2" ]] || continue
+
+  __gl_tmp_opt_short="${__gl_tmp_varname##*_}"
+  __gl_tmp_varname="__gl_arg_${__gl_tmp_opt_short}"
+  [[ "${!__gl_tmp_varname}" ]] && continue
+
+  __gl_tmp_varname="__gl_tmp_opt_short2long_${__gl_tmp_opt_short}"
+  printf -v "__gl_tmp_opt_long" '%s' "${!__gl_tmp_varname}"
+  [[ "${__gl_tmp_opt_long:-}" ]] && __gl_tmp_opt_long=" (--${__gl_tmp_opt_long//_/-})"
+
+  display_info  $"Option -${__gl_tmp_opt_short}${__gl_tmp_opt_long:-} requires an argument" "${__gl_usage}" "${__gl_helptext}"
+done
+
+#-------------------------------------------------------------------------------
+# Cleanup temporary variables 
+#-------------------------------------------------------------------------------
+for __tmp_varname in ${!__gl_tmp_*}; do
+  unset -v "${__tmp_varname}"
+done
+
+unset -v __tmp_varname
+
+#-------------------------------------------------------------------------------
+# Externally supplied __gl_usage. Nothing else to do here
+#-------------------------------------------------------------------------------
+if [[ "${__gl_external_usage:-}" == 1 ]]; then
+  unset -v __gl_external_usage
+  return
+fi
+
+#-------------------------------------------------------------------------------
+# Signal trapping and backtracing
+#-------------------------------------------------------------------------------
+function __gl_cleanup_before_exit () {
+  info $"Cleaning up. Done"
+}
+trap __gl_cleanup_before_exit EXIT
+
+# requires `set -o errtrace`
+__gl_err_report() {
+    local error_code
+    error_code=${?}
+    error $"Error in ${__gl_file} in function ${1} on line ${2}"
+    exit ${error_code}
+}
+# Uncomment the following line for always providing an error backtrace
+# trap '__gl_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+
+#-------------------------------------------------------------------------------
+# Call internal functions
+#-------------------------------------------------------------------------------
+# debug mode
+if [[ "${__gl_arg_d:?}" = "1" ]]; then
+  set -o xtrace
+  LOG_LEVEL="7"
+  # Enable error backtracing
+  trap '__gl_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+fi
+
+# verbose mode
+if [[ "${__gl_arg_v:?}" = "1" ]]; then
+  set -o verbose
+fi
+
+# no color mode
+if [[ "${__gl_arg_n:?}" = "1" ]]; then
+  NO_COLOR="true"
+fi
+
+#-------------------------------------------------------------------------------
+# Runtime
+#-------------------------------------------------------------------------------
+if [[ "${__gl_srcd:-}" == 0 ]]; then
+  main
+fi
+
+#===============================================================================
+# END OF FILE
+#===============================================================================

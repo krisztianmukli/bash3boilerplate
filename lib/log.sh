@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
-LOG_TIMEZONE="${LOG_TIMEZONE:-0}" # 0 = UTC -> >0 = local
+LOG_TIMEZONE="${LOG_TIMEZONE:-0}" # 0 = UTC, otherwise local
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 function __b3bp_log () {
   local log_level="${1}"

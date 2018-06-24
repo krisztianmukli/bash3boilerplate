@@ -61,17 +61,17 @@ __sr_base="$(basename "${__sr_file}" .sh)"
 __sr_user_home="$([[ "${SUDO_USER+x}" ]] && getent passwd "${SUDO_USER}" | cut -d: -f6 || echo "$HOME")"
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
-LOG_TIMEZONE="${LOG_TIMEZONE:-0}" # 0 = UTC -> >0 = local
+LOG_TIMEZONE="${LOG_TIMEZONE:-1}" # 0 = UTC, otherwise local
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 
 #-------------------------------------------------------------------------------
 # Sourced files
 #-------------------------------------------------------------------------------
 export PATH="${__sr_dir}/lib:$PATH"
-source log.sh
-source os_detection.sh
-source display_info.sh
-source ini_val.sh
+source log.sh || (echo "Fatal error: Cannot find log.sh!"; exit 1)
+source os_detection.sh || (echo "Fatal error: Cannot find os_detection.sh!"; exit 1)
+source display_info.sh || (echo "Fatal error: Cannot find display_info.sh!"; exit 1)
+source ini_val.sh || (echo "Fatal error: Cannot find ini_val.sh!"; exit 1)
 
 #-------------------------------------------------------------------------------
 # Localization
