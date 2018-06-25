@@ -72,6 +72,7 @@ source log.sh || (echo "Fatal error: Cannot find log.sh!"; exit 1)
 source os_detection.sh || (echo "Fatal error: Cannot find os_detection.sh!"; exit 1)
 source display_info.sh || (echo "Fatal error: Cannot find display_info.sh!"; exit 1)
 source ini_val.sh || (echo "Fatal error: Cannot find ini_val.sh!"; exit 1)
+source gettext.sh || (echo "Fatal error: Cannot find gettext.sh!"; exit 1)
 
 #-------------------------------------------------------------------------------
 # Localization
@@ -91,7 +92,9 @@ export TEXTDOMAIN="${__sr_base}"
 #-------------------------------------------------------------------------------
 # Usage 
 #-------------------------------------------------------------------------------
-[[ "${__sr_usage+x}" ]] || __sr_usage=$"-s --script [scriptfile] Remove specified scriptfile and it's localization and payloads. Required.
+[[ "${__sr_usage+x}" ]] || __sr_usage="$(gettext "Available arguments:
+
+  -s --script [scriptfile] Remove specified scriptfile and it's localization and payloads. Required.
   -l --with-libraries      Remove specified scriptfile and it's libraries, if any
   -D --with-dependencies   Remove specified scriptfile and it's dependencies
   -d --debug               Enables debug mode
@@ -99,16 +102,16 @@ export TEXTDOMAIN="${__sr_base}"
   -h --help                This page
   -n --no-color            Disable color output
   -v                       Enable verbose mode, print script as it is executed
-  -V --version             Display version and license information"
+  -V --version             Display version and license information")"
 
-[[ "${__sr_helptext+x}" ]] || __sr_helptext=$"This command can uninstall bash-script and it's dependencies from a specified folder, 
-using script own ini file. 
- It is part of BASH3 Boilerplate by krisztianmukli project."
-__sr_defaulttext=$"Default"
-__sr_requiredtext=$"Required"
-__sr_name=$"Standalone script uninstaller"
+[[ "${__sr_helptext+x}" ]] || __sr_helptext="$(gettext "This command can uninstall bash-script and it's dependencies from a specified
+ folder, using script own ini file. 
+ It is part of BASH3 Boilerplate by krisztianmukli project.")"
+__sr_defaulttext="$(gettext "Default")"
+__sr_requiredtext="$(gettext "Required")"
+__sr_name="$(gettext "Standalone script uninstaller")"
 __sr_version="v1.0.0"
-__sr_license=$"Licensed under the MIT license"
+__sr_license="$(gettext "Licensed under the MIT license")"
 
 #===============================================================================
 # Functions section
@@ -118,49 +121,49 @@ local dependencies="${1:-}"
 local force=${2:-0}
 local result
 
-  debug "Starting package-remove"
+  debug "$(gettext "Starting package-remove")"
   set +o errexit # Not exit on error, neccesary for logging package-management return codes
   remove_pkgs "${dependencies}" "${force}" 2>&1 | while read line; do info "${line}"; done;
   result=$?
   set -o errexit # Exit on error
   case $result in 
     0) 
-      info $"Removing of following dependencies was succesful: ${dependencies}"
+      info "$(eval_gettext "Removing of following dependencies was succesful: \${dependencies}")"
       return 0
       ;;
     1)
-      warning "No valid packages"
+      warning "$(gettext "No valid packages")"
       return 1
       ;;
     2)
-      error "You need higher privileges for removing packages!"
+      error "$(gettext "You need higher privileges for removing packages!")"
       return 1
       ;;
     3)
-      error "For removing following packages in macOS, you must use Homebrew or Macports: ${dependencies}"
+      error "$(eval_gettext "For removing following packages in macOS, you must use Homebrew or Macports: \${dependencies}")"
       return 1
       ;;
     4)
-      error "Removing following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe:: ${dependencies}"
+      error "$(eval_gettext "Removing following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: \${dependencies}")"
       return 1
       ;;     
     255)
-      error "Unknown or unsupported operating system, cannot remove following packages:: ${dependencies}"
+      error "$(eval_gettext "Unknown or unsupported operating system, cannot remove following packages: \${dependencies}")"
       return 1
       ;;
     *)
-      error "Unknown error during removing packages!"
+      error "$(gettext "Unknown error during removing packages!")"
       return 1
       ;;
   esac
-  debug "Finished the package-removing"
+  debug "$(gettext "Finished the package-removing")"
 }
 #-------------------------------------------------------------------------------
 # Main function: Determine installed filepaths and remove files
 # Arguments:
 #   None
 # Returns:
-#   exit 1, if any commands unsuccesful
+#   exit 1, if any commands unsuccessful
 #-------------------------------------------------------------------------------
 function main() {
 local script="${__sr_arg_s}"
@@ -168,12 +171,12 @@ local force="${__sr_arg_f}"
 local targetdir=$(dirname $(which "${script}") 2>&-)
 
   if [[ -z "${targetdir}" ]]; then
-    debug "Assuming local install, trying to user's PATH"
+    debug "$(gettext "Assuming local install, trying to user's PATH")"
     source "${__sr_user_home}/.profile"
     targetdir=$(dirname $(which "${script}") 2>&-)
   fi
 
-  debug "Targetdir, where installed script were: ${targetdir}"
+  debug "$(eval_gettext "Targetdir, where installed script were: \${targetdir}")"
   
   if [[ -n "${targetdir}" ]]; then
     localetargetdir=$( ini_val "${targetdir}/${script}.ini" install.locale )
@@ -189,10 +192,10 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
     libraries=$( get_ini_val "${inifile}" "install.libraries" )
 
     # Check targetdir is exists
-    [[ ! -d "${targetdir}" ]] && emergency "Removing script unsuccesful: ${targetdir} is not exists!"
+    [[ ! -d "${targetdir}" ]] && emergency "$(eval_gettext "Removing script unsuccessful: \${targetdir} is not exists!")"
     
     # Check targetdir is writable
-    [[ ! -w "${targetdir}" ]] && emergency "Removing script unsuccesful: ${targetdir} is not writable! It may need higher privileges."
+    [[ ! -w "${targetdir}" ]] && emergency "$(eval_gettext "Removing script unsuccessful: \${targetdir} is not writable! It may need higher privileges.")"
 
     # Calling prerm script
     for command in ${prerm:-}; do
@@ -201,42 +204,42 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
 
     #Remove script
     for script in ${scripts}; do
-      [[ "$script" = *".."* ]] && emergency "Removing script was unsuccesful: unsupported filename ($script)"
+      [[ "$script" = *".."* ]] && emergency "$(eval_gettext "Removing script was unsuccessful: unsupported filename (\$script)")"
       if [[ "${__sr_arg_f:?}" = "1" ]]; then
-        rm -f "${targetdir}/${script}" || emergency "Removing script was unsuccesful: there was an error during removing file ${script}"
-        rm -f "${targetdir}/${script}.ini" || emergency "Removing script was unsuccesful: there was an error during removing file ${script}"
-        find "${localetargetdir}" -name "${script}.mo" -exec rm -f {} \; || emergency "Removing unsuccesful: there was an error during removing files"  
+        rm -f "${targetdir}/${script}" || emergency "$(eval_gettext "Removing script was unsuccessful: there was an error during removing file \${script}")"
+        rm -f "${targetdir}/${script}.ini" || emergency "$(eval_gettext "Removing script was unsuccessful: there was an error during removing file \${script}")"
+        find "${localetargetdir}" -name "${script}.mo" -exec rm -f {} \; || emergency "$(gettext "Removing unsuccessful: there was an error during removing files")"
       else
-        rm "${targetdir}/${script}" || emergency "Removing script was unsuccesful: there was an error during removing file ${script}"
-        rm "${targetdir}/${script}.ini" || emergency "Removing script was unsuccesful: there was an error during removing file ${script}"
-        find "${localetargetdir}" -name "${script}.mo" -exec rm {} \; || emergency "Removing unsuccesful: there was an error during removing files"  
+        rm "${targetdir}/${script}" || emergency "$(eval_gettext "Removing script was unsuccessful: there was an error during removing file \${script}")"
+	rm "${targetdir}/${script}.ini" || emergency "$(eval_gettext "Removing script was unsuccessful: there was an error during removing file \${script}")"
+	find "${localetargetdir}" -name "${script}.mo" -exec rm {} \; || emergency "$(gettext "Removing unsuccessful: there was an error during removing files")"
       fi
-      debug "Removing file ${targetdir}/${script} was succesfully removed" 
+      debug "$(eval_gettext "Removing file \${targetdir}/\${script} was success")"
     done    
 
     # Remove payloads
     for payload in ${payloads}; do
-      [[ "${payload}" = *".."* ]] && emergency "Removing payloads was unsuccesful: unsupported filename (${payload})"
+      [[ "${payload}" = *".."* ]] && emergency "$(eval_gettext "Removing payloads was unsuccessful: unsupported filename (\${payload})")"
       if [[ "${__sr_arg_f:?}" = "1" ]]; then
-        rm -f "${targetdir}/${payload}" || emergency "Removing payloads was unsuccesful: there was an error during removing files"
+        rm -f "${targetdir}/${payload}" || emergency "$(eval_gettext "Removing payloads was unsuccessful: there was an error during removing files: \${targetdir}/\${payload}")"
       else
-        rm "${targetdir}/${payload}" || emergency "Removing payloads was unsuccesful: there was an error during removing files"
+        rm "${targetdir}/${payload}" || emergency "$(eval_gettext "Removing payloads was unsuccessful: there was an error during removing files: \${targetdir}/\${payload}")"
       fi
-      debug "The file ${sourcedir}/${payload} was succesfully removed."
+      debug "$(eval_gettext "The file \${sourcedir}/\${payload} was succesfully removed.")"
     done 
 
     # Remove libraries
     if [[ "${__sr_arg_l:?}" = "1" ]]; then
       for lib in ${libraries}; do
-        [[ "${lib}" = *".."* ]] && emergency "Removing libraries was unsuccesful: unsupported filename ($lib)"
+        [[ "${lib}" = *".."* ]] && emergency "$(eval_gettext "Removing libraries was unsuccessful: unsupported filename (\$lib)")"
         if [[ "${__sr_arg_f}" = "1" ]]; then
-          rm -f "${libtargetdir}/${lib}" || emergency "Removing libraries was unsuccesful: there was an error during removing files"
-          find "${localetargetdir}" -name "${lib}.mo" -exec rm -f {} \; || emergency "Removing libraries was unsuccesful: there was an error during removing files"
+	  rm -f "${libtargetdir}/${lib}" || emergency "$(eval_gettext "Removing libraries was unsuccessful: there was an error during removing files \${libtargetdir}/\${lib}")"
+	  find "${localetargetdir}" -name "${lib}.mo" -exec rm -f {} \; || emergency "$(gettext "Removing libraries was unsuccessful: there was an error during removing files")"
         else
-          rm -r "${libtargetdir}/${lib}" || emergency "Removing libraries was unsuccesful: there was an error during removing files"
-          find "${localetargetdir}" -name "${lib}.mo" -exec rm {} \; || emergency "Removing libraries was unsuccesful: there was an error during removing files"
+          rm -r "${libtargetdir}/${lib}" || emergency "$(gettext "Removing libraries was unsuccessful: there was an error during removing files")"
+          find "${localetargetdir}" -name "${lib}.mo" -exec rm {} \; || emergency "$(gettext "Removing libraries was unsuccessful: there was an error during removing files")"
         fi
-        debug "Removing file ${targetdir}/lib/${lib} was succesful"
+	debug "$(eval_gettext "Removing file \${targetdir}/lib/\${lib} was succesful")"
       done
     fi
    
@@ -247,9 +250,9 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
     if [[ "${__sr_arg_D}" = "1" ]]; then
 
       if [[ -n "${dependencies}" ]]; then
-        if ask "Script use the following packages as dependencies: "${dependencies}".\nWould you like to remove them? It can effect to other softwares, don't do it if you don't understand!" "N"; then
-          debug "Removing dependencies: ${dependencies}"
-          remove_dependencies "${dependencies}" "${force}" || emergency $"Removing packages unsuccesful: there was an error during removing dependencies"
+        if ask "$(eval_gettext "Script use the following packages as dependencies: \${dependencies}.\nWould you like to remove them? It can effect to other softwares, don't do it if you don't understand!")" "N"; then
+          debug "$(eval_gettext "Removing dependencies: \${dependencies}")"
+          remove_dependencies "${dependencies}" "${force}" || emergency "$(gettext "Removing packages unsuccessful: there was an error during removing dependencies")"
         fi
       fi
 
@@ -260,9 +263,9 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
       eval "${command}"
     done
     
-    info "Removing script was success."
+    info "$(gettext "Removing script was success.")"
   else
-    emergency "Script is unavailable or doesn't exists!"
+    emergency "$(gettext "Script is unavailable or doesn't exists!")"
   fi
 }
 
@@ -352,7 +355,7 @@ if [[ "${__sr_tmp_opts:-}" ]]; then
                  # to be dereferenced
   # Overwrite $arg_<flag> defaults with the actual CLI options
   while getopts "${__sr_tmp_opts}" __sr_tmp_opt; do
-    [[ "${__sr_tmp_opt}" = "?" ]] && display_info $"Invalid use of script: ${*}" "${__sr_usage}" "${__sr_helptext}"
+    [[ "${__sr_tmp_opt}" = "?" ]] && (__sr_tmp_params="${*}"; display_info "$(eval_gettext "Invalid use of script: \${__sr_tmp_params}")" "${__sr_usage}" "${__sr_helptext}")
 
     if [[ "${__sr_tmp_opt}" = "-" ]]; then
       # OPTARG is long-option-name or long-option=value
@@ -401,7 +404,7 @@ fi
 #-------------------------------------------------------------------------------
 if [[ "${__sr_arg_h:?}" = "1" ]]; then
   # Help exists with code 1
-  display_info $"Help using ${0}" "${__sr_usage}" "${__sr_helptext}"
+  display_info "$(eval_gettext "Help using \${__sr_base}")" "${__sr_usage}" "${__sr_helptext}"
 fi
 
 if [[ "${__sr_arg_V:?}" = "1" ]]; then
@@ -412,8 +415,8 @@ fi
 #-------------------------------------------------------------------------------
 # Validate required arguments
 #-------------------------------------------------------------------------------
-[[ "${__sr_arg_s:-}" ]] || display_info $"Setting a filename with -s or --source is required" "${__sr_usage}" "${__sr_helptext}"  
-[[ "${LOG_LEVEL:-}" ]] || emergency $"Cannot continue without LOG_LEVEL. "
+[[ "${__sr_arg_s:-}" ]] || display_info "$(gettext "Setting a filename with -s or --source is required")" "${__sr_usage}" "${__sr_helptext}"
+[[ "${LOG_LEVEL:-}" ]] || emergency "$(gettext "Cannot continue without LOG_LEVEL.")"
 
 #-------------------------------------------------------------------------------
 # Validate required option arguments
@@ -430,7 +433,7 @@ for __sr_tmp_varname in ${!__sr_tmp_has_arg_*}; do
   printf -v "__sr_tmp_opt_long" '%s' "${!__sr_tmp_varname}"
   [[ "${__sr_tmp_opt_long:-}" ]] && __sr_tmp_opt_long=" (--${__sr_tmp_opt_long//_/-})"
 
-  display_info  $"Option -${__sr_tmp_opt_short}${__sr_tmp_opt_long:-} requires an argument" "${__sr_usage}" "${__sr_helptext}"
+  display_info "$(eval_gettext "Option -\${__sr_tmp_opt_short}\${__sr_tmp_opt_long:-} requires an argument")" "${__sr_usage}" "${__sr_helptext}"
 done
 
 #-------------------------------------------------------------------------------
@@ -454,16 +457,19 @@ fi
 # Signal trapping and backtracing
 #-------------------------------------------------------------------------------
 function __sr_cleanup_before_exit () {
-  info $"Cleaning up. Done"
+  info "$(gettext "Cleaning up. Done")"
 }
 trap __sr_cleanup_before_exit EXIT
 
 # requires `set -o errtrace`
 __sr_err_report() {
-    local error_code
-    error_code=${?}
-    error $"Error in ${__sr_file} in function ${1} on line ${2}"
-    exit ${error_code}
+  local error_code
+  error_code=${?}
+  function=${1}
+  line=${2}
+
+  error "$(eval_gettext "Error in \${__sr_file} in function \${function} on line \${line}")"
+  exit ${error_code}
 }
 # Uncomment the following line for always providing an error backtrace
 # trap '__sr_err_report "${FUNCNAME:-.}" ${LINENO}' ERR

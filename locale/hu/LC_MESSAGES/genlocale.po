@@ -1,0 +1,135 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: BASH3 Boilerplate by krisztianmukli\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-06-25 12:56+0200\n"
+"PO-Revision-Date: 2018-06-25 13:11+0200\n"
+"Language: hu\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Last-Translator: Mukli Krisztián <krisztianmukli@mukli.hu>\n"
+"Language-Team: Mukli Krisztián <krisztianmukli@mukli.hu>\n"
+"X-Generator: Poedit 2.0.6\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+
+#: genlocale:90
+msgid ""
+"Available arguments:\n"
+"  \n"
+"  -b --bash           Use BASH built-in localization, otherwise use "
+"gettext.\n"
+"  -f --file  [arg]    Filename to process. Required.\n"
+"  -u --update         Only update locale files\n"
+"  -l --locale [langs] Language code list of generated locale files (comma or "
+"space separated)\n"
+"  -v                  Enable verbose mode, print script as it is executed\n"
+"  -d --debug          Enables debug mode\n"
+"  -h --help           This page\n"
+"  -n --no-color       Disable color output\n"
+"  -V --version        Display version and license information"
+msgstr ""
+"Használható argumentumok:\n"
+"  \n"
+"  -b --bash           A BASH beépített lokalizációs funkcióját használja, a "
+"gettext.sh helyett.\n"
+"  -f --file  [arg]    Feldolgozandó fájlnév. Kötelező.\n"
+"  -u --update         Csak frissíti a meglévő lokalizációs fájlokat\n"
+"  -l --locale [langs] A generálandó nyelvi fájlok nyelvi kódjainak listája "
+"(vesszővel, vagy szóközzel elválasztva)\n"
+"  -v                  Részletes mód engedélyezése, kiíratja a szkriptet "
+"futás közben\n"
+"  -d --debug          Hibakeresési mód engedélyezése\n"
+"  -h --help           Súgó\n"
+"  -n --no-color       Színes kimenet kikapcsolása\n"
+"  -V --version        Verzió és licencinformációk megjelenítése"
+
+#: genlocale:102
+msgid "This file can generate or update localization files for a bash script"
+msgstr ""
+"Nyelvi fájlokat generál egy szkripthez vagy frissíti egy szkript meglévő "
+"nyelvi fájljait"
+
+#: genlocale:103
+msgid "Default"
+msgstr "Alapértelmezett"
+
+#: genlocale:104
+msgid "Required"
+msgstr "Kötelező"
+
+#: genlocale:105
+msgid "Generate locale"
+msgstr "Lokalizációs fájlok generálása"
+
+#: genlocale:107
+msgid "Licensed under the MIT license"
+msgstr "MIT licenc alatt kiadva"
+
+#: genlocale:125
+msgid "Cannot create locale folder!"
+msgstr "Nem lehet létrehozni a locale mappát!"
+
+#: genlocale:152
+#, sh-format
+msgid "Update locale failed: ${folder}/locale/${loc}/LC_MESSAGES/${script}.po!"
+msgstr ""
+"Lokalizációs fájlok frissítése sikertelen: ${folder}/locale/${loc}/"
+"LC_MESSAGES/${script}.po!"
+
+#: genlocale:155
+msgid "Update locale success"
+msgstr "Lokalizációs fájlok frissítése sikeres"
+
+#: genlocale:161
+#, sh-format
+msgid "Create directory failed: ${folder}/locale/${loc}/LC_MESSAGES!"
+msgstr "Könyvtár létrehozása sikertelen: ${folder}/locale/${loc}/LC_MESSAGES!"
+
+#: genlocale:165
+msgid "Copy locale failed!"
+msgstr "Lokalizációs fájlok másolása sikertelen!"
+
+#: genlocale:168
+msgid "Generate locale success"
+msgstr "Lokalizációs fájlok létrehozása sikeres"
+
+#: genlocale:260
+#, sh-format
+msgid "Invalid use of script: ${__gl_tmp_params}"
+msgstr "Szkript érvénytelen használata: ${__gl_tmp_params}"
+
+#: genlocale:309
+#, sh-format
+msgid "Help using ${__gl_base}"
+msgstr "${__gl_base} súgó"
+
+#: genlocale:320
+msgid "Setting a filename with -f or --file is required"
+msgstr "Fájlnév megadása a -f vagy --file kapcsolóval szükséges"
+
+#: genlocale:321
+msgid "Cannot continue without LOG_LEVEL."
+msgstr "Nem folytatható LOG_LEVEL nélkül."
+
+#: genlocale:338
+msgid ""
+"Option -${__gl_tmp_opt_short}${__gl_tmp_opt_long:-} requires an argument"
+msgstr ""
+"A(z) -${__gl_tmp_opt_short}${__gl_tmp_opt_long:-} kapcsolónak argumentum "
+"megadása szükséges"
+
+#: genlocale:362
+msgid "Cleaning up. Done"
+msgstr "Takarítás. Kész"
+
+#: genlocale:373
+#, sh-format
+msgid "Error in ${__gl_file} in function ${function} on line ${line}"
+msgstr "Hiba a ${__gl_file} fájl ${function} funkciójában a ${line}. sorban"

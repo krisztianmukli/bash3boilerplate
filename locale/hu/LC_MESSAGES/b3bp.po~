@@ -3,24 +3,25 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: BASH 3 Boilerplate by krisztianmukli\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-06-24 19:08+0200\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"POT-Creation-Date: 2018-06-25 11:31+0200\n"
+"PO-Revision-Date: 2018-06-25 10:41+0200\n"
+"Last-Translator: Mukli Krisztián <krisztianmukli@mukli.hu>\n"
+"Language-Team: Mukli Krisztián <krisztianmukli@mukli.hu>\n"
+"Language: hu\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.6\n"
+"X-Poedit-SourceCharset: UTF-8\n"
 
 #: b3bp:91
-#, sh-format
 msgid ""
 "Available arguments:\n"
+"\n"
 "  -f --file  [arg] Filename to process. Required.\n"
 "  -t --temp  [arg] Location of tempfile. Default=\"/tmp/bar\"\n"
 "  -v               Enable verbose mode, print script as it is executed\n"
@@ -30,82 +31,166 @@ msgid ""
 "  -1 --one         Do just one thing\n"
 "  -V --version     Display version and license information"
 msgstr ""
+"Használható argumentumok:\n"
+"\n"
+"  -f --file  [arg] Feldolgozandó fájlnév. Kötelező.\n"
+"  -t --temp  [arg] Ideiglenes fájlok helye. Alapértelmezett=\\\"/tmp/bar\\"
+"\"\n"
+"  -v               Részletes mód engedélyezése, kiíratja a szkriptet futás "
+"közben\n"
+"  -d --debug       Hibakeresési mód engedélyezése\n"
+"  -h --help        Súgó\n"
+"  -n --no-color    Színes kimenet kikapcsolása\n"
+"  -1 --one         Csak egy dolgot csinál\n"
+"  -V --version     Verzió és licencinformációk megjelenítése"
 
-#: b3bp:101
+#: b3bp:102
 msgid ""
-"This is Bash3 Boilerplate\"s help text. Feel free to add any description of "
+"This is Bash3 Boilerplates help text. Feel free to add any description of "
 "your\n"
 " program or elaborate more on command-line arguments. This section is not\n"
-" parsed and will be added as-is to the help.\")\"\n"
-"__b3bp_defaulttext=\"$(eval_gettext \"Default\")\"\n"
-"__b3bp_requiredtext=\"$(eval_gettext \"Required\")\"\n"
-"__b3bp_name=\"$(eval_gettext \"BASH3 Boilerplate by krisztianmukli\")\"\n"
-"__b3bp_version=\"v1.0.0\"\n"
-"__b3bp_license=\"$(eval_gettext \"Licensed under the MIT license\")\"\n"
-"\n"
-"#===============================================================================\n"
-"# Functions section\n"
-"#===============================================================================\n"
-"#-------------------------------------------------------------------------------\n"
-"# Main function\n"
-"# Arguments:\n"
-"#   None\n"
-"# Returns:\n"
-"#   None\n"
-"#-------------------------------------------------------------------------------\n"
-"function main() {\n"
-"  if [[ \"${__b3bp_arg_f}\" = \"test\" ]]; then\n"
-"    echo \"${__b3bp_name}\"\n"
-"    eval_gettext \"Demo and test of the Bash-script template\"\n"
-"  fi\n"
-"\n"
-"  create_tempdir \n"
-"  [[ -d \"${__b3bp_tmpdir}\" ]] && touch \"${__b3bp_tmpdir}/testfile\"\n"
-"\n"
-"  info \"__b3bp_srcd: ${__b3bp_srcd}\"\n"
-"  info \"__b3bp_file: ${__b3bp_file}\"\n"
-"  info \"__b3bp_dir: ${__b3bp_dir}\"\n"
-"  info \"__b3bp_base: ${__b3bp_base}\"\n"
-"  \n"
-"  info \"__ostype: ${__ostype}\"\n"
-"  info \"__osfamily: ${__osfamily}\"\n"
-"  info \"__osname: ${__osname}\"\n"
-"  info \"__osversion: ${__osversion}\"\n"
-"  info \"__kernelversion: ${__kernelversion}\"\n"
-"  info \"__arch: ${__arch}\"\n"
-"  info \"__subsystem: ${__subsystem}\"\n"
-"\n"
-"  info \"__b3bp_arg_f: ${__b3bp_arg_f}\"\n"
-"  info \"__b3bp_arg_d: ${__b3bp_arg_d}\"\n"
-"  info \"__b3bp_arg_v: ${__b3bp_arg_v}\"\n"
-"  info \"__b3bp_arg_h: ${__b3bp_arg_h}\"\n"
-"  info \"__b3bp_arg_t: ${__b3bp_arg_t}\"\n"
-"\n"
-"  info \"$(echo -e \"$(eval_gettext \"multiple lines example - line #1\\"
-"\\nmultiple lines example - line #2\\\\nimagine logging the output of ls"
+" parsed and will be added as-is to the help."
+msgstr ""
+"Ez a Bash3 Boilerplate súgószövege. Szabadon hozzáadhatsz bármilyen\n"
+" leírást a programhoz, vagy kifejtheted a parancssoros argumentumokat.\n"
+" Ez a szöveg nem kerül feldolgozásra, úgy adódik hozzá a súgóhoz, \n"
+" ahogy megadod."
+
+#: b3bp:105
+msgid "Default"
+msgstr "Alapértelmezett"
+
+#: b3bp:106
+msgid "Required"
+msgstr "Kötelező"
+
+#: b3bp:107
+msgid "BASH3 Boilerplate by krisztianmukli"
+msgstr "BASH3 Boilerplate by krisztianmukli"
+
+#: b3bp:109
+msgid "Licensed under the MIT license"
+msgstr "MIT licensz alatt kiadva"
+
+#: b3bp:124
+msgid "Demo and test of the Bash-script template"
+msgstr "Demó és a Bash-szkript sablon tesztelése"
+
+#: b3bp:149
+msgid ""
+"multiple lines example - line #1\\nmultiple lines example - line "
+"#2\\nimagine logging the output of 'ls -al /path/'"
+msgstr ""
+"többsoros példa - #1. sor\\ntöbbsoros példa - #2. sor\\nképzeld el, hogy "
+"naplózhatod az 'ls -al /path/ kimenetét'"
+
+#: b3bp:152
+msgid ""
+"Info useful to developers for debugging the application, not useful during "
+"operations."
+msgstr ""
+"Hasznos információk a fejlesztőknek az alkalmazás hibakeresése során, de nem "
+"szükséges normál működés közben."
+
+#: b3bp:153
+msgid ""
+"Normal operational messages - may be harvested for reporting, measuring "
+"throughput, etc. - no action required."
+msgstr ""
+"Normál működés üzenetei - használható jelentéskészítéshez, átvitel "
+"méréséhez, stb. - nem szükséges művelet."
+
+#: b3bp:154
+msgid ""
+"Events that are unusual but not error conditions - might be summarized in an "
+"email to developers or admins to spot potential problems - no immediate "
+"action required."
+msgstr ""
+"Szokatlan események, melyek nem hibák - összegezhetőek és elküldhetőek "
+"emailben a fejlesztőknek vagy a rendszergazdának a lehetséges problémák "
+"felismeréséhez - azonnali művelet nem szükséges."
+
+#: b3bp:155
+msgid ""
+"Warning messages, not an error, but indication that an error will occur if "
+"action is not taken, e.g. file system 85% full - each item must be resolved "
+"within a given time. This is a debug message"
+msgstr ""
+"Figyelmeztető üzenetek, amelyek nem hibák, de hibákhoz vezethetnek ha nem "
+"intézkednek, pl. fájlrendszer 85%-a foglalt - minden esetet meg kell oldani "
+"adott időn belül. Ez egy hibakeresési üzenet"
+
+#: b3bp:156
+msgid ""
+"Non-urgent failures, these should be relayed to developers or admins; each "
+"item must be resolved within a given time."
+msgstr ""
+"Nem sürgős hibák, ezeket továbbítani kell a fejlesztőknek vagy a "
+"rendszergazdáknak; minden egyes esetet meg kell oldani adott időn belül."
+
+#: b3bp:157
+msgid ""
+"Should be corrected immediately, but indicates failure in a primary system, "
+"an example is a loss of a backup ISP connection."
+msgstr ""
+"Azonnal javítani kell, az elsődleges rendszer hibájára utal, például a "
+"biztonsági ISP-kapcsolat elvesztésére."
+
+#: b3bp:158
+msgid ""
+"Should be corrected immediately, therefore notify staff who can fix the "
+"problem. An example would be the loss of a primary ISP connection."
+msgstr ""
+"Azonnal javítani kell, ezért figyelmeztetni kell a személyzetet, hogy "
+"kijavíthassák a problémát. Például ilyen az elsődleges ISP kapcsolat "
+"elvesztése."
+
+#: b3bp:160
+msgid ""
+"A \\\"panic\\\" condition usually affecting multiple apps/servers/sites. At "
+"this level it would usually notify all tech staff on call."
+msgstr ""
+"\\\"Végzetes\\\" helyzet ami rendszerint több alkalmazás/szerver/oldal "
+"hibájára lehet hatással. Ezen a szinten a teljes technikai személyzetet "
+"hívni kell."
+
+#: b3bp:162
+msgid "Press any key to continue"
+msgstr "A folytatáshoz nyomj meg egy billentyűt"
+
+#: b3bp:251
+#, sh-format
+msgid "Invalid use of script: ${__b3bp_tmp_params}"
 msgstr ""
 
-#: b3bp:299
+#: b3bp:300
 #, sh-format
 msgid "Help using ${__b3bp_base}"
 msgstr ""
 
-#: b3bp:310
-#, sh-format
-msgid "Setting a filename with -f or --file is required"
-msgstr ""
-
 #: b3bp:311
-#, sh-format
+msgid "Setting a filename with -f or --file is required"
+msgstr "Fájlnév megadása a -f vagy --file kapcsolóval szükséges"
+
+#: b3bp:312
 msgid "Cannot continue without LOG_LEVEL."
+msgstr "Nem folytatható LOG_LEVEL nélkül."
+
+#: b3bp:329
+msgid ""
+"Option -${__b3bp_tmp_opt_short}\\0${__b3bp_tmp_opt_long:-} requires an "
+"argument"
 msgstr ""
 
-#: b3bp:352
-#, sh-format
+#: b3bp:353
 msgid "Could not create temporary directory! Exiting."
-msgstr ""
+msgstr "Nem lehet ideiglenes könyvtárat létrehozni! Kilépés."
 
-#: b3bp:357
-#, sh-format
+#: b3bp:358
 msgid "Cleaning up. Done"
+msgstr "Takarítás. Kész"
+
+#: b3bp:368
+#, sh-format
+msgid "Error in ${__b3bp_file} in function ${function} on line ${line}"
 msgstr ""

@@ -1,0 +1,292 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: BASH3 Boilerplate by krisztianmukli\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-06-25 14:00+0200\n"
+"PO-Revision-Date: 2018-06-25 14:07+0200\n"
+"Last-Translator: Mukli Krisztián <krisztianmukli@mukli.hu>\n"
+"Language-Team: Mukli Krisztián <krisztianmukli@mukli.hu>\n"
+"Language: hu\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 2.0.6\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+
+#: script_remove:95
+msgid ""
+"Available arguments:\n"
+"\n"
+"  -s --script [scriptfile] Remove specified scriptfile and it's localization "
+"and payloads. Required.\n"
+"  -l --with-libraries      Remove specified scriptfile and it's libraries, "
+"if any\n"
+"  -D --with-dependencies   Remove specified scriptfile and it's "
+"dependencies\n"
+"  -d --debug               Enables debug mode\n"
+"  -f --force               Force remove commands\n"
+"  -h --help                This page\n"
+"  -n --no-color            Disable color output\n"
+"  -v                       Enable verbose mode, print script as it is "
+"executed\n"
+"  -V --version             Display version and license information"
+msgstr ""
+"Használható argumentumok:\n"
+"\n"
+"  -s --script [scriptfile] Eltávolítja a megadott szkriptfájlt, a "
+"lokalizációs fájljait és csatolt fájljait. Kötelező.\n"
+"  -l --with-libraries      Programkönyvtáraival együtt távolítja el a "
+"megadott szkriptfájlt.\n"
+"  -D --with-dependencies   Függőségeivel együtt távolítja el a megadott "
+"szkriptfájlt\n"
+"  -d --debug               Hibakeresési mód engedélyezése\n"
+"  -f --force               Eltávolítási utasítások erőltetése\n"
+"  -h --help                Súgó\n"
+"  -n --no-color            Színes kimenet kikapcsolása\n"
+"  -v                       Részletes mód engedélyezése, kiíratja a szkriptet "
+"futás közben\n"
+"  -V --version             Verzió és licencinformációk megjelenítése"
+
+#: script_remove:107
+msgid ""
+"This command can uninstall bash-script and it's dependencies from a "
+"specified\n"
+" folder, using script own ini file. \n"
+" It is part of BASH3 Boilerplate by krisztianmukli project."
+msgstr ""
+"Eltávolítja a megadott szkriptet és függőségeit a megadott mappából, annak "
+"saját .ini-fájlját használva.\n"
+" A BASH3 Boilerplate by krisztianmukli projekt része."
+
+#: script_remove:110
+msgid "Default"
+msgstr "Alapértelmezett"
+
+#: script_remove:111
+msgid "Required"
+msgstr "Kötelező"
+
+#: script_remove:112
+msgid "Standalone script uninstaller"
+msgstr "Önálló szkript eltávolító"
+
+#: script_remove:114
+msgid "Licensed under the MIT license"
+msgstr "MIT licensz alatt kiadva"
+
+#: script_remove:124
+msgid "Starting package-remove"
+msgstr "Csomageltávolítás indítása"
+
+#: script_remove:131
+#, sh-format
+msgid "Removing of following dependencies was succesful: ${dependencies}"
+msgstr "A következő csomagok eltávolítása sikeres: ${dependencies}"
+
+#: script_remove:135
+msgid "No valid packages"
+msgstr "Nincs érvényes csomag"
+
+#: script_remove:139
+msgid "You need higher privileges for removing packages!"
+msgstr "Magasabb jogosultságokra van szükség a csomag-eltávolításhoz!"
+
+#: script_remove:143
+#, sh-format
+msgid ""
+"For removing following packages in macOS, you must use Homebrew or Macports: "
+"${dependencies}"
+msgstr ""
+"A következő csomagok eltávolításához macOS alatt a HomeBrew vagy a Macports "
+"szükséges: ${dependencies}"
+
+#: script_remove:147
+#, sh-format
+msgid ""
+"Removing following packages from shell in cygwin, must be use apt-cyg, or "
+"install them with Cygwin setup.exe: ${dependencies}"
+msgstr ""
+"A következő csomagok eltávolításához a rendszerhéjból cygwin alatt, szükség "
+"van az apt-cyg parancsra, vagy használja a Cygwin setup.exe-jét: "
+"${dependencies}"
+
+#: script_remove:151
+#, sh-format
+msgid ""
+"Unknown or unsupported operating system, cannot remove following packages: "
+"${dependencies}"
+msgstr ""
+"Ismeretlen vagy nem támogatott operációs rendszer, nem lehet eltávolítani a "
+"következő csomagokat: ${dependencies}"
+
+#: script_remove:155
+msgid "Unknown error during removing packages!"
+msgstr "Ismeretlen hiba a csomagok eltávolítása közben!"
+
+#: script_remove:159
+msgid "Finished the package-removing"
+msgstr "Csomag-eltávolítás kész"
+
+#: script_remove:174
+msgid "Assuming local install, trying to user's PATH"
+msgstr ""
+"Helyi telepítés feltételezése, a felhasználó PATH változójának használata"
+
+#: script_remove:179
+#, sh-format
+msgid "Targetdir, where installed script were: ${targetdir}"
+msgstr "Célkönyvtár, ahol a telepített szkript található: ${targetdir}"
+
+#: script_remove:195
+#, sh-format
+msgid "Removing script unsuccessful: ${targetdir} is not exists!"
+msgstr "Szkript eltávolítása sikertelen: ${targetdir} nem létezik!"
+
+#: script_remove:198
+#, sh-format
+msgid ""
+"Removing script unsuccessful: ${targetdir} is not writable! It may need "
+"higher privileges."
+msgstr ""
+"Szkript eltávolítása sikertelen: ${targetdir} nem írható! Lehetséges, hogy "
+"magasabb jogosultságok szükségesek."
+
+#: script_remove:207
+#, sh-format
+msgid "Removing script was unsuccessful: unsupported filename ($script)"
+msgstr "Szkript eltávolítása sikertelen: nem támogatott fájlnév ($script)"
+
+#: script_remove:209 script_remove:210 script_remove:213 script_remove:214
+#, sh-format
+msgid ""
+"Removing script was unsuccessful: there was an error during removing file "
+"${script}"
+msgstr ""
+"Szkript eltávolítása sikertelen: hiba történt a ${script} törlése közben"
+
+#: script_remove:211 script_remove:215
+msgid "Removing unsuccessful: there was an error during removing files"
+msgstr "Szkript eltávolítása sikertelen: hiba történt a fájlok törlése közben"
+
+#: script_remove:217
+#, sh-format
+msgid "Removing file ${targetdir}/${script} was success"
+msgstr "A(z) ${targetdir}/${script} fájl eltávolítása sikeres"
+
+#: script_remove:222
+#, sh-format
+msgid "Removing payloads was unsuccessful: unsupported filename (${payload})"
+msgstr ""
+"Csatolt fájlok eltávolítása sikertelen: nem támogatott fájlnév (${payload})"
+
+#: script_remove:224 script_remove:226
+#, sh-format
+msgid ""
+"Removing payloads was unsuccessful: there was an error during removing "
+"files: ${targetdir}/${payload}"
+msgstr ""
+"Csatolt fájlok eltávolítása sikertelen: hiba történt a fájlok törlése "
+"közben: ${targetdir}/${payload}"
+
+#: script_remove:228
+#, sh-format
+msgid "The file ${sourcedir}/${payload} was succesfully removed."
+msgstr "A(z) ${sourcedir}/${payload} sikeresen eltávolítva."
+
+#: script_remove:234
+#, sh-format
+msgid "Removing libraries was unsuccessful: unsupported filename ($lib)"
+msgstr ""
+"Programkönyvtárak eltávolítása sikertelen: nem támogatott fájlnév: ($lib)"
+
+#: script_remove:236
+#, sh-format
+msgid ""
+"Removing libraries was unsuccessful: there was an error during removing "
+"files ${libtargetdir}/${lib}"
+msgstr ""
+"Programkönyvtárak eltávolítása sikertelen: hiba történ a ${libtargetdir}/"
+"${lib} fájl törlésekor"
+
+#: script_remove:237 script_remove:239 script_remove:240
+msgid ""
+"Removing libraries was unsuccessful: there was an error during removing files"
+msgstr ""
+"Programkönyvtárak eltávolítása sikertelen: hiba történt a fájlok törlése "
+"közben"
+
+#: script_remove:242
+#, sh-format
+msgid "Removing file ${targetdir}/lib/${lib} was succesful"
+msgstr "A(z) ${targetdir}/lib/${lib} fájl eltávolítása sikeres"
+
+#: script_remove:253
+#, sh-format
+msgid ""
+"Script use the following packages as dependencies: ${dependencies}.\\nWould "
+"you like to remove them? It can effect to other softwares, don't do it if "
+"you don't understand!"
+msgstr ""
+"A megadott szkript a következő csomagokat használja függőségként: "
+"${dependencies}.\\nSzeretné eltávolítani őket? Ez hatással lehet más "
+"szoftverek működésére is, ne tegye ha nem tudja mit csinál!"
+
+#: script_remove:254
+#, sh-format
+msgid "Removing dependencies: ${dependencies}"
+msgstr "Függőségek eltávolítása: ${dependencies}"
+
+#: script_remove:255
+msgid ""
+"Removing packages unsuccessful: there was an error during removing "
+"dependencies"
+msgstr ""
+"Csomagok eltávolítása sikertelen: hiba történt a csomagok eltávolítása közben"
+
+#: script_remove:266
+msgid "Removing script was success."
+msgstr "Szkript eltávolítása sikeres."
+
+#: script_remove:268
+msgid "Script is unavailable or doesn't exists!"
+msgstr "A szkript nem elérhető vagy nem létezik!"
+
+#: script_remove:358
+#, sh-format
+msgid "Invalid use of script: ${__sr_tmp_params}"
+msgstr "Szkript érvénytelen használata: ${__sr_tmp_params}"
+
+#: script_remove:407
+#, sh-format
+msgid "Help using ${__sr_base}"
+msgstr "${__sr_base} súgó"
+
+#: script_remove:418
+msgid "Setting a filename with -s or --source is required"
+msgstr "Fájlnév megadása a -s vagy --source kapcsolóval szükséges"
+
+#: script_remove:419
+msgid "Cannot continue without LOG_LEVEL."
+msgstr "Nem folytatható LOG_LEVEL nélkül."
+
+#: script_remove:436
+msgid ""
+"Option -${__sr_tmp_opt_short}${__sr_tmp_opt_long:-} requires an argument"
+msgstr ""
+"A(z) -${__sr_tmp_opt_short}${__sr_tmp_opt_long:-} kapcsolónak argumentum "
+"megadása szükséges"
+
+#: script_remove:460
+msgid "Cleaning up. Done"
+msgstr "Takarítás. Kész"
+
+#: script_remove:471
+#, sh-format
+msgid "Error in ${__sr_file} in function ${function} on line ${line}"
+msgstr "Hiba a ${__sr_file} fájl ${function} funkciójában a ${line}. sorban"

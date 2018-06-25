@@ -88,7 +88,8 @@ export TEXTDOMAIN="${__b3bp_base}"
 #-------------------------------------------------------------------------------
 # Usage 
 #-------------------------------------------------------------------------------
-[[ "${__b3bp_usage+x}" ]] || __b3bp_usage="$(eval_gettext "Available arguments:
+[[ "${__b3bp_usage+x}" ]] || __b3bp_usage="$(gettext "Available arguments:
+
   -f --file  [arg] Filename to process. Required.
   -t --temp  [arg] Location of tempfile. Default=\"/tmp/bar\"
   -v               Enable verbose mode, print script as it is executed
@@ -98,14 +99,14 @@ export TEXTDOMAIN="${__b3bp_base}"
   -1 --one         Do just one thing
   -V --version     Display version and license information")"
 
-[[ "${__b3bp_helptext+x}" ]] || __b3bp_helptext="$(eval_gettext "This is Bash3 Boilerplate's help text. Feel free to add any description of your
+[[ "${__b3bp_helptext+x}" ]] || __b3bp_helptext="$(gettext "This is Bash3 Boilerplates help text. Feel free to add any description of your
  program or elaborate more on command-line arguments. This section is not
  parsed and will be added as-is to the help.")"
-__b3bp_defaulttext="$(eval_gettext "Default")"
-__b3bp_requiredtext="$(eval_gettext "Required")"
-__b3bp_name="$(eval_gettext "BASH3 Boilerplate by krisztianmukli")"
+__b3bp_defaulttext="$(gettext "Default")"
+__b3bp_requiredtext="$(gettext "Required")"
+__b3bp_name="$(gettext "BASH3 Boilerplate by krisztianmukli")"
 __b3bp_version="v1.0.0"
-__b3bp_license="$(eval_gettext "Licensed under the MIT license")"
+__b3bp_license="$(gettext "Licensed under the MIT license")"
 
 #===============================================================================
 # Functions section
@@ -120,7 +121,7 @@ __b3bp_license="$(eval_gettext "Licensed under the MIT license")"
 function main() {
   if [[ "${__b3bp_arg_f}" = "test" ]]; then
     echo "${__b3bp_name}"
-    eval_gettext "Demo and test of the Bash-script template"
+    gettext "Demo and test of the Bash-script template"
   fi
 
   create_tempdir 
@@ -145,20 +146,20 @@ function main() {
   info "__b3bp_arg_h: ${__b3bp_arg_h}"
   info "__b3bp_arg_t: ${__b3bp_arg_t}"
 
-  info "$(echo -e "$(eval_gettext "multiple lines example - line #1\\nmultiple lines example - line #2\\nimagine logging the output of 'ls -al /path/'")")"
+  info "$(echo -e "$(gettext "multiple lines example - line #1\\nmultiple lines example - line #2\\nimagine logging the output of 'ls -al /path/'")")"
 
   # All of these go to STDERR, so you can use STDOUT for piping machine readable information to other software
-  debug "$(eval_gettext "Info useful to developers for debugging the application, not useful during operations.")"
-  info "$(eval_gettext "Normal operational messages - may be harvested for reporting, measuring throughput, etc. - no action required.")"
-  notice "$(eval_gettext "Events that are unusual but not error conditions - might be summarized in an email to developers or admins to spot potential problems - no immediate action required.")"
-  warning "$(eval_gettext "Warning messages, not an error, but indication that an error will occur if action is not taken, e.g. file system 85% full - each item must be resolved within a given time. This is a debug message")"
-  error "$(eval_gettext "Non-urgent failures, these should be relayed to developers or admins; each item must be resolved within a given time.")"
-  critical "$(eval_gettext "Should be corrected immediately, but indicates failure in a primary system, an example is a loss of a backup ISP connection.")"
-  alert "$(eval_gettext "Should be corrected immediately, therefore notify staff who can fix the problem. An example would be the loss of a primary ISP connection.")"
+  debug "$(gettext "Info useful to developers for debugging the application, not useful during operations.")"
+  info "$(gettext "Normal operational messages - may be harvested for reporting, measuring throughput, etc. - no action required.")"
+  notice "$(gettext "Events that are unusual but not error conditions - might be summarized in an email to developers or admins to spot potential problems - no immediate action required.")"
+  warning "$(gettext "Warning messages, not an error, but indication that an error will occur if action is not taken, e.g. file system 85% full - each item must be resolved within a given time. This is a debug message")"
+  error "$(gettext "Non-urgent failures, these should be relayed to developers or admins; each item must be resolved within a given time.")"
+  critical "$(gettext "Should be corrected immediately, but indicates failure in a primary system, an example is a loss of a backup ISP connection.")"
+  alert "$(gettext "Should be corrected immediately, therefore notify staff who can fix the problem. An example would be the loss of a primary ISP connection.")"
   if [[ "${__b3bp_arg_f}" != "test" ]]; then
-    emergency "$(eval_gettext "A \\\"panic\\\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call.")"
+    emergency "$(gettext "A \\\"panic\\\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call.")"
   fi
-  read -n 1 -s -r -p "$(eval_gettext "Press any key to continue")" && echo ""
+  read -n 1 -s -r -p "$(gettext "Press any key to continue")" && echo ""
 }
 
 #===============================================================================
@@ -247,7 +248,7 @@ if [[ "${__b3bp_tmp_opts:-}" ]]; then
                  # to be dereferenced
   # Overwrite $arg_<flag> defaults with the actual CLI options
   while getopts "${__b3bp_tmp_opts}" __b3bp_tmp_opt; do
-    [[ "${__b3bp_tmp_opt}" = "?" ]] && (__b3bp_tmp_params="${*}"; display_info "$(eval_gettext "Invalid use of script: ${__b3bp_tmp_params}")" "${__b3bp_usage}" "${__b3bp_helptext}")
+    [[ "${__b3bp_tmp_opt}" = "?" ]] && (__b3bp_tmp_params="${*}"; display_info "$(eval_gettext "Invalid use of script: \${__b3bp_tmp_params}")" "${__b3bp_usage}" "${__b3bp_helptext}")
 
     if [[ "${__b3bp_tmp_opt}" = "-" ]]; then
       # OPTARG is long-option-name or long-option=value
@@ -307,8 +308,8 @@ fi
 #-------------------------------------------------------------------------------
 # Validate required arguments
 #-------------------------------------------------------------------------------
-[[ "${__b3bp_arg_f:-}" ]] || display_info "$(eval_gettext "Setting a filename with -f or --file is required")" "${__b3bp_usage}" "${__b3bp_helptext}"  
-[[ "${LOG_LEVEL:-}" ]] || emergency "$(eval_gettext "Cannot continue without LOG_LEVEL.")"
+[[ "${__b3bp_arg_f:-}" ]] || display_info "$(gettext "Setting a filename with -f or --file is required")" "${__b3bp_usage}" "${__b3bp_helptext}"  
+[[ "${LOG_LEVEL:-}" ]] || emergency "$(gettext "Cannot continue without LOG_LEVEL.")"
 
 #-------------------------------------------------------------------------------
 # Validate required option arguments
@@ -325,7 +326,7 @@ for __b3bp_tmp_varname in ${!__b3bp_tmp_has_arg_*}; do
   printf -v "__b3bp_tmp_opt_long" '%s' "${!__b3bp_tmp_varname}"
   [[ "${__b3bp_tmp_opt_long:-}" ]] && __b3bp_tmp_opt_long=" (--${__b3bp_tmp_opt_long//_/-})"
 
-  display_info "$(eval_gettext "Option -${__b3bp_tmp_opt_short}${__b3bp_tmp_opt_long:-} requires an argument")" "${__b3bp_usage}" "${__b3bp_helptext}"
+  display_info "$(eval_gettext "Option -\${__b3bp_tmp_opt_short}\${__b3bp_tmp_opt_long:-} requires an argument")" "${__b3bp_usage}" "${__b3bp_helptext}"
 done
 
 #-------------------------------------------------------------------------------
@@ -349,12 +350,12 @@ fi
 # Signal trapping and backtracing
 #-------------------------------------------------------------------------------
 function create_tempdir() {
-  (umask 077 && mkdir "${__b3bp_tmpdir}") || emergency "$(eval_gettext "Could not create temporary directory! Exiting.")"
+  (umask 077 && mkdir "${__b3bp_tmpdir}") || emergency "$(gettext "Could not create temporary directory! Exiting.")"
 }
 
 function __b3bp_cleanup_before_exit () {
   rm -rf "${__b3bp_tmpdir}"
-  info "$(eval_gettext "Cleaning up. Done")"
+  info "$(gettext "Cleaning up. Done")"
 }
 trap __b3bp_cleanup_before_exit EXIT
 
@@ -364,7 +365,7 @@ __b3bp_err_report() {
     local function=${1}
     local line=${2}
     
-    error "$(eval_gettext "Error in ${__b3bp_file} in function ${function} on line ${line}")"
+    error "$(eval_gettext "Error in \${__b3bp_file} in function \${function} on line \${line}")"
     exit ${error_code}
 }
 # Uncomment the following line for always providing an error backtrace

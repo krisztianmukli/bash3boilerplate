@@ -77,6 +77,7 @@ source os_detection.sh || (echo "Fatal error: Cannot find os_detection.sh!"; exi
 source display_info.sh || (echo "Fatal error: Cannot find display_info.sh!"; exit 1)
 source ini_val.sh || (echo "Fatal error: Cannot find ini_val.sh!"; exit 1)
 source ask.sh || (echo "Fatal error: Cannot find ask.sh!"; exit 1)
+source gettext.sh || (echo "Fatal error: Cannot find gettext.sh!"; exit 1)
 
 #-------------------------------------------------------------------------------
 # Localization
@@ -96,25 +97,27 @@ export TEXTDOMAIN="${__si_base}"
 #-------------------------------------------------------------------------------
 # Usage 
 #-------------------------------------------------------------------------------
-[[ "${__si_usage+x}" ]] || __si_usage=$"-c --check-dependencies  Check dependencies of specified script
+[[ "${__si_usage+x}" ]] || __si_usage="$(eval_gettext "Available arguments:
+
+  -c --check-dependencies  Check dependencies of specified script
   -d --debug               Enables debug mode
   -f --force               Forcing commands (e.g. overwrite existing files)
   -h --help                This page
   -i --ini [inifile]       Ini-file using the installation. If not set, installer use [sourcedir]/install.ini
   -n --no-color            Disable color output
-  -s --source [sourcedir]  Source dir of script. Default=\"$(pwd)\"
+  -s --source [sourcedir]  Source dir of script. Default=\"\$(pwd)\"
   -t --target [targetdir]  Target directory. Optional, if not specified, installer use /usr/local/bin or ~/.local/bin
   -v                       Enable verbose mode, print script as it is executed
-  -V --version             Display version and license information"
+  -V --version             Display version and license information")"
 
-[[ "${__si_helptext+x}" ]] || __si_helptext=$"This command can install bash-script and it's dependencies from a specified
+[[ "${__si_helptext+x}" ]] || __si_helptext="$(gettext "This command can install bash-script and it's dependencies from a specified
  folder, using install.ini file. 
- It is part of BASH3 Boilerplate by krisztianmukli project."
-__si_defaulttext=$"Default"
-__si_requiredtext=$"Required"
-__si_name=$"Standalone script installer"
+ It is part of BASH3 Boilerplate by krisztianmukli project.")"
+__si_defaulttext="$(gettext "Default")"
+__si_requiredtext="$(gettext "Required")"
+__si_name="$(gettext "Standalone script installer")"
 __si_version="v1.0.0"
-__si_license=$"Licensed under the MIT license"
+__si_license="$(gettext "Licensed under the MIT license")"
 
 #===============================================================================
 # Functions section
@@ -124,49 +127,49 @@ local missingpkgs="${1:-}"
 local force=${2:-0}
 local result
 
-  debug "Starting package-installation"
+debug "$(gettext "Starting package-installation")"
   set +o errexit # Not exit on error, neccesary for logging package-management return codes
   install_pkgs "${missingpkgs}" "${force}" 2>&1 | while read line; do info "${line}"; done;
   result=$?
   set -o errexit # Exit on error
   case $result in 
     0) 
-      info $"Installation of following dependencies was succesful: ${missingpkgs}"
+      info "$(eval_gettext "Installation of following dependencies was succesful: \${missingpkgs}")"
       return 0
       ;;
     1)
-      warning "No valid packages"
+      warning "$(gettext "No valid packages")"
       return 1
       ;;
     2)
-      error "You need higher privileges for installing packages!"
+      error "$(gettext "You need higher privileges for installing packages!")"
       return 1
       ;;
     3)
-      error "For installing following packages in macOS, you must use Homebrew or Macports: ${missingpkgs}"
+      error "$(eval_gettext "For installing following packages in macOS, you must use Homebrew or Macports: \${missingpkgs}")"
       return 1
       ;;
     4)
-      error "Install the following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: ${missingpkgs}"
+      error "$(eval_gettext "Install the following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: \${missingpkgs}")"
       return 1
       ;;     
     255)
-      error "Unknown or unsupported operating system, cannot install following packages: ${missingpkgs}"
+      error "$(eval_gettext "Unknown or unsupported operating system, cannot install following packages: \${missingpkgs}")"
       return 1
       ;;
     *)
-      error "Unknown error during installing packages!"
+      error "$(gettext "Unknown error during installing packages!")"
       return 1
       ;;
   esac
-  debug "Finished the package-installation"
+  debug "$(gettext "Finished the package-installation")"
 }
 #-------------------------------------------------------------------------------
 # install_files: Copy files (and it's payloads) from sourcedir to targetdir 
 # Arguments:
 #   install_files sourcedir targetdir localetargetdir
 # Returns:
-#   exit 1 if any command was unsuccesful
+#   exit 1 if any command was unsuccessful
 #-------------------------------------------------------------------------------
 function install_files() {
 local sourcedir=${1:-}
@@ -187,7 +190,7 @@ local force=${5:-0}
 local missingpkgs result actpwd
 
   # Check sourcedir is exists
-  [[ ! -d "${sourcedir}" ]] && emergency $"Installation unsuccesful: ${sourcedir} is not exists!"
+  [[ ! -d "${sourcedir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${sourcedir} is not exists!")"
 
   # Calling preinstall scripts, if any
   for command in ${preinst}; do
@@ -195,71 +198,71 @@ local missingpkgs result actpwd
   done
 
   # Check targetdir is exists, otherwise create it
-  [[ ! -d "${targetdir}" ]] && (mkdir "${targetdir}" 2>&- || emergency $"Installation unsuccesful: can not create ${targetdir}")
+  [[ ! -d "${targetdir}" ]] && (mkdir "${targetdir}" 2>&- || emergency "$(eval_gettext "Installation unsuccessful: can not create \${targetdir}")")
   # Check targetdir is writable
-  [[ ! -w "${targetdir}" ]] && emergency $"Installation unsuccesful: ${targetdir} not writable"
+  [[ ! -w "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} not writable")"
   
   # Check libraries is not empty
   if [[ "${libraries+x}" ]]; then	  
     # Check sourcedir/lib is exists
-    [[ -d "${libsourcedir}" ]] || emergency $"Installation unsuccesful: ${libsourcedir} is not exists!"
+    [[ -d "${libsourcedir}" ]] || emergency "$(eval_gettext "Installation unsuccessful: \${libsourcedir} is not exists!")"
     # Check targetdir/lib is exists, otherwise create it
-    [[ ! -d "${libtargetdir}" ]] && (mkdir "${libtargetdir}" 2>&- || emergency $"Installation unsuccesful: can not create ${libtargetdir}")
+    [[ ! -d "${libtargetdir}" ]] && (mkdir "${libtargetdir}" 2>&- || emergency "$(eval_gettext "Installation unsuccessful: can not create \${libtargetdir}")")
     # Check targetdir/lib is writable
-    [[ ! -w "${libtargetdir}" ]] && emergency $"Installation unsuccesful: ${libtargetdir} not writable"
+    [[ ! -w "${libtargetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${libtargetdir} not writable")"
   fi
 
   # Check localedir is exists, if there is locale folder in sourcedir
   if [[ -d "${localesourcedir}" ]]; then
     # Check targetdir is exists, otherwise create it
-    [[ ! -d "${localetargetdir}" ]] && (mkdir "${localetargetdir}" 2>&- || emergency $"Installation unsuccesful: can not create ${localetargetdir}")
+    [[ ! -d "${localetargetdir}" ]] && (mkdir "${localetargetdir}" 2>&- || emergency "$(eval_gettext "Installation unsuccessful: can not create \${localetargetdir}")")
     # Check targetdir is writable
-    [[ ! -w "${localetargetdir}" ]] && emergency $"Installation unsuccesful: ${localetargetdir} not writable"
+    [[ ! -w "${localetargetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${localetargetdir} not writable")"
   fi
 
   for script in ${scripts}; do
     # Check filename can't pipe to upper directory
-    [[ "${script}" = *".."* ]] && emergency $"Installation unsuccesful: unsupported filename (${script})"
+    [[ "${script}" = *".."* ]] && emergency "$(eval_gettext "Installation unsuccessful: unsupported filename (\${script})")"
     if [[ "${force}" = "1" ]]; then
-      cp -f "${sourcedir}/${script}" "${targetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
-      cp -f "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || emergency $"Installation unsuccesful: there was an error during copying files"
+	    cp -f "${sourcedir}/${script}" "${targetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
+	    cp -f "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
     else
-      cp -i "${sourcedir}/${script}" "${targetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
-      cp -i "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || emergency $"Installation unsuccesful: there was an error during copying files"
+	    cp -i "${sourcedir}/${script}" "${targetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
+	    cp -i "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
     fi
-    [[ ! -x "${targetdir}/${script}" ]] && (chmod +x "${targetdir}/${script}" || error $"Set executable permission was unsuccesful for file ${targetdir}/${script}! Maybe it need higher privileges!")
+    [[ ! -x "${targetdir}/${script}" ]] && (chmod +x "${targetdir}/${script}" || error "$(eval_gettext "Set executable permission was unsuccessful for file \${targetdir}/\${script}! Maybe it need higher privileges!")")
     actpwd=$(pwd) && cd "${sourcedir}"
-    find locale/ -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
+    find locale/ -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
     cd ${actpwd}
     # Save localetargetdir for removing
     ini_val "${targetdir}/${script}.ini" install.locale "${localetargetdir}"
-    debug $"Installation file ${script} was succesful to ${targetdir}"
+    debug "$(eval_gettext "Installation file \${script} was succesful to \${targetdir}")"
   done
 
   for lib in ${libraries}; do
-    [[ "${lib}" = *".."* ]] && emergency $"Installation unsuccesful: unsupported filename ($lib)"i
+	  [[ "${lib}" = *".."* ]] && emergency "$(eval_gettext "Installation unsuccessful: unsupported filename (\$lib)")"
     if [[ "${force}" = "1" ]]; then
-      cp -f "${libsourcedir}/${lib}" "${libtargetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
+	    cp -f "${libsourcedir}/${lib}" "${libtargetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
     else
-      cp -i "${libsourcedir}/${lib}" "${libtargetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
+	    cp -i "${libsourcedir}/${lib}" "${libtargetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
     fi
-    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
-    debug $"Installation file ${lib} was succesful to ${libtargetdir}"
+    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
+    debug "$(eval_gettext "Installation file \${lib} was succesful to \${libtargetdir}")"
   done
 
   for payload in ${payloads}; do
     # Check filename can't pipe to upper directory
-    [[ "${payload}" = *".."* ]] && emergency $"Installation unsuccesful: unsupported filename (${payload})"
-    cp -i "${sourcedir}/${payload}" "${targetdir}" || emergency $"Installation unsuccesful: there was an error during copying files"
-    debug $"Installation file ${script} was succesful to ${targetdir}"
+    [[ "${payload}" = *".."* ]] && emergency "$(eval_gettext "Installation unsuccessful: unsupported filename (\${payload})")"
+    cp -i "${sourcedir}/${payload}" "${targetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
+    debug "$(eval_gettext "Installation file \${script} was succesful to \${targetdir}")"
   done
 
   # Install dependencies
   if [[ -n "${dependencies}" ]]; then
     missingpkgs=$(check_pkgs "${dependencies}")
     if [[ -n "${missingpkgs}" ]]; then 
-      debug "Missing dependencies: ${missingpkgs}"
-      install_dependencies "${missingpkgs}" "${force}" || emergency $"Installation unsuccesful: there was an error during installing dependencies"
+      debug "$(eval_gettext "Missing dependencies: \${missingpkgs}")"
+      install_dependencies "${missingpkgs}" "${force}" || emergency "$(gettext "Installation unsuccessful: there was an error during installing dependencies")"
     fi
   fi
 
@@ -273,7 +276,7 @@ local missingpkgs result actpwd
     eval "${command}"
   done
 
-  info $"Installation files was succesful to ${targetdir}"
+  info "$(eval_gettext "Installation files was succesful to \${targetdir}")"
 }
 
 #-------------------------------------------------------------------------------
@@ -281,7 +284,7 @@ local missingpkgs result actpwd
 # Arguments:
 #   edit_profile folder
 # Returns:
-#   return 1 if unsuccesful (there's no folder)
+#   return 1 if unsuccessful (there's no folder)
 #-------------------------------------------------------------------------------
 function edit_profile(){
 local folder=${1:-}
@@ -295,9 +298,8 @@ local folder=${1:-}
           echo "    PATH=\"${folder}:\$PATH\" "
           echo "fi" 
         } >> "${__si_user_home}/.profile"
-        warning $"~/.profile was updated, please login again or run 'source ~/.profile' command to reload PATH variable!"
-
-	    return 0 
+	warning "$(gettext "~/.profile was updated, please login again or run 'source ~/.profile' command to reload PATH variable!")"
+        return 0 
       fi
 
   fi
@@ -315,15 +317,15 @@ local postinst=$( get_ini_val "${inifile}" "install.postinst" )
   if [[ ! -z "${dependencies}" ]]; then
     missingpkgs=$(check_pkgs "${dependencies}")
     if [[ ! -z "${missingpkgs}" ]]; then
-      debug "Missing dependencies: ${missingpkgs}"
-      if ask $"Following packages are missing: ${missingpkgs}, would you like to install them?" "Y"; then
+        debug "$(eval_gettext "Missing dependencies: \${missingpkgs}")"
+        if ask "$(eval_gettext "Following packages are missing: \${missingpkgs}, would you like to install them?")" "Y"; then
 
         # Calling preinstall scripts, if any
         for command in ${preinst}; do
           eval "${command}"
         done
 
-        install_dependencies "${missingpkgs}" "${force}" || emergency $"Installation unsuccesful: there was an error during installing dependencies"
+	install_dependencies "${missingpkgs}" "${force}" || emergency "$(gettext "Installation unsuccessful: there was an error during installing dependencies")"
 
         # Calling postinstall scripts, if any
         for command in ${postinst}; do
@@ -348,30 +350,30 @@ local force="${__si_arg_f}"
 
   # Check supported OS
   if [[ "${__osfamily}" = "unknown" ]]; then
-    debug $"Unsupported operating system. Installation is not possible."
+	  debug "$(gettext "Unsupported operating system. Installation is not possible.")"
 
     # exit 1
-    display_info $"Unsupported operating system. Installation is not possible." $"Install script manually: 
+    display_info "$(gettext "Unsupported operating system. Installation is not possible.")" "$(gettext "Install script manually: 
     * Copy the script and the lib folder to your PATH.
     * Copy to locale folder to your locale folder.
-    * Install dependencies."
+    * Install dependencies.")"
   fi
 
   if [[ "${__si_arg_c:?}" = "0" ]] ; then   
     __si_arg_t=$(sed "s|~|$HOME|g" <<< "${__si_arg_t:-}") # Workaround for such cases: "~/path/to/file"
-
+    defined_targetdir="${__si_arg_t:-Not defined}"
     targetdir=$([[ $EUID != 0 ]] && echo "${__si_arg_t:-$__si_user_home/.local/bin}" || echo "${__si_arg_t:-/usr/local/bin}")  
     targetdirtext=$([[ $EUID != 0 ]] && sed "s|$HOME|\$HOME|g" <<< "${__si_arg_t:-$__si_user_home/.local/bin}" || sed "s|$HOME|\$HOME|g" <<< "${__si_arg_t:-}")
     localedir=$([[ $EUID != 0 ]] && echo "${__si_arg_t:-$__si_user_home/.local/share}" || echo "${__si_arg_t:-/usr/local/share/locale}")
     inifile="${__si_arg_i:-$sourcedir/install.ini}"
 
-    debug $"User's home dir: ${__si_user_home}"
-    debug $"Source dir: ${sourcedir}"
-    debug $"Defined target dir: ${__si_arg_t:-Not defined}"
-    debug $"Target directory, to the script will install: ${targetdir}"
-    debug $"Target directory, which is added to ~/.profile file: ${targetdirtext}"
-    debug $"Target directory for locale files: ${localedir}"
-    debug $"Ini-file: ${inifile}"
+    debug "$(eval_gettext "User's home dir: \${__si_user_home}")"
+    debug "$(eval_gettext "Source dir: \${sourcedir}")"
+    debug "$(eval_gettext "Defined target dir: \${defined_targetdir}")"
+    debug "$(eval_gettext "Target directory, to the script will install: \${targetdir}")"
+    debug "$(eval_gettext "Target directory, which is added to ~/.profile file: \${targetdirtext}")"
+    debug "$(eval_gettext "Target directory for locale files: \${localedir}")"
+    debug "$(eval_gettext "Ini-file: \${inifile}")"
 
     # Install files and edit ~/.profile file
     install_files "${sourcedir}" "${inifile}" "${targetdir}" "${localedir}" "${force}"
@@ -489,7 +491,7 @@ if [[ "${__si_tmp_opts:-}" ]]; then
                  # to be dereferenced
   # Overwrite $arg_<flag> defaults with the actual CLI options
   while getopts "${__si_tmp_opts}" __si_tmp_opt; do
-    [[ "${__si_tmp_opt}" = "?" ]] && display_info $"Invalid use of script: ${*}" "${__si_usage}" "${__si_helptext}"
+    [[ "${__si_tmp_opt}" = "?" ]] && (__si_tmp_params="${*}"; display_info "$(eval_gettext "Invalid use of script: \${__si_tmp_params}")" "\${__si_usage}" "\${__si_helptext}")
 
     if [[ "${__si_tmp_opt}" = "-" ]]; then
       # OPTARG is long-option-name or long-option=value
@@ -538,7 +540,7 @@ fi
 #-------------------------------------------------------------------------------
 if [[ "${__si_arg_h:?}" = "1" ]]; then
   # Help exists with code 1
-  display_info $"Help using ${0}" "${__si_usage}" "${__si_helptext}"
+  display_info "$(eval_gettext "Help using \${__si_base}")" "${__si_usage}" "${__si_helptext}"
 fi
 
 if [[ "${__si_arg_V:?}" = "1" ]]; then
@@ -549,7 +551,7 @@ fi
 #-------------------------------------------------------------------------------
 # Validate required arguments
 #-------------------------------------------------------------------------------
-[[ "${LOG_LEVEL:-}" ]] || emergency $"Cannot continue without LOG_LEVEL. "
+[[ "${LOG_LEVEL:-}" ]] || emergency "$(gettext "Cannot continue without LOG_LEVEL.")"
 
 #-------------------------------------------------------------------------------
 # Validate required option arguments
@@ -566,7 +568,7 @@ for __si_tmp_varname in ${!__si_tmp_has_arg_*}; do
   printf -v "__si_tmp_opt_long" '%s' "${!__si_tmp_varname}"
   [[ "${__si_tmp_opt_long:-}" ]] && __si_tmp_opt_long=" (--${__si_tmp_opt_long//_/-})"
 
-  display_info  $"Option -${__si_tmp_opt_short}${__si_tmp_opt_long:-} requires an argument" "${__si_usage}" "${__si_helptext}"
+  display_info "$(eval_gettext "Option -\${__si_tmp_opt_short}\${__si_tmp_opt_long:-} requires an argument")" "${__si_usage}" "${__si_helptext}"
 done
 
 #-------------------------------------------------------------------------------
@@ -590,16 +592,19 @@ fi
 # Signal trapping and backtracing
 #-------------------------------------------------------------------------------
 function __si_cleanup_before_exit () {
-  info $"Cleaning up. Done"
+  info "$(gettext "Cleaning up. Done")"
 }
 trap __si_cleanup_before_exit EXIT
 
 # requires `set -o errtrace`
 __si_err_report() {
-    local error_code
-    error_code=${?}
-    error $"Error in ${__si_file} in function ${1} on line ${2}"
-    exit ${error_code}
+  local error_code
+  error_code=${?}
+  function=${1}
+  line=${2}
+
+  error "$(eval_gettext "Error in \${__si_file} in function \${function} on line \${line}")"
+  exit ${error_code}
 }
 # Uncomment the following line for always providing an error backtrace
 # trap '__si_err_report "${FUNCNAME:-.}" ${LINENO}' ERR

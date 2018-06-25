@@ -57,15 +57,17 @@ __gl_file="${__gl_dir}/$(basename "${BASH_SOURCE[${__gl_tmp_source_idx:-0}]}")"
 __gl_base="$(basename "${__gl_file}" .sh)"
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
+LOG_TIMEZONE="${LOG_TIMEZONE:-1}" # 0 = UTC, otherwise local
 NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 
 #-------------------------------------------------------------------------------
 # Sourced files
 #-------------------------------------------------------------------------------
-export PATH="${__gl_dir}/lib:$PATH"
-source log.sh
-source ini_val.sh
-source display_info.sh
+export PATH="${__gl_dir}:${__gl_dir}/lib:$PATH"
+source log.sh || (echo "Fatal error: Cannot find log.sh!"; exit 1)
+source ini_val.sh || (echo "Fatal error: Cannot find ini_val.sh!"; exit 1)
+source display_info.sh || (echo "Fatal error: Cannot find display_info.sh!"; exit 1)
+source gettext.sh || (echo "Fatal error: Cannot find gettext.sh!"; exit 1)
 
 #-------------------------------------------------------------------------------
 # Localization
@@ -85,7 +87,9 @@ export TEXTDOMAIN="${__gl_base}"
 #-------------------------------------------------------------------------------
 # Usage 
 #-------------------------------------------------------------------------------
-[[ "${__gl_usage+x}" ]] || __gl_usage=$"-b --bash           Use BASH built-in localization, otherwise use gettext.
+[[ "${__gl_usage+x}" ]] || __gl_usage="$(gettext "Available arguments:
+  
+  -b --bash           Use BASH built-in localization, otherwise use gettext.
   -f --file  [arg]    Filename to process. Required.
   -u --update         Only update locale files
   -l --locale [langs] Language code list of generated locale files (comma or space separated)
@@ -93,14 +97,14 @@ export TEXTDOMAIN="${__gl_base}"
   -d --debug          Enables debug mode
   -h --help           This page
   -n --no-color       Disable color output
-  -V --version        Display version and license information"
+  -V --version        Display version and license information")"
 
-[[ "${__gl_helptext+x}" ]] || __gl_helptext=$"This file can generate or update localization files for a bash script"
-__gl_defaulttext=$"Default"
-__gl_requiredtext=$"Required"
-__gl_name=$"Generate locale"
+[[ "${__gl_helptext+x}" ]] || __gl_helptext="$(gettext "This file can generate or update localization files for a bash script")"
+__gl_defaulttext="$(gettext "Default")"
+__gl_requiredtext="$(gettext "Required")"
+__gl_name="$(gettext "Generate locale")"
 __gl_version="v1.0.0"
-__gl_license=$"Licensed under the MIT license"
+__gl_license="$(gettext "Licensed under the MIT license")"
 
 #===============================================================================
 # Functions section
@@ -118,7 +122,7 @@ local script=$(basename "${__gl_arg_f}" .sh)
 local folder=$(dirname "${__gl_arg_f}")
 
   # Check if locale folder is exist
-  if [[ ! -d "${folder}"/locale/ ]]; then mkdir "${folder}"/locale/ || emergency $"Cannot create locale folder!"; fi
+  if [[ ! -d "${folder}"/locale/ ]]; then mkdir "${folder}"/locale/ || emergency "$(gettext "Cannot create locale folder!")"; fi
   
   # Generate new .pot file
   if [[ "$__gl_arg_b:-0" = "1" ]]; then    
@@ -126,7 +130,8 @@ local folder=$(dirname "${__gl_arg_f}")
     bash --dump-po-strings "${script}" > "${folder}/locale/${script}.pot" | while read line; do info "${line}"; done;
   else
     # Gettext/XGettext
-    xgettext -L Shell -o "${folder}/locale/${script}.pot" "${script}" | while read line; do info "${line}"; done;
+    xgettext -L Shell --from-code=UTF-8 --add-comments=/ -o "${folder}/locale/${script}.pot" "${script}" | while read line; do info "${line}"; done;
+    sed --in-place "${folder}/locale/${script}.pot" --expression='s/CHARSET/UTF-8/'
   fi 
   
   # Get specified languages
@@ -144,23 +149,23 @@ local folder=$(dirname "${__gl_arg_f}")
   if [[ "${__gl_arg_u:?}" = "1" ]]; then
     # Update locale files    
     for loc in ${locales[@]}; do
-      msgmerge --update "${folder}/locale/${loc}/LC_MESSAGES/${script}.po" "${folder}/locale/${script}.pot" || emergency $"Update locale failed: "${folder}/locale/${loc}/LC_MESSAGES/${script}.po"!" | while read line; do info "${line}"; done;
+      msgmerge --update "${folder}/locale/${loc}/LC_MESSAGES/${script}.po" "${folder}/locale/${script}.pot" || emergency "$(eval_gettext "Update locale failed: \${folder}/locale/\${loc}/LC_MESSAGES/\${script}.po!")"
     done
     
-    info $"Update locale success"
+    info "$(gettext "Update locale success")"
   else
   
     # Generate locale files
 
     for loc in ${locales[@]}; do
-      mkdir -p "${folder}/locale/${loc}/LC_MESSAGES" || emergency $"Create directory failed: ${folder}/locale/${loc}/LC_MESSAGES!"
+      mkdir -p "${folder}/locale/${loc}/LC_MESSAGES" || emergency "$(eval_gettext "Create directory failed: \${folder}/locale/\${loc}/LC_MESSAGES!")"
     done
 
     for loc in ${locales[@]}; do
-      cp "${folder}/locale/${script}.pot" "${folder}/locale/${loc}/LC_MESSAGES/${script}.po" || emergency $"Copy locale failed!"
+      cp "${folder}/locale/${script}.pot" "${folder}/locale/${loc}/LC_MESSAGES/${script}.po" || emergency "$(gettext "Copy locale failed!")"
     done
 
-    info $"Generate locale success"
+    info "$(gettext "Generate locale success")"
     
   fi
 
@@ -252,7 +257,7 @@ if [[ "${__gl_tmp_opts:-}" ]]; then
                  # to be dereferenced
   # Overwrite $arg_<flag> defaults with the actual CLI options
   while getopts "${__gl_tmp_opts}" __gl_tmp_opt; do
-    [[ "${__gl_tmp_opt}" = "?" ]] && display_info $"Invalid use of script: ${*}" "${__gl_usage}" "${__gl_helptext}"
+    [[ "${__gl_tmp_opt}" = "?" ]] && (__gl_tmp_params="${*}"; display_info "$(eval_gettext "Invalid use of script: \${__gl_tmp_params}")" "${__gl_usage}" "${__gl_helptext}")
 
     if [[ "${__gl_tmp_opt}" = "-" ]]; then
       # OPTARG is long-option-name or long-option=value
@@ -301,7 +306,7 @@ fi
 #-------------------------------------------------------------------------------
 if [[ "${__gl_arg_h:?}" = "1" ]]; then
   # Help exists with code 1
-  display_info $"Help using ${0}" "${__gl_usage}" "${__gl_helptext}"
+  display_info "$(eval_gettext "Help using \${__gl_base}")" "${__gl_usage}" "${__gl_helptext}"
 fi
 
 if [[ "${__gl_arg_V:?}" = "1" ]]; then
@@ -312,8 +317,8 @@ fi
 #-------------------------------------------------------------------------------
 # Validate required arguments
 #-------------------------------------------------------------------------------
-[[ "${__gl_arg_f:-}" ]] || display_info $"Setting a filename with -f or --file is required" "${__gl_usage}" "${__gl_helptext}"  
-[[ "${LOG_LEVEL:-}" ]] || emergency $"Cannot continue without LOG_LEVEL. "
+[[ "${__gl_arg_f:-}" ]] || display_info "$(gettext "Setting a filename with -f or --file is required")" "${__gl_usage}" "${__gl_helptext}"  
+[[ "${LOG_LEVEL:-}" ]] || emergency "$(gettext "Cannot continue without LOG_LEVEL.")"
 
 #-------------------------------------------------------------------------------
 # Validate required option arguments
@@ -330,7 +335,7 @@ for __gl_tmp_varname in ${!__gl_tmp_has_arg_*}; do
   printf -v "__gl_tmp_opt_long" '%s' "${!__gl_tmp_varname}"
   [[ "${__gl_tmp_opt_long:-}" ]] && __gl_tmp_opt_long=" (--${__gl_tmp_opt_long//_/-})"
 
-  display_info  $"Option -${__gl_tmp_opt_short}${__gl_tmp_opt_long:-} requires an argument" "${__gl_usage}" "${__gl_helptext}"
+  display_info  "$(eval_gettext "Option -\${__gl_tmp_opt_short}\${__gl_tmp_opt_long:-} requires an argument")" "${__gl_usage}" "${__gl_helptext}"
 done
 
 #-------------------------------------------------------------------------------
@@ -354,7 +359,7 @@ fi
 # Signal trapping and backtracing
 #-------------------------------------------------------------------------------
 function __gl_cleanup_before_exit () {
-  info $"Cleaning up. Done"
+  info "$(gettext "Cleaning up. Done")"
 }
 trap __gl_cleanup_before_exit EXIT
 
@@ -362,7 +367,10 @@ trap __gl_cleanup_before_exit EXIT
 __gl_err_report() {
     local error_code
     error_code=${?}
-    error $"Error in ${__gl_file} in function ${1} on line ${2}"
+    function=${1}
+    line=${2}
+
+    error "$(eval_gettext "Error in \${__gl_file} in function \${function} on line \${line}")"
     exit ${error_code}
 }
 # Uncomment the following line for always providing an error backtrace
