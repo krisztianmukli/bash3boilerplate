@@ -216,6 +216,17 @@ while read -r __gl_tmp_line; do
   [[ "${__gl_tmp_opt:-}" ]] || continue
 
   if [[ "${__gl_tmp_line}" =~ ^"${__gl_defaulttext}"= ]] || [[ "${__gl_tmp_line}" =~ \.\ *"${__gl_defaulttext}"= ]]; then
+    __gl_tmp_default="1"
+    __gl_tmp_defaulttext="${__gl_defaulttext}"
+  elif [[ "${__gl_tmp_line}" =~ ^Default= ]] || [[ "${__gl_tmp_line}" =~ \.\ *Default= ]]; then
+    __gl_tmp_default="1"
+    __gl_tmp_defaulttext=Default
+  else
+    [[ ${__gl_tmp_default+x} ]] && unset __gl_tmp_default
+    [[ ${__gl_tmp_defaulttext+x} ]] && unset __gl_tmp_defaulttext
+  fi
+
+  if [[ ${__gl_tmp_default:-} = "1" ]]; then
     # ignore default value if option does not have an argument
     __gl_tmp_varname="__gl_tmp_has_arg_${__gl_tmp_opt:0:1}"
 
@@ -233,7 +244,7 @@ while read -r __gl_tmp_line; do
     fi
   fi
 
-  if [[ "${__gl_tmp_line}" =~ ^"${__gl_requiredtext}"\. ]] || [[ "${__gl_tmp_line}" =~ \.\ *"${__gl_requiredtext}"\. ]]; then
+  if [[ "${__gl_tmp_line}" =~ ^"${__gl_requiredtext}"\. ]] || [[ "${__gl_tmp_line}" =~ \.\ *"${__gl_requiredtext}"\. ]] || [[ "${__gl_tmp_line}" =~ ^Required\. ]] || [[ "${__gl_tmp_line}" =~ \.\ *Required\. ]]; then
     # remember that this option requires an argument
     printf -v "__gl_tmp_has_arg_${__gl_tmp_opt:0:1}" '%s' "2"
   fi

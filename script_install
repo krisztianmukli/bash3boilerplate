@@ -431,27 +431,22 @@ while read -r __si_tmp_line; do
   [[ "${__si_tmp_opt:-}" ]] || continue
 
   if [[ "${__si_tmp_line}" =~ ^"${__si_defaulttext}"= ]] || [[ "${__si_tmp_line}" =~ \.\ *"${__si_defaulttext}"= ]]; then
-    # ignore default value if option does not have an argument
-    __si_tmp_varname="__si_tmp_has_arg_${__si_tmp_opt:0:1}"
-
-    if [[ "${!__si_tmp_varname}" != "0" ]]; then
-      __si_tmp_init="${__si_tmp_line##*${__si_defaulttext}=}"
-      __si_tmp_re='^"(.*)"$'
-      if [[ "${__si_tmp_init}" =~ ${__si_tmp_re} ]]; then
-        __si_tmp_init="${BASH_REMATCH[1]}"
-      else
-        __si_tmp_re="^'(.*)'$"
-        if [[ "${__si_tmp_init}" =~ ${__si_tmp_re} ]]; then
-          __si_tmp_init="${BASH_REMATCH[1]}"
-        fi
-      fi
-    fi 
+    __si_tmp_default="1"
+    __si_tmp_defaulttext="${__si_defaulttext}"
   elif [[ "${__si_tmp_line}" =~ ^Default= ]] || [[ "${__si_tmp_line}" =~ \.\ *Default= ]]; then
+    __si_tmp_default="1"
+    __si_tmp_defaulttext=Default
+  else
+    [[ ${__si_tmp_default+x} ]] && unset __si_tmp_default
+    [[ ${__si_tmp_defaulttext+x} ]] && unset __si_tmp_defaulttext
+  fi
+
+  if [[ ${__si_tmp_default:-} = "1" ]]; then
     # ignore default value if option does not have an argument
     __si_tmp_varname="__si_tmp_has_arg_${__si_tmp_opt:0:1}"
 
     if [[ "${!__si_tmp_varname}" != "0" ]]; then
-      __si_tmp_init="${__si_tmp_line##*Default=}"
+      __si_tmp_init="${__si_tmp_line##*${__si_tmp_defaulttext}=}"
       __si_tmp_re='^"(.*)"$'
       if [[ "${__si_tmp_init}" =~ ${__si_tmp_re} ]]; then
         __si_tmp_init="${BASH_REMATCH[1]}"
@@ -464,10 +459,7 @@ while read -r __si_tmp_line; do
     fi 
   fi
 
-  if [[ "${__si_tmp_line}" =~ ^"${__si_requiredtext}"\. ]] || [[ "${__si_tmp_line}" =~ \.\ *"${__si_requiredtext}"\. ]]; then
-    # remember that this option requires an argument
-    printf -v "__si_tmp_has_arg_${__si_tmp_opt:0:1}" '%s' "2"
-  elif [[ "${__si_tmp_line}" =~ ^Required\. ]] || [[ "${__si_tmp_line}" =~ \.\ *Required\. ]]; then
+  if [[ "${__si_tmp_line}" =~ ^"${__si_requiredtext}"\. ]] || [[ "${__si_tmp_line}" =~ \.\ *"${__si_requiredtext}"\. ]] || [[ "${__si_tmp_line}" =~ ^Required\. ]] || [[ "${__si_tmp_line}" =~ \.\ *Required\. ]]; then
     # remember that this option requires an argument
     printf -v "__si_tmp_has_arg_${__si_tmp_opt:0:1}" '%s' "2"
   fi

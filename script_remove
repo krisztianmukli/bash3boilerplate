@@ -314,6 +314,17 @@ while read -r __sr_tmp_line; do
   [[ "${__sr_tmp_opt:-}" ]] || continue
 
   if [[ "${__sr_tmp_line}" =~ ^"${__sr_defaulttext}"= ]] || [[ "${__sr_tmp_line}" =~ \.\ *"${__sr_defaulttext}"= ]]; then
+    __sr_tmp_default="1"
+    __sr_tmp_defaulttext="${__sr_defaulttext}"
+  elif [[ "${__sr_tmp_line}" =~ ^Default= ]] || [[ "${__sr_tmp_line}" =~ \.\ *Default= ]]; then
+    __sr_tmp_default="1"
+    __sr_tmp_defaulttext=Default
+  else
+    [[ ${__sr_tmp_default+x} ]] && unset __sr_tmp_default
+    [[ ${__sr_tmp_defaulttext+x} ]] && unset __sr_tmp_defaulttext
+  fi
+
+  if [[ ${__sr_tmp_default:-} = "1" ]]; then
     # ignore default value if option does not have an argument
     __sr_tmp_varname="__sr_tmp_has_arg_${__sr_tmp_opt:0:1}"
 
@@ -331,7 +342,7 @@ while read -r __sr_tmp_line; do
     fi
   fi
 
-  if [[ "${__sr_tmp_line}" =~ ^"${__sr_requiredtext}"\. ]] || [[ "${__sr_tmp_line}" =~ \.\ *"${__sr_requiredtext}"\. ]]; then
+  if [[ "${__sr_tmp_line}" =~ ^"${__sr_requiredtext}"\. ]] || [[ "${__sr_tmp_line}" =~ \.\ *"${__sr_requiredtext}"\. ]] || [[ "${__sr_tmp_line}" =~ ^Required\. ]] || [[ "${__sr_tmp_line}" =~ \.\ *Required\. ]]; then
     # remember that this option requires an argument
     printf -v "__sr_tmp_has_arg_${__sr_tmp_opt:0:1}" '%s' "2"
   fi

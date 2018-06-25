@@ -207,11 +207,22 @@ while read -r __b3bp_tmp_line; do
   [[ "${__b3bp_tmp_opt:-}" ]] || continue
 
   if [[ "${__b3bp_tmp_line}" =~ ^"${__b3bp_defaulttext}"= ]] || [[ "${__b3bp_tmp_line}" =~ \.\ *"${__b3bp_defaulttext}"= ]]; then
+    __b3bp_tmp_default="1"
+    __b3bp_tmp_defaulttext="${__b3bp_defaulttext}"
+  elif [[ "${__b3bp_tmp_line}" =~ ^Default= ]] || [[ "${__b3bp_tmp_line}" =~ \.\ *Default= ]]; then
+    __b3bp_tmp_default="1"
+    __b3bp_tmp_defaulttext=Default
+  else
+    [[ ${__b3bp_tmp_default+x} ]] && unset __b3bp_tmp_default
+    [[ ${__b3bp_tmp_defaulttext+x} ]] && unset __b3bp_tmp_defaulttext
+  fi
+
+  if [[ ${__b3bp_tmp_default:-} = "1" ]]; then
     # ignore default value if option does not have an argument
     __b3bp_tmp_varname="__b3bp_tmp_has_arg_${__b3bp_tmp_opt:0:1}"
 
     if [[ "${!__b3bp_tmp_varname}" != "0" ]]; then
-      __b3bp_tmp_init="${__b3bp_tmp_line##*${__b3bp_defaulttext}=}"
+      __b3bp_tmp_init="${__b3bp_tmp_line##*${__b3bp_tmp_defaulttext}=}"
       __b3bp_tmp_re='^"(.*)"$'
       if [[ "${__b3bp_tmp_init}" =~ ${__b3bp_tmp_re} ]]; then
         __b3bp_tmp_init="${BASH_REMATCH[1]}"
@@ -224,7 +235,7 @@ while read -r __b3bp_tmp_line; do
     fi
   fi
 
-  if [[ "${__b3bp_tmp_line}" =~ ^"${__b3bp_requiredtext}"\. ]] || [[ "${__b3bp_tmp_line}" =~ \.\ *"${__b3bp_requiredtext}"\. ]]; then
+  if [[ "${__b3bp_tmp_line}" =~ ^"${__b3bp_requiredtext}"\. ]] || [[ "${__b3bp_tmp_line}" =~ \.\ *"${__b3bp_requiredtext}"\. ]] || [[ "${__b3bp_tmp_line}" =~ ^Required\. ]] || [[ "${__b3bp_tmp_line}" =~ \.\ *Required\. ]]; then
     # remember that this option requires an argument
     printf -v "__b3bp_tmp_has_arg_${__b3bp_tmp_opt:0:1}" '%s' "2"
   fi
