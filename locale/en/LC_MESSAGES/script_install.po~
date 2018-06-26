@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BASH3 Boilerplate by krisztianmukli\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-06-25 12:42+0200\n"
-"PO-Revision-Date: 2018-06-25 12:41+0200\n"
+"POT-Creation-Date: 2018-06-25 12:56+0200\n"
+"PO-Revision-Date: 2018-06-25 13:03+0200\n"
 "Last-Translator: Mukli Krisztián <krisztianmukli@mukli.hu>\n"
 "Language-Team: Krisztian Mukli <krisztianmukli@mukli.hu>\n"
 "Language: en_US\n"
@@ -132,59 +132,58 @@ msgid "Finished the package-installation"
 msgstr "Finished the package-installation"
 
 #: script_install:193
-#, fuzzy, sh-format
+#, sh-format
 msgid "Installation unsuccessful: ${sourcedir} is not exists!"
-msgstr "Installation unsuccesful: ${sourcedir} is not exists!"
+msgstr "Installation unsuccessful: ${sourcedir} is not exists!"
 
 #: script_install:201
-#, fuzzy, sh-format
+#, sh-format
 msgid "Installation unsuccessful: can not create ${targetdir}"
-msgstr "Installation unsuccesful: can not create ${targetdir}"
+msgstr "Installation unsuccessful: can not create ${targetdir}"
 
 #: script_install:203
-#, fuzzy, sh-format
+#, sh-format
 msgid "Installation unsuccessful: ${targetdir} not writable"
-msgstr "Installation unsuccesful: ${targetdir} not writable"
+msgstr "Installation unsuccessful: ${targetdir} not writable"
 
 #. /lib is exists
 #: script_install:208
-#, fuzzy, sh-format
+#, sh-format
 msgid "Installation unsuccessful: ${libsourcedir} is not exists!"
-msgstr "Installation unsuccesful: ${libsourcedir} is not exists!"
+msgstr "Installation unsuccessful: ${libsourcedir} is not exists!"
 
 #. /lib is exists, otherwise create it
 #: script_install:210
-#, fuzzy, sh-format
+#, sh-format
 msgid "Installation unsuccessful: can not create ${libtargetdir}"
-msgstr "Installation unsuccesful: can not create ${libtargetdir}"
+msgstr "Installation unsuccessful: can not create ${libtargetdir}"
 
 #. /lib is writable
 #: script_install:212
-#, fuzzy, sh-format
+#, sh-format
 msgid "Installation unsuccessful: ${libtargetdir} not writable"
-msgstr "Installation unsuccesful: can not create ${libtargetdir}"
+msgstr "Installation unsuccessful: ${libtargetdir} not writable"
 
 #: script_install:218
-#, fuzzy, sh-format
+#, sh-format
 msgid "Installation unsuccessful: can not create ${localetargetdir}"
-msgstr "Installation unsuccesful: can not create ${localetargetdir}"
+msgstr "Installation unsuccessful: can not create ${localetargetdir}"
 
 #: script_install:220
-#, fuzzy, sh-format
+#, sh-format
 msgid "Installation unsuccessful: ${localetargetdir} not writable"
-msgstr "Installation unsuccesful: ${localetargetdir} not writable"
+msgstr "Installation unsuccessful: ${localetargetdir} not writable"
 
 #: script_install:225
-#, fuzzy, sh-format
+#, sh-format
 msgid "Installation unsuccessful: unsupported filename (${script})"
-msgstr "Installation unsuccesful: unsupported filename (${script})"
+msgstr "Installation unsuccessful: unsupported filename (${script})"
 
 #: script_install:227 script_install:228 script_install:230 script_install:231
 #: script_install:235 script_install:245 script_install:247 script_install:249
 #: script_install:256
-#, fuzzy
 msgid "Installation unsuccessful: there was an error during copying files"
-msgstr "Installation unsuccesful: there was an error during copying files"
+msgstr "Installation unsuccessful: there was an error during copying files"
 
 #: script_install:233
 #, sh-format
@@ -192,43 +191,44 @@ msgid ""
 "Set executable permission was unsuccessful for file ${targetdir}/${script}! "
 "Maybe it need higher privileges!"
 msgstr ""
+"Set executable permission was unsuccessful for file ${targetdir}/${script}! "
+"Maybe it need higher privileges!"
 
 #: script_install:239 script_install:257
 #, sh-format
 msgid "Installation file ${script} was succesful to ${targetdir}"
-msgstr ""
+msgstr "Installation file ${script} was succesful to ${targetdir}"
 
 #: script_install:243
-#, fuzzy, sh-format
+#, sh-format
 msgid "Installation unsuccessful: unsupported filename ($lib)"
-msgstr "Installation unsuccesful: unsupported filename (${script})"
+msgstr "Installation unsuccessful: unsupported filename ($lib)"
 
 #: script_install:250
 #, sh-format
 msgid "Installation file ${lib} was succesful to ${libtargetdir}"
-msgstr ""
+msgstr "Installation file ${lib} was succesful to ${libtargetdir}"
 
 #: script_install:255
-#, fuzzy, sh-format
+#, sh-format
 msgid "Installation unsuccessful: unsupported filename (${payload})"
-msgstr "Installation unsuccesful: unsupported filename (${script})"
+msgstr "Installation unsuccessful: unsupported filename (${payload})"
 
 #: script_install:264 script_install:320
 #, sh-format
 msgid "Missing dependencies: ${missingpkgs}"
-msgstr ""
+msgstr "Missing dependencies: ${missingpkgs}"
 
 #: script_install:265 script_install:328
-#, fuzzy
 msgid ""
 "Installation unsuccessful: there was an error during installing dependencies"
 msgstr ""
-"Installation unsuccesful: there was an error during installing dependencies"
+"Installation unsuccessful: there was an error during installing dependencies"
 
 #: script_install:279
 #, sh-format
 msgid "Installation files was succesful to ${targetdir}"
-msgstr ""
+msgstr "Installation files was succesful to ${targetdir}"
 
 #: script_install:301
 msgid ""
@@ -244,6 +244,8 @@ msgid ""
 "Following packages are missing: ${missingpkgs}, would you like to install "
 "them?"
 msgstr ""
+"Following packages are missing: ${missingpkgs}, would you like to install "
+"them?"
 
 #: script_install:353 script_install:356
 msgid "Unsupported operating system. Installation is not possible."
@@ -264,46 +266,47 @@ msgstr ""
 #: script_install:370
 #, sh-format
 msgid "User's home dir: ${__si_user_home}"
-msgstr ""
+msgstr "User's home dir: ${__si_user_home}"
 
 #: script_install:371
 #, sh-format
 msgid "Source dir: ${sourcedir}"
-msgstr ""
+msgstr "Source dir: ${sourcedir}"
 
 #: script_install:372
 #, sh-format
 msgid "Defined target dir: ${defined_targetdir}"
-msgstr ""
+msgstr "Defined target dir: ${defined_targetdir}"
 
 #: script_install:373
 #, sh-format
 msgid "Target directory, to the script will install: ${targetdir}"
-msgstr ""
+msgstr "Target directory, to the script will install: ${targetdir}"
 
 #: script_install:374
 #, sh-format
 msgid "Target directory, which is added to ~/.profile file: ${targetdirtext}"
-msgstr ""
+msgstr "Target directory, which is added to ~/.profile file: ${targetdirtext}"
 
 #: script_install:375
 #, sh-format
 msgid "Target directory for locale files: ${localedir}"
-msgstr ""
+msgstr "Target directory for locale files: ${localedir}"
 
 #: script_install:376
 #, sh-format
 msgid "Ini-file: ${inifile}"
-msgstr ""
+msgstr "Ini-file: ${inifile}"
 
 #: script_install:494
-msgid "Invalid use of script: ${*}"
-msgstr ""
+#, sh-format
+msgid "Invalid use of script: ${__si_tmp_params}"
+msgstr "Invalid use of script: ${__si_tmp_params}"
 
 #: script_install:543
 #, sh-format
 msgid "Help using ${__si_base}"
-msgstr ""
+msgstr "Help using ${__si_base}"
 
 #: script_install:554
 msgid "Cannot continue without LOG_LEVEL."
@@ -313,6 +316,7 @@ msgstr "Cannot continue without LOG_LEVEL."
 msgid ""
 "Option -${__si_tmp_opt_short}${__si_tmp_opt_long:-} requires an argument"
 msgstr ""
+"Option -${__si_tmp_opt_short}${__si_tmp_opt_long:-} requires an argument"
 
 #: script_install:595
 msgid "Cleaning up. Done"
@@ -321,4 +325,4 @@ msgstr "Cleaning up. Done"
 #: script_install:606
 #, sh-format
 msgid "Error in ${__si_file} in function ${function} on line ${line}"
-msgstr ""
+msgstr "Error in ${__si_file} in function ${function} on line ${line}"

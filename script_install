@@ -106,7 +106,12 @@ export TEXTDOMAIN="${__si_base}"
   -i --ini [inifile]       Ini-file using the installation. If not set, installer use [sourcedir]/install.ini
   -n --no-color            Disable color output
   -s --source [sourcedir]  Source dir of script. Default=\"\$(pwd)\"
-  -t --target [targetdir]  Target directory. Optional, if not specified, installer use /usr/local/bin or ~/.local/bin
+  -t --target [targetdir]  Target directory. You can use following abbreviations, or specify explicit target:
+                           * 'sys', 'system' or 'system-wide' for /usr/local/bin (/usr/local/share/locale for localization)
+			   * 'usr', 'user' or 'user-wide' for ~/.local/bin (~/.local/share/locale for localization)
+			   If specify explicit targetdir, script libraries and locale will install to that folder.
+			   Optional, if not specified, assuming system-wide installation, 
+			   fallback to user-wide if there is no root permission.
   -v                       Enable verbose mode, print script as it is executed
   -V --version             Display version and license information")"
 
