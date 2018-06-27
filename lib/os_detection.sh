@@ -28,61 +28,61 @@ function install_pkgs(){
 local pkgs="${1:-}"
 local force="${2:-0}"
 
-  if [[ -z "${pkgs}" ]]; then return 1; fi # "No valid packages, is not an error"
+  if [[ -z $pkgs ]]; then return 1; fi # "No valid packages, is not an error"
   if [[ $EUID != 0 ]]; then return 2; fi # "You need higher privileges for installing packages!"
 
-  if [[ "${__osfamily}" = "suse-based" ]]; then [[ "${force}" = "0" ]] && zypper install "${pkgs}" || zypper install --non-interactive "${pkgs}"; # SUSE / openSUSE      
-  elif [[ "${__osfamily}" = "debian-based" ]]; then [[ "${force}" = "0" ]] && apt-get install "${pkgs}" || apt-get install --yes "${pkgs}"; # Debian / Ubuntu Based Systems
-  elif [[ "${__osfamily}" = "fedora-based" ]]; then [[ "${force}" = "0" ]] && dnf install "${pkgs}" || dnf install --assumeyes "${pkgs}"; # Modern Fedora and derivatives
-  elif [[ "${__osfamily}" = "redhat-based" ]]; then [[ "${force}" = "0" ]] && yum install "${pkgs}" || yum install -y "${pkgs}"; # Red Hat / Fedora or derivatives
-  elif [[ "${__osfamily}" = "arch-based" ]]; then [[ "${force}" = "0" ]] && pacman -S "${pkgs}" || pacman -S --noconfirm "${pkgs}"; # Arch Linux or derivates
+  if [[ "${__osfamily}" = "suse-based" ]]; then [[ "${force}" = "0" ]] && zypper install $pkgs || zypper install --non-interactive $pkgs"; # SUSE / openSUSE      
+  elif [[ "${__osfamily}" = "debian-based" ]]; then [[ "${force}" = "0" ]] && apt-get install $pkgs || apt-get install --yes $pkgs; # Debian / Ubuntu Based Systems
+  elif [[ "${__osfamily}" = "fedora-based" ]]; then [[ "${force}" = "0" ]] && dnf install $pkgs || dnf install --assumeyes $pkgs; # Modern Fedora and derivatives
+  elif [[ "${__osfamily}" = "redhat-based" ]]; then [[ "${force}" = "0" ]] && yum install $pkgs || yum install -y $pkgs; # Red Hat / Fedora or derivatives
+  elif [[ "${__osfamily}" = "arch-based" ]]; then [[ "${force}" = "0" ]] && pacman -S $pkgs || pacman -S --noconfirm $pkgs; # Arch Linux or derivates
   elif [[ "${__osfamily}" = "slackware-based" ]]; then
-    if [[ -x /usr/sbin/slackpkg ]]; then slackpkg install "${pkgs}"; # Slackware
-    elif [[ -x /usr/sbin/slapt-get ]]; then slapt-get --install "${pkgs}"; # Vector Linux / Slackware
-    elif [[ -x /usr/sbin/netpkg ]]; then netpkg "${pkgs}"; # Zenwalk / Slackware
+    if [[ -x /usr/sbin/slackpkg ]]; then slackpkg install $pkgs; # Slackware
+    elif [[ -x /usr/sbin/slapt-get ]]; then slapt-get --install $pkgs; # Vector Linux / Slackware
+    elif [[ -x /usr/sbin/netpkg ]]; then netpkg $pkgs; # Zenwalk / Slackware
     fi
 
-  elif [[ "${__osfamily}" = "mandriva-based" ]]; then [[ "${force}" = "0" ]] && urpmi "${pkgs}" || urpmi --force "${pkgs}"; # OpenMandriva Linux
-  elif [[ "${__osfamily}" = "gentoo-based" ]]; then emerge "${pkgs}"; # Gentoo
-  elif [[ "${__osfamily}" = "clearlinux" ]]; then swupd bundle-add "${pkgs}"; # Clear Linux
-  elif [[ "${__osfamily}" = "sabayon" ]]; then [[ "${force}" = "0" ]] && equo install --ask "${pkgs}" || equo install "${pkgs}"; # Sabayon
-  elif [[ "${__osfamily}" = "voidlinux" ]]; then xbps-install -S "${pkgs}"; # Void Linux
-  elif [[ "${__osfamily}" = "alpinelinux" ]]; then apk add "${pkgs}"; # Alpine Linux
-  elif [[ "${__osfamily}" = "soluslinux" ]]; then [[ "${force}" = "0" ]] && eopkg install "${pkgs}" || eopkg install --yes-all "${pkgs}"; # Solus Linux
-  elif [[ "${__osfamily}" = "openwrt" ]]; then opkg install "${pkgs}"; # OpenWRT
-  elif [[ "${__osfamily}" = "android-termux" ]]; then pkg install "${pkgs}"; # Android (termux)
+  elif [[ "${__osfamily}" = "mandriva-based" ]]; then [[ "${force}" = "0" ]] && urpmi $pkgs || urpmi --force $pkgs; # OpenMandriva Linux
+  elif [[ "${__osfamily}" = "gentoo-based" ]]; then emerge $pkgs; # Gentoo
+  elif [[ "${__osfamily}" = "clearlinux" ]]; then swupd bundle-add $pkgs; # Clear Linux
+  elif [[ "${__osfamily}" = "sabayon" ]]; then [[ "${force}" = "0" ]] && equo install --ask $pkgs || equo install $pkgs; # Sabayon
+  elif [[ "${__osfamily}" = "voidlinux" ]]; then xbps-install -S $pkgs; # Void Linux
+  elif [[ "${__osfamily}" = "alpinelinux" ]]; then apk add $pkgs; # Alpine Linux
+  elif [[ "${__osfamily}" = "soluslinux" ]]; then [[ "${force}" = "0" ]] && eopkg install $pkgs || eopkg install --yes-all $pkgs; # Solus Linux
+  elif [[ "${__osfamily}" = "openwrt" ]]; then opkg install $pkgs; # OpenWRT
+  elif [[ "${__osfamily}" = "android-termux" ]]; then pkg install $pkgs; # Android (termux)
   elif [[ "${__osfamily}" = "solaris-based" ]]; then 
-    if [[ "${__osname=}" = "solaris" ]]; then pkg install "${pkgs}";# Solaris
-    elif [[ "${__osname=}" = "openindiana" ]]; then pkg install "${pkgs}"; # OpenIndiana 
-    elif [[ "${__osname=}" = "smartos" ]]; then pkgin in "${pkgs}"; # SmartOS
-    elif [[ "${__osname=}" = "omnios" ]]; then pkg install "${pkgs}"; # OmniOS
-    elif [[ "${__osname=}" = "nexentastor" ]]; then apt-get install "${pkgs}"; # NexentaStor
+    if [[ "${__osname=}" = "solaris" ]]; then pkg install $pkgs;# Solaris
+    elif [[ "${__osname=}" = "openindiana" ]]; then pkg install $pkgs; # OpenIndiana 
+    elif [[ "${__osname=}" = "smartos" ]]; then pkgin in $pkgs; # SmartOS
+    elif [[ "${__osname=}" = "omnios" ]]; then pkg install $pkgs; # OmniOS
+    elif [[ "${__osname=}" = "nexentastor" ]]; then apt-get install $pkgs; # NexentaStor
     fi
 
   elif [[ "${__osfamily}" = "darwin" ]]; then # Mac OSX, requires Homebrew or Macports
-    if which brew ; then brew install "${pkgs}"; # Homebrew: https://brew.sh/
-    elif which port ; then port install "${pkgs}"; # MacPorts: https://www.macports.org/
+    if which brew ; then brew install $pkgs; # Homebrew: https://brew.sh/
+    elif which port ; then port install $pkgs; # MacPorts: https://www.macports.org/
     else return 3; # "For installing following packages in macOS, you must use Homebrew or Macports:"
     fi
 
   elif [[ "${__osfamily}" = "bsd" ]]; then
-    if [[ "${__osname=}" = "freebsd" ]]; then pkg install "${pkgs}"; # FreeBSD
-    elif [[ "${__osname=}" = "openbsd" ]]; then pkg_add "${pkgs}"; # OpenBSD
-    elif [[ "${__osname=}" = "netbsd" ]]; then pkg_add "${pkgs}"; # NetBSD
-    elif [[ "${__osname}" = "dragonflybsd" ]]; then pkg install "${pkgs}"; # DragonFlyBSD
-    elif [[ "${__osname=}" = "openbsd" ]]; then mport install "${pkgs}"; # MidnightBSD
+    if [[ "${__osname=}" = "freebsd" ]]; then pkg install $pkgs; # FreeBSD
+    elif [[ "${__osname=}" = "openbsd" ]]; then pkg_add $pkgs; # OpenBSD
+    elif [[ "${__osname=}" = "netbsd" ]]; then pkg_add $pkgs; # NetBSD
+    elif [[ "${__osname}" = "dragonflybsd" ]]; then pkg install $pkgs; # DragonFlyBSD
+    elif [[ "${__osname=}" = "openbsd" ]]; then mport install $pkgs; # MidnightBSD
     fi
 
   elif [[ "${__osfamily}" = "cygwin" ]]; then # Cygwin, requires apt-cyg - https://github.com/transcode-open/apt-cyg
     if which apt-cyg > /dev/null 2>/dev/null ; then
-      apt-cyg install "${pkgs}"
+      apt-cyg install $pkgs
     else
       return 4; #"Install the following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe:"
     fi
-  elif [[ "${__osfamily}" = "msys" ]]; then mingw-get install "${pkgs}"; # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
-  elif [[ "${__osfamily}" = "msys2" ]]; then [[ "${force}" = "0" ]] && pacman -S "${pkgs}" || pacman -S --noconfirm "${pkgs}";  # MSYS2 software distro and building platform for Windows
-  elif [[ "${__osfamily}" = "haiku" ]]; then installoptionalpackage -a "${pkgs}"; # Haiku
-  elif [[ "${__osfamily}" = "minix" ]]; then pkgin install "${pkgs}"; # Minix
+  elif [[ "${__osfamily}" = "msys" ]]; then mingw-get install $pkgs; # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
+  elif [[ "${__osfamily}" = "msys2" ]]; then [[ "${force}" = "0" ]] && pacman -S $pkgs || pacman -S --noconfirm $pkgs;  # MSYS2 software distro and building platform for Windows
+  elif [[ "${__osfamily}" = "haiku" ]]; then installoptionalpackage -a $pkgs; # Haiku
+  elif [[ "${__osfamily}" = "minix" ]]; then pkgin install $pkgs; # Minix
   else return 255; # "Unknown or unsupported operating system, cannot install following packages; # Unknown or unsupported operating system
   fi
 
@@ -97,61 +97,61 @@ function remove_pkgs() {
 local pkgs="${1:-}"
 local force="${2:-}"
 
-  if [[ -z "${pkgs}" ]]; then return 1; fi # "No valid packages, is not an error"
+  if [[ -z $pkgs ]]; then return 1; fi # "No valid packages, is not an error"
   if [[ $EUID != 0 ]]; then return 2; fi # "You need higher privileges for this operation!"
 
-  if [[ "${__osfamily}" = "suse-based" ]]; then [[ "${force}" = "0" ]] && zypper remove "${pkgs}" || zypper remove --non-interactive "${pkgs}"; # SUSE / openSUSE
-  elif [[ "${__osfamily}" = "debian-based" ]]; then [[ "${force}" = "0" ]] && apt-get remove "${pkgs}" || apt-get remove --yes "${pkgs}"; # Debian / Ubuntu Based Systems
-  elif [[ "${__osfamily}" = "fedora-based" ]]; then [[ "${force}" = "0" ]] && dnf remove "${pkgs}" || dnf remove --assumeyes "${pkgs}"; # Modern Fedora and derivatives
-  elif [[ "${__osfamily}" = "redhat-based" ]]; then [[ "${force}" = "0" ]] && yum remove "${pkgs}" || echo yum remove -y "${pkgs}"; # Red Hat / Fedora or derivatives
-  elif [[ "${__osfamily}" = "arch-based" ]]; then [[ "${force}" = "0" ]] && pacman -R "${pkgs}" || pacman -R --noconfirm"${pkgs}"; # Arch Linux or derivates
+  if [[ "${__osfamily}" = "suse-based" ]]; then [[ "${force}" = "0" ]] && zypper remove $pkgs || zypper remove --non-interactive $pkgs; # SUSE / openSUSE
+  elif [[ "${__osfamily}" = "debian-based" ]]; then [[ "${force}" = "0" ]] && apt-get remove $pkgs || apt-get remove --yes $pkgs; # Debian / Ubuntu Based Systems
+  elif [[ "${__osfamily}" = "fedora-based" ]]; then [[ "${force}" = "0" ]] && dnf remove $pkgs || dnf remove --assumeyes $pkgs; # Modern Fedora and derivatives
+  elif [[ "${__osfamily}" = "redhat-based" ]]; then [[ "${force}" = "0" ]] && yum remove $pkgs || echo yum remove -y $pkgs; # Red Hat / Fedora or derivatives
+  elif [[ "${__osfamily}" = "arch-based" ]]; then [[ "${force}" = "0" ]] && pacman -R $pkgs || pacman -R --noconfirm$pkgs; # Arch Linux or derivates
   elif [[ "${__osfamily}" = "slackware-based" ]]; then
-    if [[ -x /usr/sbin/slackpkg ]]; then slackpkg remove "${pkgs}"; # Slackware
-    elif [[ -x /usr/sbin/slapt-get ]]; then slapt-get --remove "${pkgs}"; # Vector Linux / Slackware
-    elif [[ -x /usr/sbin/netpkg ]]; then netpkg remove "${pkgs}"; # Zenwalk / Slackware
+    if [[ -x /usr/sbin/slackpkg ]]; then slackpkg remove $pkgs; # Slackware
+    elif [[ -x /usr/sbin/slapt-get ]]; then slapt-get --remove $pkgs; # Vector Linux / Slackware
+    elif [[ -x /usr/sbin/netpkg ]]; then netpkg remove $pkgs; # Zenwalk / Slackware
     fi
 
-  elif [[ "${__osfamily}" = "mandriva-based" ]]; then urpme "${pkgs}"; # OpenMandriva Linux
-  elif [[ "${__osfamily}" = "gentoo-based" ]]; then emerge -aC "${pkgs}"; # Gentoo
-  elif [[ "${__osfamily}" = "clearlinux" ]]; then swupd bundle-remove "${pkgs}"; # Clear Linux
-  elif [[ "${__osfamily}" = "sabayon" ]]; then [[ "${force}" = "0" ]] && equo remove --ask "${pkgs}" || equo remove "${pkgs}"; # Sabayon
-  elif [[ "${__osfamily}" = "voidlinux" ]]; then xbps-remove "${pkgs}"; # Void Linux
-  elif [[ "${__osfamily}" = "alpinelinux" ]]; then apk del "${pkgs}"; # Alpine Linux
-  elif [[ "${__osfamily}" = "soluslinux" ]]; then [[ "${force}" = "0" ]] && eopkg remove "${pkgs}" || eopkg remove --yes-all; "${pkgs}" # Solus Linux
-  elif [[ "${__osfamily}" = "openwrt" ]]; then echo opkg remove "${pkgs}"; # OpenWRT
-  elif [[ "${__osfamily}" = "android-termux" ]]; then pkg uninstall "${pkgs}"; # Android (termux)
+  elif [[ "${__osfamily}" = "mandriva-based" ]]; then urpme $pkgs; # OpenMandriva Linux
+  elif [[ "${__osfamily}" = "gentoo-based" ]]; then emerge -aC $pkgs; # Gentoo
+  elif [[ "${__osfamily}" = "clearlinux" ]]; then swupd bundle-remove $pkgs; # Clear Linux
+  elif [[ "${__osfamily}" = "sabayon" ]]; then [[ "${force}" = "0" ]] && equo remove --ask $pkgs || equo remove $pkgs; # Sabayon
+  elif [[ "${__osfamily}" = "voidlinux" ]]; then xbps-remove $pkgs; # Void Linux
+  elif [[ "${__osfamily}" = "alpinelinux" ]]; then apk del $pkgs; # Alpine Linux
+  elif [[ "${__osfamily}" = "soluslinux" ]]; then [[ "${force}" = "0" ]] && eopkg remove $pkgs || eopkg remove --yes-all; $pkgs # Solus Linux
+  elif [[ "${__osfamily}" = "openwrt" ]]; then echo opkg remove $pkgs; # OpenWRT
+  elif [[ "${__osfamily}" = "android-termux" ]]; then pkg uninstall $pkgs; # Android (termux)
   elif [[ "${__osfamily}" = "solaris-based" ]]; then 
-    if [[ "${__osname=}" = "solaris" ]]; then pkg uninstall "${pkgs}"; # Solaris
-    elif [[ "${__osname=}" = "openindiana" ]]; then pkg uninstall "${pkgs}"; # OpenIndiana 
-    elif [[ "${__osname=}" = "smartos" ]]; then pkgin rm "${pkgs}"; # SmartOS
-    elif [[ "${__osname=}" = "omnios" ]]; then pkg uninstall "${pkgs}"; # OmniOS
-    elif [[ "${__osname=}" = "nexentastor" ]]; then apt-get remove "${pkgs}"; # NexentaStor
+    if [[ "${__osname=}" = "solaris" ]]; then pkg uninstall $pkgs; # Solaris
+    elif [[ "${__osname=}" = "openindiana" ]]; then pkg uninstall $pkgs; # OpenIndiana 
+    elif [[ "${__osname=}" = "smartos" ]]; then pkgin rm $pkgs; # SmartOS
+    elif [[ "${__osname=}" = "omnios" ]]; then pkg uninstall $pkgs; # OmniOS
+    elif [[ "${__osname=}" = "nexentastor" ]]; then apt-get remove $pkgs; # NexentaStor
     fi
 
   elif [[ "${__osfamily}" = "darwin" ]]; then # Mac OSX
-    if which brew > /dev/null 2>/dev/null; then brew remove "${pkgs}"; # Homebrew: https://brew.sh/
-    elif which port > /dev/null 2>/dev/null; then port uninstall "${pkgs}"; # MacPorts: https://www.macports.org/
+    if which brew > /dev/null 2>/dev/null; then brew remove $pkgs; # Homebrew: https://brew.sh/
+    elif which port > /dev/null 2>/dev/null; then port uninstall $pkgs; # MacPorts: https://www.macports.org/
     else return 3; # "For removing following packages in macOS, you must use Homebrew or Macports:"
     fi
 
   elif [[ "${__osfamily}" = "bsd" ]]; then
-    if [[ "${__osname=}" = "freebsd" ]]; then pkg remove "${pkgs}"; # FreeBSD
-    elif [[ "${__osname=}" = "openbsd" ]]; then pkg_delete "${pkgs}"; # OpenBSD
-    elif [[ "${__osname=}" = "netbsd" ]]; then pkg_delete "${pkgs}"; # NetBSD
-    elif [[ "${__osname}" = "dragonflybsd" ]]; then pkg delete "${pkgs}"; # DragonFlyBSD
-    elif [[ "${__osname=}" = "openbsd" ]]; then mport delete "${pkgs}"; # MidnightBSD
+    if [[ "${__osname=}" = "freebsd" ]]; then pkg remove $pkgs; # FreeBSD
+    elif [[ "${__osname=}" = "openbsd" ]]; then pkg_delete $pkgs; # OpenBSD
+    elif [[ "${__osname=}" = "netbsd" ]]; then pkg_delete $pkgs; # NetBSD
+    elif [[ "${__osname}" = "dragonflybsd" ]]; then pkg delete $pkgs; # DragonFlyBSD
+    elif [[ "${__osname=}" = "openbsd" ]]; then mport delete $pkgs; # MidnightBSD
     fi
 
   elif [[ "${__osfamily}" = "cygwin" ]]; then # Cygwin, requires apt-cyg - https://github.com/transcode-open/apt-cyg
     if which apt-cyg > /dev/null 2>/dev/null ; then
-      apt-cyg remove "${pkgs}"
+      apt-cyg remove $pkgs
     else
       return 4 # "Removing following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe:" 
     fi
-  elif [[ "${__osfamily}" = "msys" ]]; then mingw-get remove "${pkgs}"; # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
-  elif [[ "${__osfamily}" = "msys2" ]]; then [[ "${force}" = "0" ]] && pacman -R "${pkgs}" || pacman -R --noconfirm "${pkgs}";  # MSYS2 software distro and building platform for Windows
+  elif [[ "${__osfamily}" = "msys" ]]; then mingw-get remove $pkgs; # Lightweight shell and GNU utilities compiled for Windows (part of MinGW)
+  elif [[ "${__osfamily}" = "msys2" ]]; then [[ "${force}" = "0" ]] && pacman -R $pkgs || pacman -R --noconfirm $pkgs;  # MSYS2 software distro and building platform for Windows
   elif [[ "${__osfamily}" = "haiku" ]]; then return 5; #"Proper package management not implemented in Haiku. # Haiku
-  elif [[ "${__osfamily}" = "minix" ]]; then pkgin remove "${pkgs}"; # Minix
+  elif [[ "${__osfamily}" = "minix" ]]; then pkgin remove $pkgs; # Minix
   else return 255; # "Unknown or unsupported operating system, cannot remove following packages:"; # Unknown or unsupported operating system
   fi
 
