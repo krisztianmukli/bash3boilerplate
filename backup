@@ -1,0 +1,229 @@
+
+function install_dependencies(){
+local missingpkgs="${1:-}"
+local force=${2:-0}
+local result
+
+  debug "$(gettext "Starting package-installation")"
+  set +o errexit # Not exit on error, neccesary for logging package-management return codes
+  install_pkgs "${missingpkgs}" "${force}" 2>&1 | while read line; do info "${line}"; done;
+  result=$?
+  set -o errexit # Exit on error
+  case $result in 
+    0) 
+      info "$(eval_gettext "Installation of following dependencies was succesful: \${missingpkgs}")"
+      return 0
+      ;;
+    1)
+      warning "$(gettext "No valid packages")"
+      return 1
+      ;;
+    2)
+      error "$(gettext "You need higher privileges for installing packages!")"
+      return 1
+      ;;
+    3)
+      error "$(eval_gettext "For installing following packages in macOS, you must use Homebrew or Macports: \${missingpkgs}")"
+      return 1
+      ;;
+    4)
+      error "$(eval_gettext "Install the following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: \${missingpkgs}")"
+      return 1
+      ;;     
+    255)
+      error "$(eval_gettext "Unknown or unsupported operating system, cannot install following packages: \${missingpkgs}")"
+      return 1
+      ;;
+    *)
+      error "$(eval_gettext "Unknown error during installing packages! Error code: \$result")"
+      return 1
+      ;;
+  esac
+  debug "$(gettext "Finished the package-installation")"
+}
+
+function check_source(){
+local sourcedir="${1:-}"
+
+  [[ ! -d "${sourcedir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${sourcedir} is not exists!")"
+}
+
+#-------------------------------------------------------------------------------
+# install_files: Copy files (and it's payloads) from sourcedir to targetdir 
+# Arguments:
+#   install_files sourcedir targetdir localetargetdir
+# Returns:
+#   exit 1 if any command was unsuccessful
+#-------------------------------------------------------------------------------
+function install_files() {
+local sourcedir=${1:-}
+local libsourcedir="${sourcedir:-}/lib"
+local localesourcedir="${sourcedir:-}/locale"
+local inifile=${2:-}
+local targetdir=${3:-}
+local libtargetdir="${targetdir:-}/lib"
+local localetargetdir="${4:-}"
+local scripts=$( get_ini_val "${inifile}" "install.scripts" )
+local libraries=$( get_ini_val "${inifile}" "install.libraries" )
+local payloads=$( get_ini_val "${inifile}" "install.payloads" )
+local dependencies=$( get_ini_val "${inifile}" "install.dependencies" )
+local thirdparties=$( get_ini_val "${inifile}" "install.thirdparties" )
+local preinst=$( get_ini_val "${inifile}" "install.preinst" )
+local postinst=$( get_ini_val "${inifile}" "install.postinst" )
+local force=${5:-0}
+local missingpkgs result actpwd
+  
+  # Check sourcedir is exists
+  check_sourcedir "${sourcedir}"
+
+  # Calling preinstall scripts, if any
+  for command in ${preinst}; do
+    eval "${command}"
+  done
+
+  # Check targetdir is exists, otherwise create it
+  [[ ! -d "${targetdir}" ]] && (mkdir "${targetdir}" 2>&- || emergency "$(eval_gettext "Installation unsuccessful: can not create \${targetdir}")")
+  # Check targetdir is writable
+  [[ ! -w "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} not writable")"
+  
+  # Check libraries is not empty
+  if [[ "${libraries+x}" ]]; then	  
+    # Check sourcedir/lib is exists
+    [[ -d "${libsourcedir}" ]] || emergency "$(eval_gettext "Installation unsuccessful: \${libsourcedir} is not exists!")"
+    # Check targetdir/lib is exists, otherwise create it
+    [[ ! -d "${libtargetdir}" ]] && (mkdir "${libtargetdir}" 2>&- || emergency "$(eval_gettext "Installation unsuccessful: can not create \${libtargetdir}")")
+    # Check targetdir/lib is writable
+    [[ ! -w "${libtargetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${libtargetdir} not writable")"
+  fi
+
+  # Check localedir is exists, if there is locale folder in sourcedir
+  if [[ -d "${localesourcedir}" ]]; then
+    # Check targetdir is exists, otherwise create it
+    [[ ! -d "${localetargetdir}" ]] && (mkdir "${localetargetdir}" 2>&- || emergency "$(eval_gettext "Installation unsuccessful: can not create \${localetargetdir}")")
+    # Check targetdir is writable
+    [[ ! -w "${localetargetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${localetargetdir} not writable")"
+  fi
+
+  for script in ${scripts}; do
+    # Check filename can't pipe to upper directory
+    [[ "${script}" = *".."* ]] && emergency "$(eval_gettext "Installation unsuccessful: unsupported filename (\${script})")"
+    if [[ "${force}" = "1" ]]; then
+	    cp -f "${sourcedir}/${script}" "${targetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
+	    cp -f "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
+    else
+	    cp -i "${sourcedir}/${script}" "${targetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
+	    cp -i "${sourcedir}/install.ini" "${targetdir}/${script}.ini" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
+    fi
+    [[ ! -x "${targetdir}/${script}" ]] && (chmod +x "${targetdir}/${script}" || error "$(eval_gettext "Set executable permission was unsuccessful for file \${targetdir}/\${script}! Maybe it need higher privileges!")")
+    cd "${sourcedir}"
+    find locale/ -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
+    cd ${__si_act_dir}
+    # Save localetargetdir for removing
+    ini_val "${targetdir}/${script}.ini" install.locale "${localetargetdir}"
+    debug "$(eval_gettext "Installation file \${script} was succesful to \${targetdir}")"
+  done
+
+  for lib in ${libraries}; do
+	  [[ "${lib}" = *".."* ]] && emergency "$(eval_gettext "Installation unsuccessful: unsupported filename (\$lib)")"
+    if [[ "${force}" = "1" ]]; then
+	    cp -f "${libsourcedir}/${lib}" "${libtargetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
+    else
+	    cp -i "${libsourcedir}/${lib}" "${libtargetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
+    fi
+    find "${localesourcedir}" -name "${script}.mo" -print0 | xargs -0 cp --parents --target-directory="${localetargetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
+    debug "$(eval_gettext "Installation file \${lib} was succesful to \${libtargetdir}")"
+  done
+
+  for payload in ${payloads}; do
+    # Check filename can't pipe to upper directory
+    [[ "${payload}" = *".."* ]] && emergency "$(eval_gettext "Installation unsuccessful: unsupported filename (\${payload})")"
+    cp -i "${sourcedir}/${payload}" "${targetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during copying files")"
+    debug "$(eval_gettext "Installation file \${script} was succesful to \${targetdir}")"
+  done
+
+  # Install dependencies
+  if [[ -n "${dependencies}" ]]; then
+    missingpkgs=$(check_pkgs "${dependencies}")
+    if [[ -n "${missingpkgs}" ]]; then 
+      debug "$(eval_gettext "Missing dependencies: \${missingpkgs}")"
+      install_dependencies "${missingpkgs}" "${force}" || emergency "$(gettext "Installation unsuccessful: there was an error during installing dependencies")"
+    fi
+  fi
+
+  # Calling thirdparty scripts, if any
+  for command in ${thirdparties}; do
+    eval "${command}"
+  done
+
+  # Calling postinstall scripts, if any
+  for command in ${postinst}; do
+    eval "${command}"
+  done
+
+  info "$(eval_gettext "Installation files was succesful to \${targetdir}")"
+}
+
+#-------------------------------------------------------------------------------
+# edit_profile: Add script's targetdir to user's ~/.profile file
+# Arguments:
+#   edit_profile folder
+# Returns:
+#   return 1 if unsuccessful (there's no folder)
+#-------------------------------------------------------------------------------
+function edit_profile(){
+local folder=${1:-}
+  if [[ ! -z "${folder}" ]]; then
+
+      if ! grep -q "${folder}" "${__si_user_home}/.profile"; then
+        {
+          echo "" 
+          echo "# set PATH so it includes user's private bin if it exists - Added by b3bp installer"
+          echo "if [ -d \"${folder}\" ] ; then"
+          echo "    PATH=\"${folder}:\$PATH\" "
+          echo "fi" 
+        } >> "${__si_user_home}/.profile"
+	warning "$(gettext "~/.profile was updated, please login again or run 'source ~/.profile' command to reload PATH variable!")"
+        return 0 
+      fi
+
+  fi
+  return 1
+}
+
+function check_dependencies() {
+local sourcedir=${1:-}
+local inifile=${2:-}
+local force=${2:-0}
+local dependencies=$( get_ini_val "${inifile}" "install.dependencies" )
+local preinst=$( get_ini_val "${inifile}" "install.preinst" )
+local postinst=$( get_ini_val "${inifile}" "install.postinst" )
+
+  if [[ ! -z "${dependencies}" ]]; then
+    missingpkgs=$(check_pkgs "${dependencies}")
+    if [[ ! -z "${missingpkgs}" ]]; then
+        if ask "$(eval_gettext "Following packages are missing: \${missingpkgs}, would you like to install them?")" "Y"; then
+
+        # Calling preinstall scripts, if any
+        for command in ${preinst}; do
+          eval "${command}"
+        done
+
+	install_dependencies "${missingpkgs}" "${force}" || emergency "$(gettext "Installation unsuccessful: there was an error during installing dependencies")"
+
+        # Calling postinstall scripts, if any
+        for command in ${postinst}; do
+          eval "${command}"
+        done
+
+	info "Missing dependencies successfully installed."
+      else
+        warning  "$(eval_gettext "Missing dependencies: \${missingpkgs}")"
+      fi
+
+    else
+      info "There is no missing dependencies."
+    fi
+  else
+    info "There is no dependencies."
+  fi
+}
