@@ -169,23 +169,17 @@ __si_license="$(gettext "Licensed under the MIT license")"
 
 # run method as other user: https://stackoverflow.com/questions/9448920/how-can-i-execute-a-bash-function-using-sudo
 # function() testecho{ echo $1; }
-# TEST=$(decleare -f testecho)
+# TEST=$(declare -f testecho)
 # sudo -u $SUDO_USER -- bash -c "$TEST; testecho $(whoami)"
 #...............................................................................
 function main() {
-# 01. Set local variables, based on arguments (sourcedir, inifile, force)
+# Set local variables, based on arguments (sourcedir, inifile, force)
 local sourcedir="${__si_arg_s}"
 local inifile="${__si_arg_i:-$sourcedir/install.ini}"
 local force="${__si_arg_f}"
 local install_mode="${__si_arg_m}"
 
-# 02. Check sourcedir, sourcedir/lib and sourcedir/locale is exists and readable, otherwise exit
-  [[ ! -e "${sourcedir}" ]] && emergency "$(eval_gettext "\${sourcedir} is not exists!")"
-  [[ ! -r "${sourcedir}" ]] && emergency "$(eval_gettext "\${sourcedir} is not readable!")"
-  [[ -e "${sourcedir}/lib" ]] && [[ ! -r "${sourcedir}/lib" ]] && emergency "$(eval_gettext "\${sourcedir}/lib is not readable!")"
-  [[ -e "${sourcedir}/locale" ]] && [[ ! -r "${sourcedir}/locale" ]] && emergency "$(eval_gettext "\${sourcedir}/locale is not readable!")"
-
-# 03. Check inifile is exist and readable, if not goto fallback-mode (fallback-mode: copy sh-files, lib and locale folder to targetdir, no preinst, postinst, dependencychecking, etc.)
+  # Check inifile is exist and readable, if not goto simple-mode
   if [[ "${install_mode}" =~ ^controlled$ ]]; then 
     if [[ ! -e "${inifile}" ]]; then
       notice "$(eval_gettext "\${inifile} is not exists!")"
@@ -198,10 +192,21 @@ local install_mode="${__si_arg_m}"
     fi
   fi
 
-# Check install or check dependency
-  if [[ "${__si_arg_c:?}" = "0" ]] ; then   
+  # Install or check dependency
+  if [[ "${__si_arg_c:?}" = "0" ]] ; then
+
+    # Read initial values based on ini-file
+    local scripts=$( os_ini_val "${inifile}" "install.scripts" )
+    local libraries=$( os_ini_val "${inifile}" "install.libraries" )
+    local payloads=$( os_ini_val "${inifile}" "install.payloads" )
+    local dependencies=$( os_ini_val "${inifile}" "install.dependencies" )
+    local thirdparties=$( os_ini_val "${inifile}" "install.thirdparties" )
+    local preinst=$( os_ini_val "${inifile}" "install.preinst" )
+    local postinst=$( os_ini_val "${inifile}" "install.postinst" )
+      
     __si_arg_t=$(sed "s|~|$HOME|g" <<< "${__si_arg_t:-}") # Workaround for such cases: "~/path/to/file"
 
+    # Set targetdir and localedir (targetdir, profiletext, localedir)
     if [[ "${__si_arg_t}" =~ ^sys(tem)?(-wide)? ]]; then
       targetdir=$([[ $EUID = 0 ]] && echo "/usr/local/bin" || echo "${__si_user_home}/.local/bin")
       targetdirtext=$([[ $EUID = 0 ]] || echo "\$HOME/.local/bin")
@@ -216,12 +221,31 @@ local install_mode="${__si_arg_m}"
       localedir="${__si_arg_t}"
     fi
 
-    debug "$(eval_gettext "User's home dir: \${__si_user_home}")"
-    debug "$(eval_gettext "Source dir: \${sourcedir}")"
-    debug "$(eval_gettext "Target directory, to the script will install: \${targetdir}")"
-    debug "$(eval_gettext "Target directory, which is added to ~/.profile file: \${targetdirtext}")"
-    debug "$(eval_gettext "Target directory for locale files: \${localedir}")"
-    debug "$(eval_gettext "Ini-file: \${inifile}")"
+    # Check inital values contains only allowed characters, otherwise exit
+
+    # Check sourcedirs is exists and readable and targedirs is exists and writable, otherwise exit
+    [[ ! -e "${sourcedir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${sourcedir} is not exists!")"
+    [[ ! -r "${sourcedir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${sourcedir} is not readable!")"
+    [[ -e "${targetdir}" ]] && (mkdir "${targetdir}" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: can not create \${targetdir}")")
+    [[ ! -w "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} not writable")"
+
+    if [[ -e "${sourcedir}/lib" ]] && [[ ! -r "${sourcedir}/lib" ]]; then
+      emergency "$(eval_gettext "Installation unsuccessful: \${sourcedir}/lib is not readable!")"
+    else
+      [[ ! -d "${targetdir}/lib" ]] && (mkdir "${targetdir}/lib" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: can not create \${targetdir}/lib")")
+      [[ ! -w "${targetdir}/lib" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir}/lib not writable")"
+    fi
+
+    if [[ -e "${sourcedir}/locale" ]] && [[ ! -r "${sourcedir}/locale" ]]; then
+      emergency "$(eval_gettext "Installation unsuccessful: \${sourcedir}/locale is not readable!")"
+    else
+      [[ ! -d "${localedir}" ]] && (mkdir "${localedir}" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: can not create \${localedir}")")
+      [[ ! -w "${localedir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${localedir} not writable")"
+    fi
+
+
+#--------------
+# 05. Check targetdir, targetdir/lib, localedir is exists and writable, if not trying to create them, if fails exit !! as USER in user install
    
     # root
     if [[ $EUID = 0 ]] && [[ "$SUDO_USER+x" ]] && [[ "${targetdir}" = "${__si_user_home}"* ]]; then # sudo and user-wide install

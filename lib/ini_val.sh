@@ -25,7 +25,7 @@
 # Copyright (c) 2013 Kevin van Zonneveld and contributors
 # You are not obligated to bundle the LICENSE file with your b3bp projects as long
 # as you leave these references intact in the header comments of your source files.
-function get_ini_val() {
+function os_ini_val() {
 local inifile="${1:-}"
 local key="${2:-}"
 local value=""
