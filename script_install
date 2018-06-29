@@ -105,13 +105,13 @@ export TEXTDOMAIN="${__si_base}"
   -f --force               Forcing commands (e.g. overwrite existing files)
   -h --help                This page
   -i --ini [inifile]       Ini-file using the installation. If not set, installer use [sourcedir]/install.ini
-  -m --mode [mode]         Install mode. Default=\"controlled\"
+  -m --mode [mode]         Install mode. Default=\"auto\"
                            Possible values:
+			   * 'auto' - default option, installer will try to use ini-file, switch to simple mode if it is not accessible
                            * 'simple' - installer don't use .ini-file, preinst, postinst script won't run,
 			   it will not checking and installing dependencies
-			   * 'controlled' - installer is reading preinst, postinst scripts from .ini-file
-			   checking and installing missing dependencies and third party scripts
-			   Optional argument, installer will switch to simple mode, if ini-file not readable.
+			   * 'configured' - installer is reading preinst, postinst scripts from .ini-file
+			   checking and installing missing dependencies and third party scripts, failed the install, when ini file not accessible
 
   -n --no-color            Disable color output
   -s --source [sourcedir]  Source dir of script. Default=\"\$__si_act_dir\"
@@ -138,6 +138,55 @@ __si_license="$(gettext "Licensed under the MIT license")"
 #===============================================================================
 # Functions section
 #===============================================================================
+function check_sourcedir() {
+local path="${1:-}"
+
+  pathchk -P "${path}" || emergency "$(eval_gettext "Installation unsuccessful: unsupported foldername (\$path)")"
+  [[ "${path}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Installation unsuccessful: Unsupported characters in foldername (\$path)")"
+  [[ ! -e "${path}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${path} is not exists!")"
+  [[ ! -d "${path}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${path} is not a directory")"
+  [[ ! -r "${path}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${path} is not readable!")"
+}
+
+function check_ini() {
+local path="${1:-}"
+
+    pathchk -P "${inifile}" 2>/dev/null || emergency "$(eval_gettext "Unsupported filename (\$inifile)")";
+    [[ ! -e "${inifile}" ]] && emergency "$(eval_gettext "\${inifile} is not exists!")"
+    [[ ! -f "${inifile}" ]] && emergency "$(eval_gettext "\${inifile} is not a file!")"
+    [[ ! -r "${inifile}" ]] && emergency "$(eval_gettext "\${inifile} is not readable!")"
+}
+
+function check_targetdir() {
+local path="${1:-}"
+
+    pathchk -P "${filepath}" 2>/dev/null || (echo "$(eval_gettext "Installation unsuccessful: unsupported filename (\$filepath)")"; return 1)
+    [[ "${filepath}" =~ [^\x00-\x1F]* ]] || (echo "$(eval_gettext "Installation unsuccessful: Unsupported characters in filename (\$filepath)")"; return 2)
+    [[ ! -e "${filepath}" ]] && (echo "$(eval_gettext "Installation unsuccessful: file not found (\$filepath)")"; return 3)
+    [[ ! -f "${filepath}" ]] && (echo "$(eval_gettext "Installation unsuccessful: \$filepath is not a file")"; return 4)
+    [[ ! -r "${filepath}" ]] && (echo "$(eval_gettext "Installation unsuccessful: file not accessible (\$filepath)")"; return 5)
+    return 0
+}
+
+function check_files() {
+local files="${1:-}"
+local path="${2:-}"
+local needexec="${3:-0}"
+local filepath
+
+  for file in ${files}; do
+    filepath="${path}/${file}"
+    pathchk -P "${filepath}" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: unsupported filename (\$filepath)")"
+    [[ "${filepath}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Installation unsuccessful: Unsupported characters in filename (\$filepath)")"
+    if [[ "${filepath}" = /* ]] || [[ "${filepath}" = ../* ]] || [[ "${filepath}" = */.. ]] || [[ "${filepath}" = */. ]] || [[ "${filepath}" = */../* ]] || [[ "${filepath}" = */./* ]]; then 
+      emergency "$(eval_gettext "Installation unsuccessful: invalid filepath (\$filepath)")"
+    fi
+    [[ ! -e "${filepath}" ]] && emergency "$(eval_gettext "Installation unsuccessful: file not found (\$filepath)")"
+    [[ ! -f "${filepath}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \$filepath is not a file")"
+    [[ ! -r "${filepath}" ]] && emergency "$(eval_gettext "Installation unsuccessful: file not accessible (\$filepath)")"
+    [[ "${needexec}" = "1" ]] && [[ ! -x "${filepath}" ]] && emergency "$(eval_gettext "Installation unsuccessful: file has not executable permissions (\$filepath)")"
+  done
+}
 #-------------------------------------------------------------------------------
 # Main function: Determine targetdir based on OS-type and ini-values, then call
 # install_files and edit_profile methods
@@ -179,31 +228,44 @@ local inifile="${__si_arg_i:-$sourcedir/install.ini}"
 local force="${__si_arg_f}"
 local install_mode="${__si_arg_m}"
 
-  # Check inifile is exist and readable, if not goto simple-mode
-  if [[ "${install_mode}" =~ ^controlled$ ]]; then 
-    if [[ ! -e "${inifile}" ]]; then
+  # Check sourcedir is exist and readable, otherwise exit
+  check_sourcedir "${sourcedir}"
+
+  # Check inifile is exist and readable, if not goto simple-mode, or exit, based on install_mode
+  if [[ "${install_mode}" =~ ^auto$ ]]; then
+    set +o errexit
+    errormsg=$(check_ini "${inifile}")
+    result=$?
+    set -o errexit
+
+    if [[ ! pathchk -P "${inifile}" 2>/dev/null ]]; then
+      notice "$(eval_gettext "Unsupported filename (\$inifile)")";
+      notice "$(gettext "Switch to simple mode")"
+      install_mode="simple"
+    elif [[ ! -e "${inifile}" ]]; then
       notice "$(eval_gettext "\${inifile} is not exists!")"
+      notice "$(gettext "Switch to simple mode")"
+      install_mode="simple"
+    elif [[ ! -f "${inifile}" ]]; then
+      notice "$(eval_gettext "\${inifile} is not a file!")"
       notice "$(gettext "Switch to simple mode")"
       install_mode="simple"
     elif [[ ! -r "${inifile}" ]]; then
       notice "$(eval_gettext "\${inifile} is not readable!")"
       notice "$(gettext "Switch to simple mode")"
       install_mode="simple"
+    else
+      install_mode="configured"
     fi
+  elif [[ "${install_mode}" =~ ^configured$ ]]; then
+    pathchk -P "${inifile}" 2>/dev/null || emergency "$(eval_gettext "Unsupported filename (\$inifile)")";
+    [[ ! -e "${inifile}" ]] && emergency "$(eval_gettext "\${inifile} is not exists!")"
+    [[ ! -f "${inifile}" ]] && emergency "$(eval_gettext "\${inifile} is not a file!")"
+    [[ ! -r "${inifile}" ]] && emergency "$(eval_gettext "\${inifile} is not readable!")"
   fi
 
   # Install or check dependency
   if [[ "${__si_arg_c:?}" = "0" ]] ; then
-
-    # Read initial values based on ini-file
-    local scripts=$( os_ini_val "${inifile}" "install.scripts" )
-    local libraries=$( os_ini_val "${inifile}" "install.libraries" )
-    local payloads=$( os_ini_val "${inifile}" "install.payloads" )
-    local dependencies=$( os_ini_val "${inifile}" "install.dependencies" )
-    local thirdparties=$( os_ini_val "${inifile}" "install.thirdparties" )
-    local preinst=$( os_ini_val "${inifile}" "install.preinst" )
-    local postinst=$( os_ini_val "${inifile}" "install.postinst" )
-      
     __si_arg_t=$(sed "s|~|$HOME|g" <<< "${__si_arg_t:-}") # Workaround for such cases: "~/path/to/file"
 
     # Set targetdir and localedir (targetdir, profiletext, localedir)
@@ -221,29 +283,44 @@ local install_mode="${__si_arg_m}"
       localedir="${__si_arg_t}"
     fi
 
-    # Check inital values contains only allowed characters, otherwise exit
+    # Check targedir is exists and writable, otherwise exit
+    check_targetdir
 
-    # Check sourcedirs is exists and readable and targedirs is exists and writable, otherwise exit
-    [[ ! -e "${sourcedir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${sourcedir} is not exists!")"
-    [[ ! -r "${sourcedir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${sourcedir} is not readable!")"
-    [[ -e "${targetdir}" ]] && (mkdir "${targetdir}" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: can not create \${targetdir}")")
-    [[ ! -w "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} not writable")"
+    if [[ "${install_mode}" =~ ^configured$ ]]; then
 
-    if [[ -e "${sourcedir}/lib" ]] && [[ ! -r "${sourcedir}/lib" ]]; then
-      emergency "$(eval_gettext "Installation unsuccessful: \${sourcedir}/lib is not readable!")"
+      # Read initial values based on ini-file
+      local dependencies=$( os_ini_val "${inifile}" "install.dependencies" )
+      local libraries=$( os_ini_val "${inifile}" "install.libraries" )
+      local payloads=$( os_ini_val "${inifile}" "install.payloads" )
+      local preinst=$( os_ini_val "${inifile}" "install.preinst" )
+      local postinst=$( os_ini_val "${inifile}" "install.postinst" )
+      local scripts=$( os_ini_val "${inifile}" "install.scripts" )
+      local thirdparties=$( os_ini_val "${inifile}" "install.thirdparties" )
+
+      # Check libraries is accessible, otherwise exit
+      check_files "${libraries}" "${sourcedir}/lib"
+      check_files "${payloads}" "${sourcedir}"
+      check_files "${preinst}" "${sourcedir}" "1"
+      check_files "${postins}" "${sourcedir}" "1"
+      check_files "${scripts}" "${sourcedir}" "1"
+      check_files "${thirdparties}" "${sourcedir}" "1"
+
+
+      if [[ -e "${sourcedir}/lib" ]] && [[ ! -r "${sourcedir}/lib" ]]; then
+        emergency "$(eval_gettext "Installation unsuccessful: \${sourcedir}/lib is not readable!")"
+      else
+        [[ ! -d "${targetdir}/lib" ]] && (mkdir "${targetdir}/lib" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: can not create \${targetdir}/lib")")
+        [[ ! -w "${targetdir}/lib" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir}/lib not writable")"
+      fi
+
+      if [[ -e "${sourcedir}/locale" ]] && [[ ! -r "${sourcedir}/locale" ]]; then
+        emergency "$(eval_gettext "Installation unsuccessful: \${sourcedir}/locale is not readable!")"
+      else
+        [[ ! -d "${localedir}" ]] && (mkdir "${localedir}" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: can not create \${localedir}")")
+        [[ ! -w "${localedir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${localedir} not writable")"
+      fi
     else
-      [[ ! -d "${targetdir}/lib" ]] && (mkdir "${targetdir}/lib" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: can not create \${targetdir}/lib")")
-      [[ ! -w "${targetdir}/lib" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir}/lib not writable")"
     fi
-
-    if [[ -e "${sourcedir}/locale" ]] && [[ ! -r "${sourcedir}/locale" ]]; then
-      emergency "$(eval_gettext "Installation unsuccessful: \${sourcedir}/locale is not readable!")"
-    else
-      [[ ! -d "${localedir}" ]] && (mkdir "${localedir}" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: can not create \${localedir}")")
-      [[ ! -w "${localedir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${localedir} not writable")"
-    fi
-
-
 #--------------
 # 05. Check targetdir, targetdir/lib, localedir is exists and writable, if not trying to create them, if fails exit !! as USER in user install
    
