@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+echo "Preinstall script!!!"
+#exit 1
