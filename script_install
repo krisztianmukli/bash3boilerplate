@@ -215,6 +215,58 @@ local path=${2:-.}
     "${path}/${script}" || emergency "$(eval_gettext "Installation unsuccessful: running \${path}/\${script} was failed")"
   done
 }
+function install_dependencies(){
+local missingpkgs="${1:-}"
+local force=${2:-0}
+local result
+
+  debug "$(gettext "Starting package-installation")"
+  set +o errexit # Not exit on error, neccesary for logging package-management return codes
+  install_pkgs "${missingpkgs}" "${force}" 2>&1 | while read line; do info "${line}"; done;
+  result=$?
+  set -o errexit # Exit on error
+  case $result in
+    0)
+      info "$(eval_gettext "Installation of following dependencies was succesful: \${missingpkgs}")"
+      return 0
+      ;;
+    1)
+      warning "$(gettext "No valid packages")"
+      return 1
+      ;;
+    2)
+      error "$(gettext "You need higher privileges for installing packages!")"
+      return 1
+      ;;
+    3)
+      error "$(eval_gettext "For installing following packages in macOS, you must use Homebrew or Macports: \${missingpkgs}")"
+      return 1
+      ;;
+    4)
+      error "$(eval_gettext "Install the following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: \${missingpkgs}")"
+      return 1
+      ;;
+    255)
+      error "$(eval_gettext "Unknown or unsupported operating system, cannot install following packages: \${missingpkgs}")"
+      return 1
+      ;;
+    *)
+      error "$(eval_gettext "Unknown error during installing packages! Error code: \$result")"
+      return 1
+      ;;
+  esac
+  debug "$(gettext "Finished the package-installation")"
+}
+function install_files(){
+local files="${1:-}"
+local sourcedir="${2:-}"
+local targetdir="${3:-}"
+
+  for file in ${files}; do
+    install --compare "${sourcedir}/${file}" --target-directory="${targetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during install files")"
+  done
+}
+
 #-------------------------------------------------------------------------------
 # Main function: Determine targetdir based on OS-type and ini-values, then call
 # install_files and edit_profile methods
@@ -254,7 +306,7 @@ function linux_main() {
 local sourcedir="${__si_arg_s}"
 local inifile="${__si_arg_i:-$sourcedir/install.ini}"
 local force="${__si_arg_f}"
-local install_mode
+local install_mode missingpkgs
   
   # Check sourcedir is exist and readable, otherwise exit
   check_dir "${sourcedir}" "r"
@@ -312,8 +364,26 @@ local install_mode
       
       # Run preinstall scripts
       run_scripts "${preinst}" "${sourcedir}"
+  
+      # Install dependencies
+      missingpkgs=$(check_pkgs "${dependencies}")
+      if [[ -n "${missingpkgs}" ]]; then 
+        debug "$(eval_gettext "Missing dependencies: \${missingpkgs}")"
+        install_dependencies "${missingpkgs}" "${force}" || emergency "$(gettext "Installation unsuccessful: there was an error during installing dependencies")"
+      fi
 
+      # Run thirdparty dependencies
+      run_scripts "${thirdparties}" "${sourcedir}"
 
+      # Install scripts to targetdir
+      install_files "${scripts}" "${sourcedir}" "${targetdir}"
+      install_files "${libraries}" "${sourcedir}/lib" "${targetdir}/lib"
+      # Install locale to localedir
+      install_files "locale" "${sourcedir}" "${localedir}"
+      install_files "${payloads}" "${sourcedir}" "${targetdir}"
+
+      # Run postinstall scripts
+      run_scripts "${postinst}" "${sourcedir}"
 
     fi
 #--------------
