@@ -147,7 +147,9 @@ local mode="${2:-w}"
   [[ "${path}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Installation unsuccessful: Unsupported characters in foldername (\$path)")"
 
   if [[ ! -e "${path}" ]]; then
-    if [[ "${mode}" = "w" ]]; then (mkdir "${path}" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: can not create \${path}")");
+    if [[ "${mode}" = "w" ]]; then 
+      mkdir "${path}" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: can not create \${path}")";
+      chown -R $(stat "${path}/.." -c %u:%g) "${path}" || emergency "$(eval_gettext "Installation unsuccessful: can not set permissions of \${path}")";
     elif [[ "$mode" = "r" ]]; then emergency "$(eval_gettext "Installation unsuccessful: \${path} is not exists!")";
     elif [[ "${mode}" = "e" ]]; then return;
     fi
@@ -262,11 +264,54 @@ local files="${1:-}"
 local sourcedir="${2:-}"
 local targetdir="${3:-}"
 
+  debug "install_files ${files}"
   for file in ${files}; do
-    install --compare "${sourcedir}/${file}" --target-directory="${targetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during install files")"
+    install --compare "${sourcedir}/${file}" --target-directory="${targetdir}" --owner=$(stat "${targetdir}" -c %u) --group=$(stat "${targetdir}" -c %g) || emergency "$(gettext "Installation unsuccessful: there was an error during install files")"
   done
+  #chown -R $(stat "${path}/.." -c %u:%g) "${path}" || emergency "$(eval_gettext "Installation unsuccessful: can not set permissions of \${path}")");
+  debug "install_files OK"
 }
+function install_locale(){
+local files="${1:-}"
+local sourcedir="${2:-}"
+local targetdir="${3:-}"
 
+  debug "install_locale ${files}"
+  pushd "${sourcedir}" >/dev/null 2>/dev/null
+  for file in ${files}; do
+    find ./ -name "${file}.mo" -print0 | xargs -0 --no-run-if-empty cp --parents --target-directory="${targetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during install files")"
+  done
+  popd >/dev/null 2>/dev/null
+
+  chown -R $(stat "${targetdir}" -c %u:%g) "${targetdir}" || emergency "$(eval_gettext "Installation unsuccessful: can not set permissions of \${targetdir}")";
+  debug "install_locale OK"
+}
+#-------------------------------------------------------------------------------
+# edit_profile: Add script's targetdir to user's ~/.profile file
+# Arguments:
+#   edit_profile folder
+# Returns:
+#   return 1 if unsuccessful (there's no folder)
+#-------------------------------------------------------------------------------
+function edit_profile(){
+local folder=${1:-}
+  if [[ ! -z "${folder}" ]]; then
+
+      if ! grep -q "${folder}" "${__si_user_home}/.profile"; then
+        {
+          echo ""
+          echo "# set PATH so it includes user's private bin if it exists - Added by b3bp installer"
+          echo "if [ -d \"${folder}\" ] ; then"
+          echo "    PATH=\"${folder}:\$PATH\" "
+          echo "fi"
+        } >> "${__si_user_home}/.profile"
+	warning "$(gettext "~/.profile was updated, please login again or run 'source ~/.profile' command to reload PATH variable!")"
+        return 0
+      fi
+
+  fi
+  return 1
+}
 #-------------------------------------------------------------------------------
 # Main function: Determine targetdir based on OS-type and ini-values, then call
 # install_files and edit_profile methods
@@ -325,14 +370,17 @@ local install_mode missingpkgs
     
     # Set targetdir and localedir (targetdir, profiletext, localedir)
     if [[ "${__si_arg_t}" =~ ^sys(tem)?(-wide)? ]]; then
+      permission=$([[ $EUID = 0 ]] && echo "root" || echo "user")
       targetdir=$([[ $EUID = 0 ]] && echo "/usr/local/bin" || echo "${__si_user_home}/.local/bin")
       targetdirtext=$([[ $EUID = 0 ]] || echo "\$HOME/.local/bin")
       localedir=$([[ $EUID = 0 ]] && echo "/usr/local/share/locale" || echo "${__si_user_home}/.local/share/locale")
     elif [[ "${__si_arg_t}" =~ ^us(e)?r(-wide)?$ ]]; then
+      permission="user"
       targetdir="${__si_user_home}/.local/bin"
       targetdirtext="\$HOME/.local/bin"
       localedir="${__si_user_home}/.local/share/locale"
     else
+      permission=$([[ $EUID = 0 ]] && echo "root" || echo "user")
       targetdir="${__si_arg_t}"
       targetdirtext=$(sed "s|$__si_user_home|\$HOME|g" <<< "${__si_arg_t}")
       localedir="${__si_arg_t}"
@@ -377,31 +425,21 @@ local install_mode missingpkgs
 
       # Install scripts to targetdir
       install_files "${scripts}" "${sourcedir}" "${targetdir}"
+      install_locale "${scripts}" "${sourcedir}/locale" "${localedir}" 
+      # Install libraries to targetdir
       install_files "${libraries}" "${sourcedir}/lib" "${targetdir}/lib"
-      # Install locale to localedir
-      install_files "locale" "${sourcedir}" "${localedir}"
+      install_locale "${libraries}" "${sourcedir}/locale" "${localedir}"
+      # Install payloads to targetdir
       install_files "${payloads}" "${sourcedir}" "${targetdir}"
+      install_locale "${payloads}" "${sourcedir}/locale" "${localedir}"
 
       # Run postinstall scripts
       run_scripts "${postinst}" "${sourcedir}"
 
+      # Edit ~/.profile file
+      edit_profile "${targetdirtext}" && source "${__si_user_home}/.profile" && export PATH
     fi
-#--------------
-# 05. Check targetdir, targetdir/lib, localedir is exists and writable, if not trying to create them, if fails exit !! as USER in user install
-   
-#    # root
-#    if [[ $EUID = 0 ]] && [[ "$SUDO_USER+x" ]] && [[ "${targetdir}" = "${__si_user_home}"* ]]; then # sudo and user-wide install
-#      # run install_files as SUDO_USER
-#      #sudo -u "$SUDO_USER" -- "install_files ${sourcedir} ${inifile} ${targetdir} ${localedir} ${force}"
-#      sudo -u "$SUDO_USER" -- $0 -s "${sourcedir}" -t "${targetdir}" -i "${inifile}"
-#    else
-#      # install_files as USER/ROOT
-#      install_files "${sourcedir}" "${inifile}" "${targetdir}" "${localedir}" "${force}"
-#    fi
-#
-#    # Edit ~/.profile file
-#    edit_profile "${targetdirtext}" && source "${__si_user_home}/.profile" && export PATH
- 
+
   else
      # Check dependencies
      check_dependencies "${sourcedir}" "${inifile}"
