@@ -224,7 +224,8 @@ local result
 
   debug "$(gettext "Starting package-installation")"
   set +o errexit # Not exit on error, neccesary for logging package-management return codes
-  install_pkgs "${missingpkgs}" "${force}" 2>&1 | while read line; do info "${line}"; done;
+  #install_pkgs "${missingpkgs}" "${force}" 2>&1 | while read line; do debug "${line}"; done;
+  debug "$(install_pkgs "${missingpkgs}" "${force}" 2>&1)"
   result=$?
   set -o errexit # Exit on error
   case $result in
@@ -312,6 +313,42 @@ local folder=${1:-}
   fi
   return 1
 }
+function check_dependencies() {
+local inifile=${1:-}
+local force=${2:-0}
+local dependencies=$( get_ini_val "${inifile}" "install.dependencies" )
+local preinst=$( get_ini_val "${inifile}" "install.preinst" )
+local postinst=$( get_ini_val "${inifile}" "install.postinst" )
+
+  if [[ ! -z "${dependencies}" ]]; then
+    missingpkgs=$(check_pkgs "${dependencies}")
+    if [[ ! -z "${missingpkgs}" ]]; then
+        if ask "$(eval_gettext "Following packages are missing: \${missingpkgs}, would you like to install them?")" "Y"; then
+
+        # Calling preinstall scripts, if any
+        for command in ${preinst}; do
+          eval "${command}"
+        done
+
+	install_dependencies "${missingpkgs}" "${force}" || emergency "$(gettext "Installation unsuccessful: there was an error during installing dependencies")"
+
+        # Calling postinstall scripts, if any
+        for command in ${postinst}; do
+          eval "${command}"
+        done
+
+	info "Missing dependencies successfully installed."
+      else
+        warning  "$(eval_gettext "Missing dependencies: \${missingpkgs}")"
+      fi
+
+    else
+      info "There is no missing dependencies."
+    fi
+  else
+    info "There is no dependencies."
+  fi
+}
 #-------------------------------------------------------------------------------
 # Main function: Determine targetdir based on OS-type and ini-values, then call
 # install_files and edit_profile methods
@@ -370,17 +407,14 @@ local install_mode missingpkgs
     
     # Set targetdir and localedir (targetdir, profiletext, localedir)
     if [[ "${__si_arg_t}" =~ ^sys(tem)?(-wide)? ]]; then
-      permission=$([[ $EUID = 0 ]] && echo "root" || echo "user")
       targetdir=$([[ $EUID = 0 ]] && echo "/usr/local/bin" || echo "${__si_user_home}/.local/bin")
       targetdirtext=$([[ $EUID = 0 ]] || echo "\$HOME/.local/bin")
       localedir=$([[ $EUID = 0 ]] && echo "/usr/local/share/locale" || echo "${__si_user_home}/.local/share/locale")
     elif [[ "${__si_arg_t}" =~ ^us(e)?r(-wide)?$ ]]; then
-      permission="user"
       targetdir="${__si_user_home}/.local/bin"
       targetdirtext="\$HOME/.local/bin"
       localedir="${__si_user_home}/.local/share/locale"
     else
-      permission=$([[ $EUID = 0 ]] && echo "root" || echo "user")
       targetdir="${__si_arg_t}"
       targetdirtext=$(sed "s|$__si_user_home|\$HOME|g" <<< "${__si_arg_t}")
       localedir="${__si_arg_t}"
@@ -427,7 +461,7 @@ local install_mode missingpkgs
       install_files "${scripts}" "${sourcedir}" "${targetdir}"
       install_locale "${scripts}" "${sourcedir}/locale" "${localedir}" 
       # Install libraries to targetdir
-      install_files "${libraries}" "${sourcedir}/lib" "${targetdir}/lib"
+      install_files "${libraries}" "${sourcedir}/lib" "${targetdir}/lib" #TODO: /usr/local/lib megfontolása mint targetdir? Ehhez a PATH-hoz is hozzá kell adni
       install_locale "${libraries}" "${sourcedir}/locale" "${localedir}"
       # Install payloads to targetdir
       install_files "${payloads}" "${sourcedir}" "${targetdir}"
@@ -438,11 +472,28 @@ local install_mode missingpkgs
 
       # Edit ~/.profile file
       edit_profile "${targetdirtext}" && source "${__si_user_home}/.profile" && export PATH
+
+    elif [[ "${install_mode}" =~ ^simple$ ]]; then # TODO: preinst, postinst, prerm, postrm lehetne fix nevű script is, szűrhető, futtatható
+      # Find executable files as script and .sh files as libraries
+      scripts=$(find "${sourcedir}" -maxdepth 1 -type f -executable -exec basename {} \;)
+      libraries==$(find "${sourcedir}/lib" -maxdepth 1 -type f -iname \*.sh -exec basename {} \;)
+
+      # Check files is accessible, otherwise exit
+      check_files "${scripts}" "${sourcedir}" "x"
+      check_files "${libraries}" "${sourcedir}/lib"
+
+      # Install scripts to targetdir
+      install_files "${scripts}" "${sourcedir}" "${targetdir}"
+      install_locale "${scripts}" "${sourcedir}/locale" "${localedir}" 
+      # Install libraries to targetdir
+      install_files "${libraries}" "${sourcedir}/lib" "${targetdir}/lib"
+      install_locale "${libraries}" "${sourcedir}/locale" "${localedir}"
+
     fi
 
   else
      # Check dependencies
-     check_dependencies "${sourcedir}" "${inifile}"
+     check_dependencies "${inifile}" #TODO: Mi van ha nincs inifile?
   fi
 
 }

@@ -31,7 +31,7 @@ local force="${2:-0}"
   if [[ -z $pkgs ]]; then return 1; fi # "No valid packages, is not an error"
   if [[ $EUID != 0 ]]; then return 2; fi # "You need higher privileges for installing packages!"
 
-  if [[ "${__osfamily}" = "suse-based" ]]; then [[ "${force}" = "0" ]] && zypper install $pkgs || zypper install --non-interactive $pkgs"; # SUSE / openSUSE      
+  if [[ "${__osfamily}" = "suse-based" ]]; then [[ "${force}" = "0" ]] && zypper install $pkgs || zypper install --non-interactive $pkgs; # SUSE / openSUSE      
   elif [[ "${__osfamily}" = "debian-based" ]]; then [[ "${force}" = "0" ]] && apt-get install $pkgs || apt-get install --yes $pkgs; # Debian / Ubuntu Based Systems
   elif [[ "${__osfamily}" = "fedora-based" ]]; then [[ "${force}" = "0" ]] && dnf install $pkgs || dnf install --assumeyes $pkgs; # Modern Fedora and derivatives
   elif [[ "${__osfamily}" = "redhat-based" ]]; then [[ "${force}" = "0" ]] && yum install $pkgs || yum install -y $pkgs; # Red Hat / Fedora or derivatives
