@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+find -path "./.git*" -prune -o -name *.po* -prune -o -name md5sums -prune -o -type f -exec md5sum "{}" + > md5sums && sed -i 's|\.\/||g' md5sums
