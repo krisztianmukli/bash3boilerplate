@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+#===============================================================================
+# Script name (shortname) - Short description for script
+# Licensed under the MIT license
+#
+# Long description of script
+# 
+# Copyright (c) <year> <copyright-holder>
+# <url>
+#
+# Notes
+#-------------------------------------------------------------------------------
+# Quickstart
+# Setup information
+# Changelog
+# ToDo
+# Known bugs
+#
+# Based on BASH3 Boilerplate by krisztianmukli v1.0.0
+#===============================================================================
+# Init section
+#===============================================================================
+# Allowing aliases
+shopt -s expand_aliases
+# Exit on error 
+set -o errexit 
+# Exit on error inside any functions or subshells
+set -o errtrace
+# Do not allow use of undefined vars. Use ${VAR:-} to use an undefined VAR
+set -o nounset 
+# Catch the error when mysqldump fails (but gzip succeeds) in `mysqldump |gzip`
+set -o pipefail 
+# Turn on traces, useful while debugging but commented out by default
+#set -o xtrace
+
+#===============================================================================
+# Globals section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Environment variables
+#-------------------------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
+  __preinst_srcd=1
+  if [[ "${BASH_SOURCE[1]+x}" ]]; then
+    [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __preinst_srcd=0
+    __preinst_tmp_source_idx=1
+  fi
+else
+  __preinst_srcd=0
+fi
+__preinst_dir="$(cd "$(dirname "${BASH_SOURCE[${__preinst_tmp_source_idx:-0}]}")" && pwd)"
+__preinst_file="${__preinst_dir}/$(basename "${BASH_SOURCE[${__preinst_tmp_source_idx:-0}]}")"
+__preinst_base="$(basename "${__preinst_file}" .sh)"
+
+LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
+LOG_TIMEZONE="${LOG_TIMEZONE:-1}" # 0 = UTC, otherwise local
+NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
+
+#-------------------------------------------------------------------------------
+# Sourced files
+#-------------------------------------------------------------------------------
+export PATH="$(dirname "${__preinst_dir}")/lib:$PATH"
+source log.sh || (echo "Fatal error: Cannot find log.sh!"; exit 1)
+source os_detection.sh || (echo "Fatal error: Cannot find os_detection.sh!"; exit 1)
+source gettext.sh || (echo "Fatal error: Cannot find gettext.sh!"; exit 1)
+
+#-------------------------------------------------------------------------------
+# Localization
+#-------------------------------------------------------------------------------
+export TEXTDOMAINDIR="$(dirname "${__preinst_dir}")/locale"
+export TEXTDOMAIN="${__preinst_base}"
+
+#===============================================================================
+# Functions section
+#===============================================================================
+function check_files() {
+local files="${1:-}"
+local mode="${2:-}"
+
+  debug "check_files $*"
+  for file in ${files}; do
+    pathchk -P "${file}" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: unsupported filename (\$file)")"
+    # shellcheck disable=SC1001
+    [[ "${file}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Installation unsuccessful: Unsupported characters in filename (\$file)")"
+    if [[ "${file}" = /* ]] || [[ "${file}" = ../* ]] || [[ "${file}" = */.. ]] || [[ "${file}" = */. ]] || [[ "${file}" = */../* ]] || [[ "${file}" = */./* ]]; then 
+    #if [[ "${file}" = ../* ]] || [[ "${file}" = */.. ]] || [[ "${file}" = */. ]] || [[ "${file}" = */../* ]] || [[ "${file}" = */./* ]]; then 
+      emergency "$(eval_gettext "Installation unsuccessful: invalid filepath (\$file)")"
+    fi
+    [[ ! -e "${file}" ]] && emergency "$(eval_gettext "Installation unsuccessful: file not found (\$file)")"
+    [[ ! -f "${file}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \$file is not a file")"
+    [[ ! -r "${file}" ]] && emergency "$(eval_gettext "Installation unsuccessful: file not accessible (\$file)")"
+    [[ "${mode}" = "x" ]] && [[ ! -x "${file}" ]] && emergency "$(eval_gettext "Installation unsuccessful: file has not executable permissions (\$file)")"
+  done
+
+  debug "check_files OK"
+}
+function run_scripts(){
+local scripts=${1:-}
+
+  for script in ${scripts}; do
+    "./${script}" || emergency "$(eval_gettext "Installation unsuccessful: running ./\${script} was failed")"
+  done
+}
+#-------------------------------------------------------------------------------
+# Main function
+# Arguments:
+#   None
+# Returns:
+#   None
+#-------------------------------------------------------------------------------
+function main() {
+
+  # Settings environmental variables
+
+  # Starting or stopping daemons or services
+  local preinst=$( os_ini_val "${inifile}" "install.preinst" )
+  check_files "${preinst}" "x"
+  run_scripts "${preinst}"
+ 
+  # Install dependencies
+  local dependencies=$( os_ini_val "control" "dependencies" )
+  missingpkgs=$(check_pkgs "${dependencies}")
+  if [[ -n "${missingpkgs}" ]]; then 
+    debug "$(eval_gettext "Missing dependencies: \${missingpkgs}")"
+    install_dependencies "${missingpkgs}" "${force}" || emergency "$(gettext "Installation unsuccessful: there was an error during installing dependencies")"
+  fi
+  
+  # Install thirdparty dependencies
+
+  exit $?
+}
+
+#===============================================================================
+# Main section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Signal trapping and backtracing
+#-------------------------------------------------------------------------------
+function __preinst_cleanup_before_exit () {
+  info "$(gettext "Cleaning up. Done")"
+}
+trap __preinst_cleanup_before_exit EXIT
+
+#-------------------------------------------------------------------------------
+# Runtime
+#-------------------------------------------------------------------------------
+if [[ "${__preinst_srcd:-}" = 0 ]]; then
+  main
+fi
+
+#===============================================================================
+# END OF FILE
+#===============================================================================

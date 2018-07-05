@@ -1,0 +1,12 @@
+[package]
+name = BASH3 Boilerplate
+version = 1.0.0
+
+[install]
+preinst =
+postinst =
+prerm =
+postrm =
+dependencies.linux-gnu.debian-based.ubuntu.18.04.4.15.0-22-generic.x86_64 = xbill supertux
+dependencies = xbill
+thirdparties = 
