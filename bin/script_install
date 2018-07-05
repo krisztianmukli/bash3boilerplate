@@ -72,7 +72,7 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 #-------------------------------------------------------------------------------
 # Sourced files
 #-------------------------------------------------------------------------------
-export PATH="${__si_dir}:${__si_dir}/lib:$PATH"
+export PATH="$(dirname ${__si_dir})/lib:$PATH"
 source log.sh || (echo "Fatal error: Cannot find log.sh!"; exit 1)
 source os_detection.sh || (echo "Fatal error: Cannot find os_detection.sh!"; exit 1)
 source display_info.sh || (echo "Fatal error: Cannot find display_info.sh!"; exit 1)
@@ -83,16 +83,7 @@ source gettext.sh || (echo "Fatal error: Cannot find gettext.sh!"; exit 1)
 #-------------------------------------------------------------------------------
 # Localization
 #-------------------------------------------------------------------------------
-__si_localepath=( "${__si_dir}/locale" "${__si_user_home}/.local/share/locale" "/usr/local/share/locale" "/usr/share/locale" )
-  for folder in "${__si_localepath[@]}"; do
-    if [[ -d "${folder}" ]]; then
-      count=$(find "${folder}" -name "${__si_base}.mo" | wc -l )
-      if [[ $count -gt 0 ]]; then
-        export TEXTDOMAINDIR="${folder}"
-        break
-      fi
-    fi
-  done
+export TEXTDOMAINDI="$(dirname ${__si_dir})/locale"
 export TEXTDOMAIN="${__si_base}"
 
 #-------------------------------------------------------------------------------
@@ -100,19 +91,9 @@ export TEXTDOMAIN="${__si_base}"
 #-------------------------------------------------------------------------------
 [[ "${__si_usage+x}" ]] || __si_usage="$(eval_gettext "Available arguments:
 
-  -c --check-dependencies  Check dependencies of specified script
   -d --debug               Enables debug mode
   -f --force               Forcing commands (e.g. overwrite existing files)
   -h --help                This page
-  -i --ini [inifile]       Ini-file using the installation. If not set, installer use [sourcedir]/install.ini
-  -m --mode [mode]         Install mode. Default=\"auto\"
-                           Possible values:
-			   * 'auto' - default option, installer will try to use ini-file, switch to simple mode if it is not accessible
-                           * 'simple' - installer don't use .ini-file, preinst, postinst script won't run,
-			   it will not checking and installing dependencies
-			   * 'configured' - installer is reading preinst, postinst scripts from .ini-file
-			   checking and installing missing dependencies and third party scripts, failed the install, when ini file not accessible
-
   -n --no-color            Disable color output
   -s --source [sourcedir]  Source dir of script. Default=\"\$__si_act_dir\"
   -t --target [targetdir]  Target directory. Default=system-wide
@@ -140,7 +121,7 @@ __si_license="$(gettext "Licensed under the MIT license")"
 #===============================================================================
 function check_dir() {
 local path="${1:-}"
-local mode="${2:-w}"
+local mode="${2:-}"
 
   debug "check_dir $@"
   pathchk -P "${path}" || emergency "$(eval_gettext "Installation unsuccessful: unsupported foldername (\$path)")"
@@ -160,195 +141,6 @@ local mode="${2:-w}"
   [[ "${mode}" = "w" ]] && [[ ! -w "${path}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${path} is not writable")"
   debug "check_dir OK"
 }
-
-function check_inifile() {
-local path="${1:-}"
-local mode="${2:-auto}"
-
-  debug "check_inifile $@"
-  if [[ "${mode}" =~ ^auto$ ]]; then
-    pathchk -P "${inifile}" 2>/dev/null || (notice "$(eval_gettext "Unsupported filename (\$inifile)")"; echo "simple")
-    [[ "${path}" =~ [^\x00-\x1F]* ]] || (notice "$(eval_gettext "Installation unsuccessful: Unsupported characters in filename (\$path)")"; echo "simple")
-    [[ ! -e "${inifile}" ]] && (notice "$(eval_gettext "\${inifile} is not exists!")"; echo "simple")
-    [[ ! -f "${inifile}" ]] && (notice "$(eval_gettext "\${inifile} is not a file!")"; echo "simple")
-    [[ ! -r "${inifile}" ]] && (notice "$(eval_gettext "\${inifile} is not readable!")"; echo "simple")
-  elif [[ "${mode}" =~ ^configured$ ]]; then
-    pathchk -P "${inifile}" 2>/dev/null || emergency "$(eval_gettext "Unsupported filename (\$inifile)")";
-    [[ "${path}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Installation unsuccessful: Unsupported characters in filename (\$path)")"
-    [[ ! -e "${inifile}" ]] && emergency "$(eval_gettext "\${inifile} is not exists!")"
-    [[ ! -f "${inifile}" ]] && emergency "$(eval_gettext "\${inifile} is not a file!")"
-    [[ ! -r "${inifile}" ]] && emergency "$(eval_gettext "\${inifile} is not readable!")"
-  fi
-
-  debug "check_inifile OK"
-  echo "configured"
-}
-
-function check_files() {
-local files="${1:-}"
-local path="${2:-}"
-local mode="${3:-}"
-local filepath
-
-  debug "check_files $@"
-  for file in ${files}; do
-    filepath="${path}/${file}"
-    pathchk -P "${filepath}" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: unsupported filename (\$filepath)")"
-    [[ "${filepath}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Installation unsuccessful: Unsupported characters in filename (\$filepath)")"
-    #if [[ "${filepath}" = /* ]] || [[ "${filepath}" = ../* ]] || [[ "${filepath}" = */.. ]] || [[ "${filepath}" = */. ]] || [[ "${filepath}" = */../* ]] || [[ "${filepath}" = */./* ]]; then 
-    if [[ "${filepath}" = ../* ]] || [[ "${filepath}" = */.. ]] || [[ "${filepath}" = */. ]] || [[ "${filepath}" = */../* ]] || [[ "${filepath}" = */./* ]]; then 
-      emergency "$(eval_gettext "Installation unsuccessful: invalid filepath (\$filepath)")"
-    fi
-    [[ ! -e "${filepath}" ]] && emergency "$(eval_gettext "Installation unsuccessful: file not found (\$filepath)")"
-    [[ ! -f "${filepath}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \$filepath is not a file")"
-    [[ ! -r "${filepath}" ]] && emergency "$(eval_gettext "Installation unsuccessful: file not accessible (\$filepath)")"
-    [[ "${mode}" = "x" ]] && [[ ! -x "${filepath}" ]] && emergency "$(eval_gettext "Installation unsuccessful: file has not executable permissions (\$filepath)")"
-  done
-
-  debug "check_files OK"
-}
-
-function run_scripts(){
-local scripts=${1:-}
-local path=${2:-.}
-
-  debug "run_scripts $@"
-  for script in ${scripts}; do
-    "${path}/${script}" || emergency "$(eval_gettext "Installation unsuccessful: running \${path}/\${script} was failed")"
-  done
-}
-function install_dependencies(){
-local missingpkgs="${1:-}"
-local force=${2:-0}
-local result
-
-  debug "$(gettext "Starting package-installation")"
-  set +o errexit # Not exit on error, neccesary for logging package-management return codes
-  #install_pkgs "${missingpkgs}" "${force}" 2>&1 | while read line; do debug "${line}"; done;
-  debug "$(install_pkgs "${missingpkgs}" "${force}" 2>&1)"
-  result=$?
-  set -o errexit # Exit on error
-  case $result in
-    0)
-      info "$(eval_gettext "Installation of following dependencies was succesful: \${missingpkgs}")"
-      return 0
-      ;;
-    1)
-      warning "$(gettext "No valid packages")"
-      return 1
-      ;;
-    2)
-      error "$(gettext "You need higher privileges for installing packages!")"
-      return 1
-      ;;
-    3)
-      error "$(eval_gettext "For installing following packages in macOS, you must use Homebrew or Macports: \${missingpkgs}")"
-      return 1
-      ;;
-    4)
-      error "$(eval_gettext "Install the following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: \${missingpkgs}")"
-      return 1
-      ;;
-    255)
-      error "$(eval_gettext "Unknown or unsupported operating system, cannot install following packages: \${missingpkgs}")"
-      return 1
-      ;;
-    *)
-      error "$(eval_gettext "Unknown error during installing packages! Error code: \$result")"
-      return 1
-      ;;
-  esac
-  debug "$(gettext "Finished the package-installation")"
-}
-function install_files(){
-local files="${1:-}"
-local sourcedir="${2:-}"
-local targetdir="${3:-}"
-
-  debug "install_files ${files}"
-  for file in ${files}; do
-    install --compare "${sourcedir}/${file}" --target-directory="${targetdir}" --owner=$(stat "${targetdir}" -c %u) --group=$(stat "${targetdir}" -c %g) || emergency "$(gettext "Installation unsuccessful: there was an error during install files")"
-  done
-  #chown -R $(stat "${path}/.." -c %u:%g) "${path}" || emergency "$(eval_gettext "Installation unsuccessful: can not set permissions of \${path}")");
-  debug "install_files OK"
-}
-function install_locale(){
-local files="${1:-}"
-local sourcedir="${2:-}"
-local targetdir="${3:-}"
-
-  debug "install_locale ${files}"
-  pushd "${sourcedir}" >/dev/null 2>/dev/null
-  for file in ${files}; do
-    find ./ -name "${file}.mo" -print0 | xargs -0 --no-run-if-empty cp --parents --target-directory="${targetdir}" || emergency "$(gettext "Installation unsuccessful: there was an error during install files")"
-  done
-  popd >/dev/null 2>/dev/null
-
-  chown -R $(stat "${targetdir}" -c %u:%g) "${targetdir}" || emergency "$(eval_gettext "Installation unsuccessful: can not set permissions of \${targetdir}")";
-  debug "install_locale OK"
-}
-#-------------------------------------------------------------------------------
-# edit_profile: Add script's targetdir to user's ~/.profile file
-# Arguments:
-#   edit_profile folder
-# Returns:
-#   return 1 if unsuccessful (there's no folder)
-#-------------------------------------------------------------------------------
-function edit_profile(){
-local folder=${1:-}
-  if [[ ! -z "${folder}" ]]; then
-
-      if ! grep -q "${folder}" "${__si_user_home}/.profile"; then
-        {
-          echo ""
-          echo "# set PATH so it includes user's private bin if it exists - Added by b3bp installer"
-          echo "if [ -d \"${folder}\" ] ; then"
-          echo "    PATH=\"${folder}:\$PATH\" "
-          echo "fi"
-        } >> "${__si_user_home}/.profile"
-	warning "$(gettext "~/.profile was updated, please login again or run 'source ~/.profile' command to reload PATH variable!")"
-        return 0
-      fi
-
-  fi
-  return 1
-}
-function check_dependencies() {
-local inifile=${1:-}
-local force=${2:-0}
-local dependencies=$( get_ini_val "${inifile}" "install.dependencies" )
-local preinst=$( get_ini_val "${inifile}" "install.preinst" )
-local postinst=$( get_ini_val "${inifile}" "install.postinst" )
-
-  if [[ ! -z "${dependencies}" ]]; then
-    missingpkgs=$(check_pkgs "${dependencies}")
-    if [[ ! -z "${missingpkgs}" ]]; then
-        if ask "$(eval_gettext "Following packages are missing: \${missingpkgs}, would you like to install them?")" "Y"; then
-
-        # Calling preinstall scripts, if any
-        for command in ${preinst}; do
-          eval "${command}"
-        done
-
-	install_dependencies "${missingpkgs}" "${force}" || emergency "$(gettext "Installation unsuccessful: there was an error during installing dependencies")"
-
-        # Calling postinstall scripts, if any
-        for command in ${postinst}; do
-          eval "${command}"
-        done
-
-	info "Missing dependencies successfully installed."
-      else
-        warning  "$(eval_gettext "Missing dependencies: \${missingpkgs}")"
-      fi
-
-    else
-      info "There is no missing dependencies."
-    fi
-  else
-    info "There is no dependencies."
-  fi
-}
 #-------------------------------------------------------------------------------
 # Main function: Determine targetdir based on OS-type and ini-values, then call
 # install_files and edit_profile methods
@@ -357,144 +149,38 @@ local postinst=$( get_ini_val "${inifile}" "install.postinst" )
 # Returns:
 #   exit 1, if unsupported OS detected
 #-------------------------------------------------------------------------------
-#...............................................................................
-# Overview of script install process
-#
-# 00. Check supported OS, otherwise exit
-# 01. Set local variables, based on arguments (sourcedir, inifile, force)
-# 02. Check sourcedir, sourcedir/lib and sourcedir/locale is exists and readable, otherwise exit
-# 03. Check inifile is exist and readable, if not goto fallback-mode (fallback-mode: copy sh-files, lib and locale folder to targetdir, no preinst, postinst, dependencychecking, etc.)
-# 04. Set targetdir and localedir (targetdir, profiletext, localedir)
-# 05. Check targetdir, targetdir/lib, localedir is exists and writable, if not trying to create them, if fails exit !! as USER in user install
-# 06. Read initial values based on ini-file (scripts, preinsts, postinst, payloads, dependencies, thirdparties)
-# 07. Check inital values contains only allowed characters, otherwise exit
-# 08. Run preinstall scripts, if return non-zero, exit !! May need ROOT
-# 09. Install missing dependencies, if return non-zero, exit !! ROOT
-# 10. Run thirdparty dependencies, if return non-zero, exit !! May need ROOT
-# 11. Copy scripts to targetdir, if fails exit !! as USER in user install
-# 12. Copy locale to localetargetdir, if fails exit !! as USER in user install
-# 13. Copy libraries to targetdir/lib, if fails exit !! as USER in user install
-# 14. Copy payloads to targetdir, if fails exit !! as USER in user install
-# 15. Run postinstall scripts, if return non-zero, exit !! May need ROOT
-# 16. Edit ~/.profile file if need 
-
-# run method as other user: https://stackoverflow.com/questions/9448920/how-can-i-execute-a-bash-function-using-sudo
-# function() testecho{ echo $1; }
-# TEST=$(declare -f testecho)
-# sudo -u $SUDO_USER -- bash -c "$TEST; testecho $(whoami)"
-#...............................................................................
 function linux_main() {
-# Set local variables, based on arguments (sourcedir, inifile, force)
 local sourcedir="${__si_arg_s}"
-local inifile="${__si_arg_i:-$sourcedir/install.ini}"
 local force="${__si_arg_f}"
-local install_mode missingpkgs
-  
-  # Check sourcedir is exist and readable, otherwise exit
-  check_dir "${sourcedir}" "r"
-  check_dir "${sourcedir}/lib" "e"
-  check_dir "${sourcedir}/locale" "e"
-  
-  # Check inifile is exist and readable, if not goto simple-mode, or exit, based on install_mode
-  __si_arg_m=$(tr [:upper:] [:lower:] <<< "${__si_arg_m}")
-  install_mode=$(check_inifile "${__si_arg_m}")
-  [[ "${install_mode}" =~ "simple" ]] && [["${si_arg_m}" != "simple" ]] && notice "$(gettext "Switch to simple mode")"
-  
-  # Install or check dependency
-  if [[ "${__si_arg_c:?}" = "0" ]] ; then
-    __si_arg_t=$(sed "s|~|$HOME|g" <<< "${__si_arg_t:-}") # Workaround for such cases: "~/path/to/file"
-    __si_arg_t=$(tr [:upper:] [:lower:] <<< "${__si_arg_t}")
-    
-    # Set targetdir and localedir (targetdir, profiletext, localedir)
-    if [[ "${__si_arg_t}" =~ ^sys(tem)?(-wide)? ]]; then
-      targetdir=$([[ $EUID = 0 ]] && echo "/usr/local/bin" || echo "${__si_user_home}/.local/bin")
-      targetdirtext=$([[ $EUID = 0 ]] || echo "\$HOME/.local/bin")
-      localedir=$([[ $EUID = 0 ]] && echo "/usr/local/share/locale" || echo "${__si_user_home}/.local/share/locale")
-    elif [[ "${__si_arg_t}" =~ ^us(e)?r(-wide)?$ ]]; then
-      targetdir="${__si_user_home}/.local/bin"
-      targetdirtext="\$HOME/.local/bin"
-      localedir="${__si_user_home}/.local/share/locale"
-    else
-      targetdir="${__si_arg_t}"
-      targetdirtext=$(sed "s|$__si_user_home|\$HOME|g" <<< "${__si_arg_t}")
-      localedir="${__si_arg_t}"
-    fi
-    
-    # Check targedir is exists and writable, otherwise exit
-    check_dir "${targetdir}" "w"
-    [[ -e "${sourcedir}/lib" ]] && check_dir "${targetdir}/lib" "w"
-    [[ -e "${sourcedir}/locale" ]] && check_dir "${localedir}" "w"
-    
-    if [[ "${install_mode}" =~ ^configured$ ]]; then
 
-      # Read initial values based on ini-file
-      local dependencies=$( os_ini_val "${inifile}" "install.dependencies" )
-      local libraries=$( os_ini_val "${inifile}" "install.libraries" )
-      local payloads=$( os_ini_val "${inifile}" "install.payloads" )
-      local preinst=$( os_ini_val "${inifile}" "install.preinst" )
-      local postinst=$( os_ini_val "${inifile}" "install.postinst" )
-      local scripts=$( os_ini_val "${inifile}" "install.scripts" )
-      local thirdparties=$( os_ini_val "${inifile}" "install.thirdparties" )
+  # Check sourcedir
+  md5sum --status --check "${sourcedir}/md5sums" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: checksum error")"
 
-      # Check initial values is accessible, otherwise exit
-      check_files "${libraries}" "${sourcedir}/lib"
-      check_files "${payloads}" "${sourcedir}"
-      check_files "${preinst}" "${sourcedir}" "x"
-      check_files "${postinst}" "${sourcedir}" "x"
-      check_files "${scripts}" "${sourcedir}" "x"
-      check_files "${thirdparties}" "${sourcedir}" "x"
-      
-      # Run preinstall scripts
-      run_scripts "${preinst}" "${sourcedir}"
-  
-      # Install dependencies
-      missingpkgs=$(check_pkgs "${dependencies}")
-      if [[ -n "${missingpkgs}" ]]; then 
-        debug "$(eval_gettext "Missing dependencies: \${missingpkgs}")"
-        install_dependencies "${missingpkgs}" "${force}" || emergency "$(gettext "Installation unsuccessful: there was an error during installing dependencies")"
-      fi
+  __si_arg_t=$(sed "s|~|$HOME|g" <<< "${__si_arg_t:-}") # Workaround for such cases: "~/path/to/file"
+  __si_arg_t=$(tr "[:upper:]" "[:lower:]" <<< "${__si_arg_t}")
 
-      # Run thirdparty dependencies
-      run_scripts "${thirdparties}" "${sourcedir}"
-
-      # Install scripts to targetdir
-      install_files "${scripts}" "${sourcedir}" "${targetdir}"
-      install_locale "${scripts}" "${sourcedir}/locale" "${localedir}" 
-      # Install libraries to targetdir
-      install_files "${libraries}" "${sourcedir}/lib" "${targetdir}/lib" #TODO: /usr/local/lib megfontolása mint targetdir? Ehhez a PATH-hoz is hozzá kell adni
-      install_locale "${libraries}" "${sourcedir}/locale" "${localedir}"
-      # Install payloads to targetdir
-      install_files "${payloads}" "${sourcedir}" "${targetdir}"
-      install_locale "${payloads}" "${sourcedir}/locale" "${localedir}"
-
-      # Run postinstall scripts
-      run_scripts "${postinst}" "${sourcedir}"
-
-      # Edit ~/.profile file
-      edit_profile "${targetdirtext}" && source "${__si_user_home}/.profile" && export PATH
-
-    elif [[ "${install_mode}" =~ ^simple$ ]]; then # TODO: preinst, postinst, prerm, postrm lehetne fix nevű script is, szűrhető, futtatható
-      # Find executable files as script and .sh files as libraries
-      scripts=$(find "${sourcedir}" -maxdepth 1 -type f -executable -exec basename {} \;)
-      libraries==$(find "${sourcedir}/lib" -maxdepth 1 -type f -iname \*.sh -exec basename {} \;)
-
-      # Check files is accessible, otherwise exit
-      check_files "${scripts}" "${sourcedir}" "x"
-      check_files "${libraries}" "${sourcedir}/lib"
-
-      # Install scripts to targetdir
-      install_files "${scripts}" "${sourcedir}" "${targetdir}"
-      install_locale "${scripts}" "${sourcedir}/locale" "${localedir}" 
-      # Install libraries to targetdir
-      install_files "${libraries}" "${sourcedir}/lib" "${targetdir}/lib"
-      install_locale "${libraries}" "${sourcedir}/locale" "${localedir}"
-
-    fi
-
-  else
-     # Check dependencies
-     check_dependencies "${inifile}" #TODO: Mi van ha nincs inifile?
+  # Set targetdir
+  if [[ "${__si_arg_t}" =~ ^sys(tem)?(-wide)? ]]; then
+    targetdir="/usr/local"
+  elif [[ "${__si_arg_t}" =~ ^us(e)?r(-wide)?$ ]]; then 
+    targetdir="${__si_user_home}/.local"
+  else 
+    targetdir="${__si_arg_t}"
   fi
+  
+  # Check targetdir
+  pathchk -P "${targetdir}" || emergency "$(eval_gettext "Installation unsuccessful: unsupported foldername (\$targetdir)")"
+  [[ "${targetdir}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Installation unsuccessful: Unsupported characters in foldername (\$targetdir)")"
+  if [[ ! -e "${targetdir}" ]]; then
+    [[ ! -w "$(dirname ${targetdir})" ]] || emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} doesn't exist and cannot create")"
+  else
+    [[ ! -d "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} is not a directory")"
+    [[ ! -r "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} is not readable!")"
+    [[ ! -w "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} is not writable")"
+  fi
+
+  "${sourcedir}/preinst" || emergency "$(eval_gettext "Installation unsuccessful: preinstall task was failed.")"
+
 
 }
 
@@ -502,7 +188,7 @@ function_untested_main(){
   debug "$(gettext "Untested operating system. Installation is not possible.")"
 
   # exit 1
-  display_info "$(gettext "Untested operating system. Only manual installtion is possible.")" "$(gettext "Install script manually: 
+  display_info "$(gettext "Untested operating system. Only manual installation is possible.")" "$(gettext "Install script manually: 
   * Copy the script and the lib folder to your PATH.
   * Copy to locale folder to your locale folder.
   * Install dependencies.")"
