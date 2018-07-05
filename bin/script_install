@@ -63,6 +63,7 @@ __si_dir="$(cd "$(dirname "${BASH_SOURCE[${__si_tmp_source_idx:-0}]}")" && pwd)"
 __si_file="${__si_dir}/$(basename "${BASH_SOURCE[${__si_tmp_source_idx:-0}]}")"
 __si_base="$(basename "${__si_file}" .sh)"
 __si_user_home="$([[ "${SUDO_USER+x}" ]] && getent passwd "${SUDO_USER}" | cut -d: -f6 || echo "$HOME")"
+# shellcheck disable=SC2034
 __si_act_dir=$(pwd)
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
@@ -72,7 +73,7 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 #-------------------------------------------------------------------------------
 # Sourced files
 #-------------------------------------------------------------------------------
-export PATH="$(dirname ${__si_dir})/lib:$PATH"
+export PATH="$(dirname "${__si_dir}")/lib:$PATH"
 source log.sh || (echo "Fatal error: Cannot find log.sh!"; exit 1)
 source os_detection.sh || (echo "Fatal error: Cannot find os_detection.sh!"; exit 1)
 source display_info.sh || (echo "Fatal error: Cannot find display_info.sh!"; exit 1)
@@ -83,7 +84,7 @@ source gettext.sh || (echo "Fatal error: Cannot find gettext.sh!"; exit 1)
 #-------------------------------------------------------------------------------
 # Localization
 #-------------------------------------------------------------------------------
-export TEXTDOMAINDI="$(dirname ${__si_dir})/locale"
+export TEXTDOMAINDIR="$(dirname "${__si_dir}")/locale"
 export TEXTDOMAIN="${__si_base}"
 
 #-------------------------------------------------------------------------------
@@ -119,28 +120,6 @@ __si_license="$(gettext "Licensed under the MIT license")"
 #===============================================================================
 # Functions section
 #===============================================================================
-function check_dir() {
-local path="${1:-}"
-local mode="${2:-}"
-
-  debug "check_dir $@"
-  pathchk -P "${path}" || emergency "$(eval_gettext "Installation unsuccessful: unsupported foldername (\$path)")"
-  [[ "${path}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Installation unsuccessful: Unsupported characters in foldername (\$path)")"
-
-  if [[ ! -e "${path}" ]]; then
-    if [[ "${mode}" = "w" ]]; then 
-      mkdir "${path}" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: can not create \${path}")";
-      chown -R $(stat "${path}/.." -c %u:%g) "${path}" || emergency "$(eval_gettext "Installation unsuccessful: can not set permissions of \${path}")";
-    elif [[ "$mode" = "r" ]]; then emergency "$(eval_gettext "Installation unsuccessful: \${path} is not exists!")";
-    elif [[ "${mode}" = "e" ]]; then return;
-    fi
-  fi
-
-  [[ ! -d "${path}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${path} is not a directory")"
-  [[ ! -r "${path}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${path} is not readable!")"
-  [[ "${mode}" = "w" ]] && [[ ! -w "${path}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${path} is not writable")"
-  debug "check_dir OK"
-}
 #-------------------------------------------------------------------------------
 # Main function: Determine targetdir based on OS-type and ini-values, then call
 # install_files and edit_profile methods
@@ -170,9 +149,10 @@ local force="${__si_arg_f}"
   
   # Check targetdir
   pathchk -P "${targetdir}" || emergency "$(eval_gettext "Installation unsuccessful: unsupported foldername (\$targetdir)")"
+  # shellcheck disable=SC1001
   [[ "${targetdir}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Installation unsuccessful: Unsupported characters in foldername (\$targetdir)")"
   if [[ ! -e "${targetdir}" ]]; then
-    [[ ! -w "$(dirname ${targetdir})" ]] || emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} doesn't exist and cannot create")"
+    [[ ! -w "$(dirname "${targetdir}")" ]] || emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} doesn't exist and cannot create")"
   else
     [[ ! -d "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} is not a directory")"
     [[ ! -r "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} is not readable!")"
@@ -296,7 +276,11 @@ if [[ "${__si_tmp_opts:-}" ]]; then
                  # to be dereferenced
   # Overwrite $arg_<flag> defaults with the actual CLI options
   while getopts "${__si_tmp_opts}" __si_tmp_opt; do
-    [[ "${__si_tmp_opt}" = "?" ]] && (__si_tmp_params="${*}"; display_info "$(eval_gettext "Invalid use of script: \${__si_tmp_params}")" "\${__si_usage}" "\${__si_helptext}")
+    if [[ "${__si_tmp_opt}" = "?" ]]; then
+      # shellcheck disable=SC2034
+      __si_tmp_params="${*}"
+      display_info "$(eval_gettext "Invalid use of script: \${__si_tmp_params}")" "\${__si_usage}" "\${__si_helptext}"
+    fi
 
     if [[ "${__si_tmp_opt}" = "-" ]]; then
       # OPTARG is long-option-name or long-option=value
@@ -372,7 +356,8 @@ for __si_tmp_varname in ${!__si_tmp_has_arg_*}; do
   __si_tmp_varname="__si_tmp_opt_short2long_${__si_tmp_opt_short}"
   printf -v "__si_tmp_opt_long" '%s' "${!__si_tmp_varname}"
   [[ "${__si_tmp_opt_long:-}" ]] && __si_tmp_opt_long=" (--${__si_tmp_opt_long//_/-})"
-  
+ 
+  # shellcheck disable=SC2034 
   __si_tmp_fullopt=${__si_tmp_opt_short}${__si_tmp_opt_long:-}
   display_info "$(eval_gettext "Option -\${__si_tmp_fullopt} requires an argument")" "${__si_usage}" "${__si_helptext}"
 done
@@ -406,7 +391,9 @@ trap __si_cleanup_before_exit EXIT
 __si_err_report() {
   local error_code
   error_code=${?}
+  # shellcheck disable=SC2034
   function=${1}
+  # shellcheck disable=SC2034
   line=${2}
 
   error "$(eval_gettext "Error in \${__si_file} in function \${function} on line \${line}")"
