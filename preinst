@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #===============================================================================
-# Script name (shortname) - Short description for script
+# Preinstall script (preinst) - Short description for script
 # Licensed under the MIT license
 #
 # Long description of script
@@ -46,12 +46,20 @@ if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
     [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __preinst_srcd=0
     __preinst_tmp_source_idx=1
   fi
+  [[ "${__preinst_usage+x}" ]] && __preinst_external_usage=1
 else
   __preinst_srcd=0
+  [[ "${__preinst_usage+x}" ]] && unset -v __preinst_usage
+  [[ "${__preinst_helptext+x}" ]] && unset -v __preinst_helptext
 fi
 __preinst_dir="$(cd "$(dirname "${BASH_SOURCE[${__preinst_tmp_source_idx:-0}]}")" && pwd)"
 __preinst_file="${__preinst_dir}/$(basename "${BASH_SOURCE[${__preinst_tmp_source_idx:-0}]}")"
 __preinst_base="$(basename "${__preinst_file}" .sh)"
+__preinst_setenv="0"
+__preinst_daemons="0"
+__preinst_dependencies="0"
+__preinst_thirdparties="0"
+__preinst_packages=""
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 LOG_TIMEZONE="${LOG_TIMEZONE:-1}" # 0 = UTC, otherwise local
@@ -63,6 +71,7 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 export PATH="$(dirname "${__preinst_dir}")/lib:$PATH"
 source log.sh || (echo "Fatal error: Cannot find log.sh!"; exit 1)
 source os_detection.sh || (echo "Fatal error: Cannot find os_detection.sh!"; exit 1)
+source display_info.sh || (echo "Fatal error: Cannot find display_info.sh!"; exit 1)
 source gettext.sh || (echo "Fatal error: Cannot find gettext.sh!"; exit 1)
 
 #-------------------------------------------------------------------------------
@@ -71,64 +80,139 @@ source gettext.sh || (echo "Fatal error: Cannot find gettext.sh!"; exit 1)
 export TEXTDOMAINDIR="$(dirname "${__preinst_dir}")/locale"
 export TEXTDOMAIN="${__preinst_base}"
 
+#-------------------------------------------------------------------------------
+# Usage 
+#-------------------------------------------------------------------------------
+[[ "${__preinst_usage+x}" ]] || __preinst_usage="$(gettext "Available arguments:
+
+  -f --force       Force commands
+  -m --mode [arg]  Mode of install. Default=install
+                   It can be "install" or "upgrade"
+  -v               Enable verbose mode, print script as it is executed
+  -d --debug       Enables debug mode
+  -h --help        This page
+  -n --no-color    Disable color output
+  -V --version     Display version and license information")"
+
+[[ "${__preinst_helptext+x}" ]] || __preinst_helptext="$(gettext "Preinstall script for script installer")"
+__preinst_defaulttext="$(gettext "Default")"
+__preinst_requiredtext="$(gettext "Required")"
+__preinst_name="$(gettext "Preinstall script for script installer")"
+__preinst_version="v1.0.0"
+__preinst_license="$(gettext "Licensed under the MIT license")"
+
 #===============================================================================
 # Functions section
 #===============================================================================
-function check_files() {
-local files="${1:-}"
-local mode="${2:-}"
-
-  debug "check_files $*"
-  for file in ${files}; do
-    pathchk -P "${file}" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: unsupported filename (\$file)")"
-    # shellcheck disable=SC1001
-    [[ "${file}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Installation unsuccessful: Unsupported characters in filename (\$file)")"
-    if [[ "${file}" = /* ]] || [[ "${file}" = ../* ]] || [[ "${file}" = */.. ]] || [[ "${file}" = */. ]] || [[ "${file}" = */../* ]] || [[ "${file}" = */./* ]]; then 
-    #if [[ "${file}" = ../* ]] || [[ "${file}" = */.. ]] || [[ "${file}" = */. ]] || [[ "${file}" = */../* ]] || [[ "${file}" = */./* ]]; then 
-      emergency "$(eval_gettext "Installation unsuccessful: invalid filepath (\$file)")"
-    fi
-    [[ ! -e "${file}" ]] && emergency "$(eval_gettext "Installation unsuccessful: file not found (\$file)")"
-    [[ ! -f "${file}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \$file is not a file")"
-    [[ ! -r "${file}" ]] && emergency "$(eval_gettext "Installation unsuccessful: file not accessible (\$file)")"
-    [[ "${mode}" = "x" ]] && [[ ! -x "${file}" ]] && emergency "$(eval_gettext "Installation unsuccessful: file has not executable permissions (\$file)")"
-  done
-
-  debug "check_files OK"
+function set_env() {
+  # EDIT THIS FUNCTION
+  return 0
 }
-function run_scripts(){
-local scripts=${1:-}
-
-  for script in ${scripts}; do
-    "./${script}" || emergency "$(eval_gettext "Installation unsuccessful: running ./\${script} was failed")"
-  done
+function reset_env() {
+  # EDIT THIS FUNCTION
+  return 0
 }
-#-------------------------------------------------------------------------------
-# Main function
-# Arguments:
-#   None
-# Returns:
-#   None
-#-------------------------------------------------------------------------------
-function main() {
+function set_daemons() {
+  # EDIT THIS FUNCTION
+  return 0
+}
+function reset_daemons() {
+  # EDIT THIS FUNCTION
+  return 0
+}
+function install_dependencies(){
+local packages="${1:-}"
+local force=${2:-0}
+local result
 
-  # Settings environmental variables
+  debug "$(gettext "Starting package-installation")"
+  set +o errexit # Not exit on error, neccesary for logging package-management return codes
+  install_pkgs "${packages}" "${force}" 2>&1 | while read line; do debug "${line}"; done;
+  # debug "$(install_pkgs "${packages}" "${force}" 2>&1)" TODO: Testing, when no force arguments and apt-get wait for user-input
+  result=$?
+  set -o errexit # Exit on error
+  case $result in
+    0)
+      info "$(eval_gettext "Installation of following dependencies was succesful: \${packages}")"
+      return 0
+      ;;
+    1)
+      warning "$(gettext "No valid packages")"
+      return 0
+      ;;
+    2)
+      error "$(gettext "You need higher privileges for installing packages!")"
+      return 1
+      ;;
+    3)
+      error "$(eval_gettext "For installing following packages in macOS, you must use Homebrew or Macports: \${packages}")"
+      return 1
+      ;;
+    4)
+      error "$(eval_gettext "Install the following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: \${packages}")"
+      return 1
+      ;;
+    255)
+      error "$(eval_gettext "Unknown or unsupported operating system, cannot install following packages: \${packages}")"
+      return 1
+      ;;
+    *)
+      error "$(eval_gettext "Unknown error during installing packages! Error code: \$result")"
+      return 1
+      ;;
+  esac
+  debug "$(gettext "Finished the package-installation")"
+}
 
-  # Starting or stopping daemons or services
-  local preinst=$( os_ini_val "${inifile}" "install.preinst" )
-  check_files "${preinst}" "x"
-  run_scripts "${preinst}"
- 
-  # Install dependencies
-  local dependencies=$( os_ini_val "control" "dependencies" )
-  missingpkgs=$(check_pkgs "${dependencies}")
-  if [[ -n "${missingpkgs}" ]]; then 
-    debug "$(eval_gettext "Missing dependencies: \${missingpkgs}")"
-    install_dependencies "${missingpkgs}" "${force}" || emergency "$(gettext "Installation unsuccessful: there was an error during installing dependencies")"
-  fi
-  
-  # Install thirdparty dependencies
+function remove_dependencies(){
+local packages="${1:-}"
+local force=${2:-0}
+local result
 
-  exit $?
+  debug "$(gettext "Starting package-remove")"
+  set +o errexit # Not exit on error, neccesary for logging package-management return codes
+  remove_pkgs "${packages}" "1" 2>&1 | while read line; do info "${line}"; done;
+  result=$?
+  set -o errexit # Exit on error
+  case $result in 
+    0) 
+      info "$(eval_gettext "Removing of following dependencies was succesful: \${packages}")"
+      return 0
+      ;;
+    1)
+      warning "$(gettext "No valid packages")"
+      return 1
+      ;;
+    2)
+      error "$(gettext "You need higher privileges for removing packages!")"
+      return 1
+      ;;
+    3)
+      error "$(eval_gettext "For removing following packages in macOS, you must use Homebrew or Macports: \${packages}")"
+      return 1
+      ;;
+    4)
+      error "$(eval_gettext "Removing following packages from shell in cygwin, must be use apt-cyg, or install them with Cygwin setup.exe: \${packages}")"
+      return 1
+      ;;     
+    255)
+      error "$(eval_gettext "Unknown or unsupported operating system, cannot remove following packages: \${packages}")"
+      return 1
+      ;;
+    *)
+      error "$(gettext "Unknown error during removing packages!")"
+      return 1
+      ;;
+  esac
+  debug "$(gettext "Finished the package-removing")"
+}
+function install_thirdparties() {
+  # EDIT THIS FUNCTION
+  return 0
+}
+function remove_thirdparties() {
+  # EDIT THIS FUNCTION
+  return 0
 }
 
 #===============================================================================
@@ -136,20 +220,284 @@ function main() {
 #===============================================================================
 
 #-------------------------------------------------------------------------------
+# Parse usage string
+#-------------------------------------------------------------------------------
+while read -r __preinst_tmp_line; do
+  if [[ "${__preinst_tmp_line}" =~ ^- ]]; then
+    # fetch single character version of option string
+    __preinst_tmp_opt="${__preinst_tmp_line%% *}"
+    __preinst_tmp_opt="${__preinst_tmp_opt:1}"
+
+    # fetch long version if present
+    __preinst_tmp_long_opt=""
+
+    if [[ "${__preinst_tmp_line}" = *"--"* ]]; then
+      __preinst_tmp_long_opt="${__preinst_tmp_line#*--}"
+      __preinst_tmp_long_opt="${__preinst_tmp_long_opt%% *}"
+    fi
+
+    # map opt long name to+from opt short name
+    printf -v "__preinst_tmp_opt_long2short_${__preinst_tmp_long_opt//-/_}" '%s' "${__preinst_tmp_opt}"
+    printf -v "__preinst_tmp_opt_short2long_${__preinst_tmp_opt}" '%s' "${__preinst_tmp_long_opt//-/_}"
+
+    # check if option takes an argument
+    if [[ "${__preinst_tmp_line}" =~ \[.*\] ]]; then
+      __preinst_tmp_opt="${__preinst_tmp_opt}:" # add : if opt has arg
+      __preinst_tmp_init=""  # it has an arg. init with ""
+      printf -v "__preinst_tmp_has_arg_${__preinst_tmp_opt:0:1}" '%s' "1"
+    elif [[ "${__preinst_tmp_line}" =~ \{.*\} ]]; then
+      __preinst_tmp_opt="${__preinst_tmp_opt}:" # add : if opt has arg
+      __preinst_tmp_init=""  # it has an arg. init with ""
+      # remember that this option requires an argument
+      printf -v "__preinst_tmp_has_arg_${__preinst_tmp_opt:0:1}" '%s' "2"
+    else
+      __preinst_tmp_init="0" # it's a flag. init with 0
+      printf -v "__preinst_tmp_has_arg_${__preinst_tmp_opt:0:1}" '%s' "0"
+    fi
+    __preinst_tmp_opts="${__preinst_tmp_opts:-}${__preinst_tmp_opt}"
+  fi
+
+  [[ "${__preinst_tmp_opt:-}" ]] || continue
+
+  if [[ "${__preinst_tmp_line}" =~ ^"${__preinst_defaulttext}"= ]] || [[ "${__preinst_tmp_line}" =~ \.\ *"${__preinst_defaulttext}"= ]]; then
+    __preinst_tmp_default="1"
+    __preinst_tmp_defaulttext="${__preinst_defaulttext}"
+  elif [[ "${__preinst_tmp_line}" =~ ^Default= ]] || [[ "${__preinst_tmp_line}" =~ \.\ *Default= ]]; then
+    __preinst_tmp_default="1"
+    __preinst_tmp_defaulttext=Default
+  else
+    [[ ${__preinst_tmp_default+x} ]] && unset __preinst_tmp_default
+    [[ ${__preinst_tmp_defaulttext+x} ]] && unset __preinst_tmp_defaulttext
+  fi
+
+  if [[ ${__preinst_tmp_default:-} = "1" ]]; then
+    # ignore default value if option does not have an argument
+    __preinst_tmp_varname="__preinst_tmp_has_arg_${__preinst_tmp_opt:0:1}"
+
+    if [[ "${!__preinst_tmp_varname}" != "0" ]]; then
+      __preinst_tmp_init="${__preinst_tmp_line##*${__preinst_tmp_defaulttext}=}"
+      __preinst_tmp_re='^"(.*)"$'
+      if [[ "${__preinst_tmp_init}" =~ ${__preinst_tmp_re} ]]; then
+        __preinst_tmp_init="${BASH_REMATCH[1]}"
+      else
+        __preinst_tmp_re="^'(.*)'$"
+        if [[ "${__preinst_tmp_init}" =~ ${__preinst_tmp_re} ]]; then
+          __preinst_tmp_init="${BASH_REMATCH[1]}"
+        fi
+      fi
+    fi
+  fi
+
+  if [[ "${__preinst_tmp_line}" =~ ^"${__preinst_requiredtext}"\. ]] || [[ "${__preinst_tmp_line}" =~ \.\ *"${__preinst_requiredtext}"\. ]] || [[ "${__preinst_tmp_line}" =~ ^Required\. ]] || [[ "${__preinst_tmp_line}" =~ \.\ *Required\. ]]; then
+    # remember that this option requires an argument
+    printf -v "__preinst_tmp_has_arg_${__preinst_tmp_opt:0:1}" '%s' "2"
+  fi
+
+  printf -v "__preinst_arg_${__preinst_tmp_opt:0:1}" '%s' "${__preinst_tmp_init}"
+done <<< "${__preinst_usage:-}"
+
+#-------------------------------------------------------------------------------
+# Parse command-line arguments
+#-------------------------------------------------------------------------------
+# run getopts only if options were specified in __usage
+if [[ "${__preinst_tmp_opts:-}" ]]; then
+  # Allow long options like --this
+  __preinst_tmp_opts="${__preinst_tmp_opts}-:"
+
+  # Reset in case getopts has been used previously in the shell.
+  OPTIND=1
+
+  # start parsing command line
+  set +o nounset # unexpected arguments will cause unbound variables
+                 # to be dereferenced
+  # Overwrite $arg_<flag> defaults with the actual CLI options
+  while getopts "${__preinst_tmp_opts}" __preinst_tmp_opt; do
+    [[ "${__preinst_tmp_opt}" = "?" ]] && (__preinst_tmp_params="${*}"; display_info "$(eval_gettext "Invalid use of script: \${__preinst_tmp_params}")" "${__preinst_usage}" "${__preinst_helptext}")
+
+    if [[ "${__preinst_tmp_opt}" = "-" ]]; then
+      # OPTARG is long-option-name or long-option=value
+      if [[ "${OPTARG}" =~ .*=.* ]]; then
+        # --key=value format
+        __preinst_tmp_long_opt=${OPTARG/=*/}
+        # Set opt to the short option corresponding to the long option
+        __preinst_tmp_varname="__preinst_tmp_opt_long2short_${__preinst_tmp_long_opt//-/_}"
+        printf -v "__preinst_tmp_opt" '%s' "${!__preinst_tmp_varname}"
+        OPTARG=${OPTARG#*=}
+      else
+        # --key value format
+        # Map long name to short version of option
+        __preinst_tmp_varname="__preinst_tmp_opt_long2short_${OPTARG//-/_}"
+        printf -v "__preinst_tmp_opt" '%s' "${!__preinst_tmp_varname}"
+        # Only assign OPTARG if option takes an argument
+        __preinst_tmp_varname="__preinst_tmp_has_arg_${__preinst_tmp_opt}"
+        printf -v "OPTARG" '%s' "${@:OPTIND:${!__preinst_tmp_varname}}"
+        # shift over the argument if argument is expected
+        ((OPTIND+=__preinst_tmp_has_arg_${__preinst_tmp_opt}))
+      fi
+      # we have set opt/OPTARG to the short value and the argument as OPTARG if it exists
+    fi
+    __preinst_tmp_varname="__preinst_arg_${__preinst_tmp_opt:0:1}"
+    __preinst_tmp_default="${!__preinst_tmp_varname}"
+
+    __preinst_tmp_value="${OPTARG}"
+    if [[ -z "${OPTARG}" ]]; then
+      __preinst_tmp_value=$((__preinst_tmp_default + 1))
+    fi
+
+    printf -v "${__preinst_tmp_varname}" '%s' "${__preinst_tmp_value}"
+    debug "cli arg ${__preinst_tmp_varname} = (${__preinst_tmp_default}) -> ${!__preinst_tmp_varname}"
+  done
+  set -o nounset # no more unbound variable references expected
+
+  shift $((OPTIND-1))
+
+  if [[ "${1:-}" = "--" ]] ; then
+    shift
+  fi
+fi
+
+#-------------------------------------------------------------------------------
+# Helper functions
+#-------------------------------------------------------------------------------
+if [[ "${__preinst_arg_h:?}" = "1" ]]; then
+  # Help exists with code 1
+  display_info "$(eval_gettext "Help using \${__preinst_base}")" "${__preinst_usage}" "${__preinst_helptext}"
+fi
+
+if [[ "${__preinst_arg_V:?}" = "1" ]]; then
+  # Version exists with code 1
+  display_info "${__preinst_name}" "${__preinst_version}" "${__preinst_license}"
+fi
+
+#-------------------------------------------------------------------------------
+# Validate required arguments
+#-------------------------------------------------------------------------------
+[[ "${__preinst_arg_f:-}" ]] || display_info "$(gettext "Setting a filename with -f or --file is required")" "${__preinst_usage}" "${__preinst_helptext}"  
+[[ "${LOG_LEVEL:-}" ]] || emergency "$(gettext "Cannot continue without LOG_LEVEL.")"
+
+#-------------------------------------------------------------------------------
+# Validate required option arguments
+#-------------------------------------------------------------------------------
+for __preinst_tmp_varname in ${!__preinst_tmp_has_arg_*}; do
+  # validate only options which required an argument
+  [[ "${!__preinst_tmp_varname}" = "2" ]] || continue
+
+  __preinst_tmp_opt_short="${__preinst_tmp_varname##*_}"
+  __preinst_tmp_varname="__preinst_arg_${__preinst_tmp_opt_short}"
+  [[ "${!__preinst_tmp_varname}" ]] && continue
+
+  __preinst_tmp_varname="__preinst_tmp_opt_short2long_${__preinst_tmp_opt_short}"
+  printf -v "__preinst_tmp_opt_long" '%s' "${!__preinst_tmp_varname}"
+  [[ "${__preinst_tmp_opt_long:-}" ]] && __preinst_tmp_opt_long=" (--${__preinst_tmp_opt_long//_/-})"
+
+  display_info "$(eval_gettext "Option -\${__preinst_tmp_opt_short}\${__preinst_tmp_opt_long:-} requires an argument")" "${__preinst_usage}" "${__preinst_helptext}"
+done
+
+#-------------------------------------------------------------------------------
+# Cleanup temporary variables 
+#-------------------------------------------------------------------------------
+for __tmp_varname in ${!__preinst_tmp_*}; do
+  unset -v "${__tmp_varname}"
+done
+
+unset -v __tmp_varname
+
+#-------------------------------------------------------------------------------
+# Externally supplied __preinst_usage. Nothing else to do here
+#-------------------------------------------------------------------------------
+if [[ "${__preinst_external_usage:-}" == 1 ]]; then
+  unset -v __preinst_external_usage
+  return
+fi
+
+#-------------------------------------------------------------------------------
 # Signal trapping and backtracing
 #-------------------------------------------------------------------------------
 function __preinst_cleanup_before_exit () {
-  info "$(gettext "Cleaning up. Done")"
+  if [[ "${__preinst_thirdparties}" = "0" ]]; then
+    error "$(gettext "Revert changes.")"
+    remove_thirdparties || error "$(gettext "Revert changes was unsuccessful: there was errors during remove thirdparty dependencies.")"
+    remove_dependencies "${__preinst_packages}" "1" || error "$(eval_gettext "Revert changes was unsuccessful: there was an error during installing dependencies: \${__preinst_packages}")" 
+    reset_daemons || error "$(gettext "Revert changes was unsuccessful: there was an error during controlling daemons")"
+    reset_env || error "$(gettext "Revert changes was unsuccessful: there was an error during resetting environment variables")"
+  elif [[ "${__preinst_dependencies}" = "0" ]]; then
+    error "$(gettext "Revert changes.")"
+    remove_dependencies "${__preinst_packages}" "1" || error "$(eval_gettext "Revert changes was unsuccessful: there was an error during installing dependencies: \${__preinst_packages}")" 
+    reset_daemons || error "$(gettext "Revert changes was unsuccessful: there was an error during controlling daemons")"
+    reset_env || error "$(gettext "Revert changes was unsuccessful: there was an error during resetting environment variables")"
+  elif [[ "${__preinst_daemons}" = "0" ]]; then
+    error "$(gettext "Revert changes.")"
+    reset_daemons || error "$(gettext "Revert changes was unsuccessful: there was an error during controlling daemons")"
+    reset_env || error "$(gettext "Revert changes was unsuccessful: there was an error during resetting environment variables")"
+  elif [[ "${__preinst_setenv}" = "0" ]]; then
+    error "$(gettext "Revert changes.")"
+    reset_env || error "$(gettext "Revert changes was unsuccessful: there was an error during resetting environment variables")"
+  fi
 }
 trap __preinst_cleanup_before_exit EXIT
+
+# requires `set -o errtrace`
+__preinst_err_report() {
+    local error_code=${?}
+    local function=${1}
+    local line=${2}
+    
+    error "$(eval_gettext "Error in \${__preinst_file} in function \${function} on line \${line}")"
+    exit ${error_code}
+}
+# Uncomment the following line for always providing an error backtrace
+# trap '__preinst_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+
+#-------------------------------------------------------------------------------
+# Call internal functions
+#-------------------------------------------------------------------------------
+# debug mode
+if [[ "${__preinst_arg_d:?}" = "1" ]]; then
+  set -o xtrace
+  LOG_LEVEL="7"
+  # Enable error backtracing
+  trap '__preinst_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+fi
+
+# verbose mode
+if [[ "${__preinst_arg_v:?}" = "1" ]]; then
+  set -o verbose
+fi
+
+# no color mode
+if [[ "${__preinst_arg_n:?}" = "1" ]]; then
+  NO_COLOR="true"
+fi
 
 #-------------------------------------------------------------------------------
 # Runtime
 #-------------------------------------------------------------------------------
-if [[ "${__preinst_srcd:-}" = 0 ]]; then
-  main
-fi
+if [[ "${__preinst_srcd:-}" != "0" ]]; then exit 0; fi 
+if [[ "${__preinst_arg_m}" = install ]]; then
 
+  # Settings environmental variables - EDIT THIS SECTION
+  set_env || emergency "$(gettext "Installation unsuccessful: there was an error during setting environment variables")"
+  __preinst_setenv="1" # flag for set environment variables was success
+
+  # Starting or stopping daemons or services - EDIT THIS SECTION
+  set_daemons || emergency "$(gettext "Installation unsuccessful: there was an error during controlling daemons")"
+  __preinst_daemons="1" # flag for set daemons was success
+
+  # Install dependencies
+  local dependencies=$( os_ini_val "control" "dependencies" )
+  __preinst_packages=$(check_pkgs "${dependencies}")
+  if [[ -n "${__preinst_packages}" ]]; then 
+    debug "$(eval_gettext "Missing dependencies: \${missingpkgs}")"
+    install_dependencies "${__preinst_packages}" "${__preinst_arg_f}" || emergency "$(eval_gettext "Installation unsuccessful: there was an error during installing dependencies: \${__preinst_packages}")"
+  fi
+  __preinst_dependencies="1" # flag for package install was success
+
+  # Install thirdparty dependencies - EDIT THIS SECTION
+  install_thirdparties || emergency "$(gettext "Installation unsuccessful: there was an error during installing thirdparty dependencies")"
+  __preinst_thirdparties="1" # flag for thirdparty install was success
+
+fi
+exit $?
 #===============================================================================
 # END OF FILE
 #===============================================================================
