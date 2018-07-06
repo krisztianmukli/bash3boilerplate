@@ -120,65 +120,28 @@ __si_license="$(gettext "Licensed under the MIT license")"
 #===============================================================================
 # Functions section
 #===============================================================================
-#-------------------------------------------------------------------------------
-# Main function: Determine targetdir based on OS-type and ini-values, then call
-# install_files and edit_profile methods
-# Arguments:
-#   None
-# Returns:
-#   exit 1, if unsupported OS detected
-#-------------------------------------------------------------------------------
-function linux_main() {
-local sourcedir="${__si_arg_s}"
-local force="${__si_arg_f}"
+function install_dir() {
+local sourcedir="${1:-}"
+local targetdir="${2:-}"
 
-  # Check sourcedir
-  md5sum --status --check "${sourcedir}/md5sums" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: checksum error")"
+  if [[ -e "${targetdir}" ]]; then
 
-  __si_arg_t=$(sed "s|~|$HOME|g" <<< "${__si_arg_t:-}") # Workaround for such cases: "~/path/to/file"
-  __si_arg_t=$(tr "[:upper:]" "[:lower:]" <<< "${__si_arg_t}")
-
-  # Set targetdir
-  if [[ "${__si_arg_t}" =~ ^sys(tem)?(-wide)? ]]; then
-    targetdir="/usr/local"
-  elif [[ "${__si_arg_t}" =~ ^us(e)?r(-wide)?$ ]]; then 
-    targetdir="${__si_user_home}/.local"
-  else 
-    targetdir="${__si_arg_t}"
   fi
-  
-  # Check targetdir
-  pathchk -P "${targetdir}" || emergency "$(eval_gettext "Installation unsuccessful: unsupported foldername (\$targetdir)")"
-  # shellcheck disable=SC1001
-  [[ "${targetdir}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Installation unsuccessful: Unsupported characters in foldername (\$targetdir)")"
-  if [[ ! -e "${targetdir}" ]]; then
-    [[ ! -w "$(dirname "${targetdir}")" ]] || emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} doesn't exist and cannot create")"
-  else
-    [[ ! -d "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} is not a directory")"
-    [[ ! -r "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} is not readable!")"
-    [[ ! -w "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} is not writable")"
-  fi
+local owner="$(stat "${targetdir}" -c %u)"
+local group="$(stat "${targetdir}" -c %g)"
 
-  "${sourcedir}/preinst" || emergency "$(eval_gettext "Installation unsuccessful: preinstall task was failed.")"
-
+  for file in "${sourcedir}"; do
+    if [[ -f "${file}" ]]; then 
+      local mod="$(stat "${file}" -c %a)"
+      
+      install -C "${file}" "${targetdir}/${file}"
+    elif [[ -d "${file}" ]]; then install_dir "${file}" "${targetdir}"
+    else warning $(eval_gettext "\${file} is not recognized as a file or folder.")
+    fi
+  done
 
 }
 
-function_untested_main(){
-  debug "$(gettext "Untested operating system. Installation is not possible.")"
-
-  # exit 1
-  display_info "$(gettext "Untested operating system. Only manual installation is possible.")" "$(gettext "Install script manually: 
-  * Copy the script and the lib folder to your PATH.
-  * Copy to locale folder to your locale folder.
-  * Install dependencies.")"
-}
-
-function unknown_main(){
-  debug "$(gettext "Unsupported operating system. Installation is not possible.")"
-  # exit 1
-  emergency "$(gettext "Unsupported operating system. Installation is not possible.")"
-}
 #===============================================================================
 # Main section
 #===============================================================================
@@ -426,15 +389,60 @@ fi
 #-------------------------------------------------------------------------------
 # Runtime
 #-------------------------------------------------------------------------------
-if [[ "${__si_srcd:-}" == 0 ]]; then
-  
-  # Check supported OS, otherwise exit or untested
-  if [[ "${__ostype}" = "linux-gnu" ]]; then linux_main;
-  elif [[ "${__ostype}" = "unknown" ]] ; then unknown_main;
-  else untested_os_main
-  fi
-
+if [[ "${__si_srcd:-}" != "0" ]]; then exit 0; fi
+i
+# Check supported operating system
+if [[ "${__ostype}" = "unknown" ]] ; then
+  emergency "$(gettext "Unsupported operating system. Installation is not possible.")"
+elif [[ "${__ostype}" != "linux-gnu" ]]; then
+  emergency "$(gettext "Untested operating system. Installation is not possible.")" 
 fi
+
+# Set sourcedir
+sourcedir="${__si_arg_s:-}"
+
+# Check sourcedir
+md5sum --status --check "${sourcedir}/md5sums" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: checksum error")"
+
+# Set targetdir
+__si_arg_t=$(sed "s|~|$HOME|g" <<< "${__si_arg_t:-}") # Workaround for such cases: "~/path/to/file"
+__si_arg_t=$(tr "[:upper:]" "[:lower:]" <<< "${__si_arg_t}")
+
+if [[ "${__si_arg_t}" =~ ^sys(tem)?(-wide)? ]]; then
+  targetdir="/usr/local"
+elif [[ "${__si_arg_t}" =~ ^us(e)?r(-wide)?$ ]]; then 
+  targetdir="${__si_user_home}/.local"
+else 
+  targetdir="${__si_arg_t}"
+fi
+
+# Check targetdir
+pathchk -P "${targetdir}" || emergency "$(eval_gettext "Installation unsuccessful: unsupported foldername (\$targetdir)")"
+
+# shellcheck disable=SC1001
+[[ "${targetdir}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Installation unsuccessful: Unsupported characters in foldername (\$targetdir)")"
+
+if [[ ! -e "${targetdir}" ]]; then 
+  owner="$(stat "$(dirname "${targetdir}")" -c %u)"
+  group="$(stat "$(dirname "${targetdir}")" -c %g)"
+  mod="$(stat "$(dirname "${targetdir}")" -c %a)"
+  install -d -o "${owner}" -g "${group}" -m "${mod}" "${targetdir}" || emergency "$(eval_gettext "Installation unsuccessful: can not create \${targetdir}")";
+fi
+
+[[ ! -d "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} is not a directory")"
+[[ ! -r "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} is not readable!")"
+[[ ! -w "${targetdir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${targetdir} is not writable")"
+
+# Preinstall
+"${sourcedir}/preinst" "${force}" || emergency "$(eval_gettext "Installation unsuccessful: preinstall task was failed.")"
+
+# Install
+owner="$(stat "${targetdir}" -c %u)"
+group="$(stat "${targetdir}" -c %g)"
+mod="$(stat "${targetdir}" -c %a)"
+install_dir "${sourcedir}/bin" "${targetdir}/bin" 
+
+# Postinstall
 
 #===============================================================================
 # END OF FILE
