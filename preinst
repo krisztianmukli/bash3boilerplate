@@ -87,7 +87,7 @@ export TEXTDOMAIN="${__preinst_base}"
 
   -f --force       Force commands
   -m --mode [arg]  Mode of install. Default=install
-                   It can be "install" or "upgrade"
+                   It can be \"install\" or \"revert\"
   -v               Enable verbose mode, print script as it is executed
   -d --debug       Enables debug mode
   -h --help        This page
@@ -312,7 +312,11 @@ if [[ "${__preinst_tmp_opts:-}" ]]; then
                  # to be dereferenced
   # Overwrite $arg_<flag> defaults with the actual CLI options
   while getopts "${__preinst_tmp_opts}" __preinst_tmp_opt; do
-    [[ "${__preinst_tmp_opt}" = "?" ]] && (__preinst_tmp_params="${*}"; display_info "$(eval_gettext "Invalid use of script: \${__preinst_tmp_params}")" "${__preinst_usage}" "${__preinst_helptext}")
+    if [[ "${__preinst_tmp_opt}" = "?" ]]; then
+      # shellcheck disable=SC2034
+      __preinst_tmp_params="${*}"
+      display_info "$(eval_gettext "Invalid use of script: \${__preinst_tmp_params}")" "${__preinst_usage}" "${__preinst_helptext}"
+    fi
 
     if [[ "${__preinst_tmp_opt}" = "-" ]]; then
       # OPTARG is long-option-name or long-option=value
@@ -439,7 +443,9 @@ trap __preinst_cleanup_before_exit EXIT
 # requires `set -o errtrace`
 __preinst_err_report() {
     local error_code=${?}
+    # shellcheck disable=SC2034
     local function=${1}
+    # shellcheck disable=SC2034
     local line=${2}
     
     error "$(eval_gettext "Error in \${__preinst_file} in function \${function} on line \${line}")"
@@ -473,7 +479,7 @@ fi
 # Runtime
 #-------------------------------------------------------------------------------
 if [[ "${__preinst_srcd:-}" != "0" ]]; then exit 0; fi 
-if [[ "${__preinst_arg_m}" = install ]]; then
+if [[ "${__preinst_arg_m}" = "install" ]]; then
 
   # Settings environmental variables - EDIT THIS SECTION
   set_env || emergency "$(gettext "Installation unsuccessful: there was an error during setting environment variables")"
@@ -496,6 +502,7 @@ if [[ "${__preinst_arg_m}" = install ]]; then
   install_thirdparties || emergency "$(gettext "Installation unsuccessful: there was an error during installing thirdparty dependencies")"
   __preinst_thirdparties="1" # flag for thirdparty install was success
 
+elif [[ "${__preinst_arg_m}" = "revert" ]]; then exit 0; # call __preinst_cleanup_before_exit
 fi
 exit $?
 #===============================================================================

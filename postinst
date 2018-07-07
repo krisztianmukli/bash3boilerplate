@@ -1,0 +1,408 @@
+#!/usr/bin/env bash
+#===============================================================================
+# Postinstall script (postinst) - Short description for script
+# Licensed under the MIT license
+#
+# Long description of script
+# 
+# Copyright (c) <year> <copyright-holder>
+# <url>
+#
+# Notes
+#-------------------------------------------------------------------------------
+# Quickstart
+# Setup information
+# Changelog
+# ToDo
+# Known bugs
+#
+# Based on BASH3 Boilerplate by krisztianmukli v1.0.0
+#===============================================================================
+# Init section
+#===============================================================================
+# Allowing aliases
+shopt -s expand_aliases
+# Exit on error 
+set -o errexit 
+# Exit on error inside any functions or subshells
+set -o errtrace
+# Do not allow use of undefined vars. Use ${VAR:-} to use an undefined VAR
+set -o nounset 
+# Catch the error when mysqldump fails (but gzip succeeds) in `mysqldump |gzip`
+set -o pipefail 
+# Turn on traces, useful while debugging but commented out by default
+#set -o xtrace
+
+#===============================================================================
+# Globals section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Environment variables
+#-------------------------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
+  __postinst_srcd=1
+  if [[ "${BASH_SOURCE[1]+x}" ]]; then
+    [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __postinst_srcd=0
+    __postinst_tmp_source_idx=1
+  fi
+  [[ "${__postinst_usage+x}" ]] && __postinst_external_usage=1
+else
+  __postinst_srcd=0
+  [[ "${__postinst_usage+x}" ]] && unset -v __postinst_usage
+  [[ "${__postinst_helptext+x}" ]] && unset -v __postinst_helptext
+fi
+__postinst_dir="$(cd "$(dirname "${BASH_SOURCE[${__postinst_tmp_source_idx:-0}]}")" && pwd)"
+__postinst_file="${__postinst_dir}/$(basename "${BASH_SOURCE[${__postinst_tmp_source_idx:-0}]}")"
+__postinst_base="$(basename "${__postinst_file}" .sh)"
+__postinst_setenv="0"
+__postinst_edit_profile="0"
+__postinst_daemons="0"
+
+LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
+LOG_TIMEZONE="${LOG_TIMEZONE:-1}" # 0 = UTC, otherwise local
+NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
+
+#-------------------------------------------------------------------------------
+# Sourced files
+#-------------------------------------------------------------------------------
+export PATH="${__postinst_dir}:${__postinst_dir}/lib:$PATH"
+source log.sh || (echo "Fatal error: Cannot find log.sh!"; exit 1)
+source os_detection.sh || (echo "Fatal error: Cannot find os_detection.sh!"; exit 1)
+source display_info.sh || (echo "Fatal error: Cannot find display_info.sh!"; exit 1)
+source gettext.sh || (echo "Fatal error: Cannot find gettext.sh!"; exit 1)
+
+#-------------------------------------------------------------------------------
+# Localization
+#-------------------------------------------------------------------------------
+export TEXTDOMAINDIR="$(dirname "${__postinst_dir}")/locale"
+export TEXTDOMAIN="${__postinst_base}"
+
+#-------------------------------------------------------------------------------
+# Usage 
+#-------------------------------------------------------------------------------
+[[ "${__postinst_usage+x}" ]] || __postinst_usage="$(gettext "Available arguments:
+
+  -f --file  [arg] Filename to process. Required.
+  -t --temp  [arg] Location of tempfile. Default=\"/tmp/bar\"
+  -v               Enable verbose mode, print script as it is executed
+  -d --debug       Enables debug mode
+  -h --help        This page
+  -n --no-color    Disable color output
+  -1 --one         Do just one thing
+  -V --version     Display version and license information")"
+
+[[ "${__postinst_helptext+x}" ]] || __postinst_helptext="$(gettext "This is Bash3 Boilerplates help text. Feel free to add any description of your
+ program or elaborate more on command-line arguments. This section is not
+ parsed and will be added as-is to the help.")"
+__postinst_defaulttext="$(gettext "Default")"
+__postinst_requiredtext="$(gettext "Required")"
+__postinst_name="$(gettext "BASH3 Boilerplate by krisztianmukli")"
+__postinst_version="v1.0.0"
+__postinst_license="$(gettext "Licensed under the MIT license")"
+
+#===============================================================================
+# Functions section
+#===============================================================================
+#-------------------------------------------------------------------------------
+# Main function
+# Arguments:
+#   None
+# Returns:
+#   None
+#-------------------------------------------------------------------------------
+function main() {
+  if [[ "${__postinst_arg_f}" = "test" ]]; then
+    echo "${__postinst_name}"
+    gettext "Demo and test of the Bash-script template"
+  fi
+
+  create_tempdir 
+  [[ -d "${__postinst_tmpdir}" ]] && touch "${__postinst_tmpdir}/testfile"
+
+  info "__postinst_srcd: ${__postinst_srcd}"
+  info "__postinst_file: ${__postinst_file}"
+  info "__postinst_dir: ${__postinst_dir}"
+  info "__postinst_base: ${__postinst_base}"
+  
+  info "__ostype: ${__ostype}"
+  info "__osfamily: ${__osfamily}"
+  info "__osname: ${__osname}"
+  info "__osversion: ${__osversion}"
+  info "__kernelversion: ${__kernelversion}"
+  info "__arch: ${__arch}"
+  info "__subsystem: ${__subsystem}"
+
+  info "__postinst_arg_f: ${__postinst_arg_f}"
+  info "__postinst_arg_d: ${__postinst_arg_d}"
+  info "__postinst_arg_v: ${__postinst_arg_v}"
+  info "__postinst_arg_h: ${__postinst_arg_h}"
+  info "__postinst_arg_t: ${__postinst_arg_t}"
+
+  info "$(echo -e "$(gettext "multiple lines example - line #1\\nmultiple lines example - line #2\\nimagine logging the output of 'ls -al /path/'")")"
+
+  # All of these go to STDERR, so you can use STDOUT for piping machine readable information to other software
+  debug "$(gettext "Info useful to developers for debugging the application, not useful during operations.")"
+  info "$(gettext "Normal operational messages - may be harvested for reporting, measuring throughput, etc. - no action required.")"
+  notice "$(gettext "Events that are unusual but not error conditions - might be summarized in an email to developers or admins to spot potential problems - no immediate action required.")"
+  warning "$(gettext "Warning messages, not an error, but indication that an error will occur if action is not taken, e.g. file system 85% full - each item must be resolved within a given time. This is a debug message")"
+  error "$(gettext "Non-urgent failures, these should be relayed to developers or admins; each item must be resolved within a given time.")"
+  critical "$(gettext "Should be corrected immediately, but indicates failure in a primary system, an example is a loss of a backup ISP connection.")"
+  alert "$(gettext "Should be corrected immediately, therefore notify staff who can fix the problem. An example would be the loss of a primary ISP connection.")"
+  if [[ "${__postinst_arg_f}" != "test" ]]; then
+    emergency "$(gettext "A \\\"panic\\\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call.")"
+  fi
+  read -n 1 -s -r -p "$(gettext "Press any key to continue")" && echo ""
+}
+
+#===============================================================================
+# Main section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Parse usage string
+#-------------------------------------------------------------------------------
+while read -r __postinst_tmp_line; do
+  if [[ "${__postinst_tmp_line}" =~ ^- ]]; then
+    # fetch single character version of option string
+    __postinst_tmp_opt="${__postinst_tmp_line%% *}"
+    __postinst_tmp_opt="${__postinst_tmp_opt:1}"
+
+    # fetch long version if present
+    __postinst_tmp_long_opt=""
+
+    if [[ "${__postinst_tmp_line}" = *"--"* ]]; then
+      __postinst_tmp_long_opt="${__postinst_tmp_line#*--}"
+      __postinst_tmp_long_opt="${__postinst_tmp_long_opt%% *}"
+    fi
+
+    # map opt long name to+from opt short name
+    printf -v "__postinst_tmp_opt_long2short_${__postinst_tmp_long_opt//-/_}" '%s' "${__postinst_tmp_opt}"
+    printf -v "__postinst_tmp_opt_short2long_${__postinst_tmp_opt}" '%s' "${__postinst_tmp_long_opt//-/_}"
+
+    # check if option takes an argument
+    if [[ "${__postinst_tmp_line}" =~ \[.*\] ]]; then
+      __postinst_tmp_opt="${__postinst_tmp_opt}:" # add : if opt has arg
+      __postinst_tmp_init=""  # it has an arg. init with ""
+      printf -v "__postinst_tmp_has_arg_${__postinst_tmp_opt:0:1}" '%s' "1"
+    elif [[ "${__postinst_tmp_line}" =~ \{.*\} ]]; then
+      __postinst_tmp_opt="${__postinst_tmp_opt}:" # add : if opt has arg
+      __postinst_tmp_init=""  # it has an arg. init with ""
+      # remember that this option requires an argument
+      printf -v "__postinst_tmp_has_arg_${__postinst_tmp_opt:0:1}" '%s' "2"
+    else
+      __postinst_tmp_init="0" # it's a flag. init with 0
+      printf -v "__postinst_tmp_has_arg_${__postinst_tmp_opt:0:1}" '%s' "0"
+    fi
+    __postinst_tmp_opts="${__postinst_tmp_opts:-}${__postinst_tmp_opt}"
+  fi
+
+  [[ "${__postinst_tmp_opt:-}" ]] || continue
+
+  if [[ "${__postinst_tmp_line}" =~ ^"${__postinst_defaulttext}"= ]] || [[ "${__postinst_tmp_line}" =~ \.\ *"${__postinst_defaulttext}"= ]]; then
+    __postinst_tmp_default="1"
+    __postinst_tmp_defaulttext="${__postinst_defaulttext}"
+  elif [[ "${__postinst_tmp_line}" =~ ^Default= ]] || [[ "${__postinst_tmp_line}" =~ \.\ *Default= ]]; then
+    __postinst_tmp_default="1"
+    __postinst_tmp_defaulttext=Default
+  else
+    [[ ${__postinst_tmp_default+x} ]] && unset __postinst_tmp_default
+    [[ ${__postinst_tmp_defaulttext+x} ]] && unset __postinst_tmp_defaulttext
+  fi
+
+  if [[ ${__postinst_tmp_default:-} = "1" ]]; then
+    # ignore default value if option does not have an argument
+    __postinst_tmp_varname="__postinst_tmp_has_arg_${__postinst_tmp_opt:0:1}"
+
+    if [[ "${!__postinst_tmp_varname}" != "0" ]]; then
+      __postinst_tmp_init="${__postinst_tmp_line##*${__postinst_tmp_defaulttext}=}"
+      __postinst_tmp_re='^"(.*)"$'
+      if [[ "${__postinst_tmp_init}" =~ ${__postinst_tmp_re} ]]; then
+        __postinst_tmp_init="${BASH_REMATCH[1]}"
+      else
+        __postinst_tmp_re="^'(.*)'$"
+        if [[ "${__postinst_tmp_init}" =~ ${__postinst_tmp_re} ]]; then
+          __postinst_tmp_init="${BASH_REMATCH[1]}"
+        fi
+      fi
+    fi
+  fi
+
+  if [[ "${__postinst_tmp_line}" =~ ^"${__postinst_requiredtext}"\. ]] || [[ "${__postinst_tmp_line}" =~ \.\ *"${__postinst_requiredtext}"\. ]] || [[ "${__postinst_tmp_line}" =~ ^Required\. ]] || [[ "${__postinst_tmp_line}" =~ \.\ *Required\. ]]; then
+    # remember that this option requires an argument
+    printf -v "__postinst_tmp_has_arg_${__postinst_tmp_opt:0:1}" '%s' "2"
+  fi
+
+  printf -v "__postinst_arg_${__postinst_tmp_opt:0:1}" '%s' "${__postinst_tmp_init}"
+done <<< "${__postinst_usage:-}"
+
+#-------------------------------------------------------------------------------
+# Parse command-line arguments
+#-------------------------------------------------------------------------------
+# run getopts only if options were specified in __usage
+if [[ "${__postinst_tmp_opts:-}" ]]; then
+  # Allow long options like --this
+  __postinst_tmp_opts="${__postinst_tmp_opts}-:"
+
+  # Reset in case getopts has been used previously in the shell.
+  OPTIND=1
+
+  # start parsing command line
+  set +o nounset # unexpected arguments will cause unbound variables
+                 # to be dereferenced
+  # Overwrite $arg_<flag> defaults with the actual CLI options
+  while getopts "${__postinst_tmp_opts}" __postinst_tmp_opt; do
+    [[ "${__postinst_tmp_opt}" = "?" ]] && (__postinst_tmp_params="${*}"; display_info "$(eval_gettext "Invalid use of script: \${__postinst_tmp_params}")" "${__postinst_usage}" "${__postinst_helptext}")
+
+    if [[ "${__postinst_tmp_opt}" = "-" ]]; then
+      # OPTARG is long-option-name or long-option=value
+      if [[ "${OPTARG}" =~ .*=.* ]]; then
+        # --key=value format
+        __postinst_tmp_long_opt=${OPTARG/=*/}
+        # Set opt to the short option corresponding to the long option
+        __postinst_tmp_varname="__postinst_tmp_opt_long2short_${__postinst_tmp_long_opt//-/_}"
+        printf -v "__postinst_tmp_opt" '%s' "${!__postinst_tmp_varname}"
+        OPTARG=${OPTARG#*=}
+      else
+        # --key value format
+        # Map long name to short version of option
+        __postinst_tmp_varname="__postinst_tmp_opt_long2short_${OPTARG//-/_}"
+        printf -v "__postinst_tmp_opt" '%s' "${!__postinst_tmp_varname}"
+        # Only assign OPTARG if option takes an argument
+        __postinst_tmp_varname="__postinst_tmp_has_arg_${__postinst_tmp_opt}"
+        printf -v "OPTARG" '%s' "${@:OPTIND:${!__postinst_tmp_varname}}"
+        # shift over the argument if argument is expected
+        ((OPTIND+=__postinst_tmp_has_arg_${__postinst_tmp_opt}))
+      fi
+      # we have set opt/OPTARG to the short value and the argument as OPTARG if it exists
+    fi
+    __postinst_tmp_varname="__postinst_arg_${__postinst_tmp_opt:0:1}"
+    __postinst_tmp_default="${!__postinst_tmp_varname}"
+
+    __postinst_tmp_value="${OPTARG}"
+    if [[ -z "${OPTARG}" ]]; then
+      __postinst_tmp_value=$((__postinst_tmp_default + 1))
+    fi
+
+    printf -v "${__postinst_tmp_varname}" '%s' "${__postinst_tmp_value}"
+    debug "cli arg ${__postinst_tmp_varname} = (${__postinst_tmp_default}) -> ${!__postinst_tmp_varname}"
+  done
+  set -o nounset # no more unbound variable references expected
+
+  shift $((OPTIND-1))
+
+  if [[ "${1:-}" = "--" ]] ; then
+    shift
+  fi
+fi
+
+#-------------------------------------------------------------------------------
+# Helper functions
+#-------------------------------------------------------------------------------
+if [[ "${__postinst_arg_h:?}" = "1" ]]; then
+  # Help exists with code 1
+  display_info "$(eval_gettext "Help using \${__postinst_base}")" "${__postinst_usage}" "${__postinst_helptext}"
+fi
+
+if [[ "${__postinst_arg_V:?}" = "1" ]]; then
+  # Version exists with code 1
+  display_info "${__postinst_name}" "${__postinst_version}" "${__postinst_license}"
+fi
+
+#-------------------------------------------------------------------------------
+# Validate required arguments
+#-------------------------------------------------------------------------------
+[[ "${__postinst_arg_f:-}" ]] || display_info "$(gettext "Setting a filename with -f or --file is required")" "${__postinst_usage}" "${__postinst_helptext}"  
+[[ "${LOG_LEVEL:-}" ]] || emergency "$(gettext "Cannot continue without LOG_LEVEL.")"
+
+#-------------------------------------------------------------------------------
+# Validate required option arguments
+#-------------------------------------------------------------------------------
+for __postinst_tmp_varname in ${!__postinst_tmp_has_arg_*}; do
+  # validate only options which required an argument
+  [[ "${!__postinst_tmp_varname}" = "2" ]] || continue
+
+  __postinst_tmp_opt_short="${__postinst_tmp_varname##*_}"
+  __postinst_tmp_varname="__postinst_arg_${__postinst_tmp_opt_short}"
+  [[ "${!__postinst_tmp_varname}" ]] && continue
+
+  __postinst_tmp_varname="__postinst_tmp_opt_short2long_${__postinst_tmp_opt_short}"
+  printf -v "__postinst_tmp_opt_long" '%s' "${!__postinst_tmp_varname}"
+  [[ "${__postinst_tmp_opt_long:-}" ]] && __postinst_tmp_opt_long=" (--${__postinst_tmp_opt_long//_/-})"
+
+  display_info "$(eval_gettext "Option -\${__postinst_tmp_opt_short}\${__postinst_tmp_opt_long:-} requires an argument")" "${__postinst_usage}" "${__postinst_helptext}"
+done
+
+#-------------------------------------------------------------------------------
+# Cleanup temporary variables 
+#-------------------------------------------------------------------------------
+for __tmp_varname in ${!__postinst_tmp_*}; do
+  unset -v "${__tmp_varname}"
+done
+
+unset -v __tmp_varname
+
+#-------------------------------------------------------------------------------
+# Externally supplied __postinst_usage. Nothing else to do here
+#-------------------------------------------------------------------------------
+if [[ "${__postinst_external_usage:-}" == 1 ]]; then
+  unset -v __postinst_external_usage
+  return
+fi
+
+#-------------------------------------------------------------------------------
+# Signal trapping and backtracing
+#-------------------------------------------------------------------------------
+function create_tempdir() {
+  (umask 077 && mkdir "${__postinst_tmpdir}") || emergency "$(gettext "Could not create temporary directory! Exiting.")"
+}
+
+function __postinst_cleanup_before_exit () {
+  rm -rf "${__postinst_tmpdir}"
+  info "$(gettext "Cleaning up. Done")"
+}
+trap __postinst_cleanup_before_exit EXIT
+
+# requires `set -o errtrace`
+__postinst_err_report() {
+    local error_code=${?}
+    local function=${1}
+    local line=${2}
+    
+    error "$(eval_gettext "Error in \${__postinst_file} in function \${function} on line \${line}")"
+    exit ${error_code}
+}
+# Uncomment the following line for always providing an error backtrace
+# trap '__postinst_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+
+#-------------------------------------------------------------------------------
+# Call internal functions
+#-------------------------------------------------------------------------------
+# debug mode
+if [[ "${__postinst_arg_d:?}" = "1" ]]; then
+  set -o xtrace
+  LOG_LEVEL="7"
+  # Enable error backtracing
+  trap '__postinst_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+fi
+
+# verbose mode
+if [[ "${__postinst_arg_v:?}" = "1" ]]; then
+  set -o verbose
+fi
+
+# no color mode
+if [[ "${__postinst_arg_n:?}" = "1" ]]; then
+  NO_COLOR="true"
+fi
+
+#-------------------------------------------------------------------------------
+# Runtime
+#-------------------------------------------------------------------------------
+if [[ "${__postinst_srcd:-}" == 0 ]]; then
+  main
+fi
+
+#===============================================================================
+# END OF FILE
+#===============================================================================
