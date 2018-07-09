@@ -1,0 +1,352 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: BASH3 Boilerplate by krisztianmukli\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-06-27 09:44+0200\n"
+"PO-Revision-Date: 2018-06-27 09:45+0200\n"
+"Last-Translator: Mukli Krisztián <krisztianmukli@mukli.hu>\n"
+"Language-Team: Krisztian Mukli <krisztianmukli@mukli.hu>\n"
+"Language: en_US\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.6\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: script_install:101
+#, sh-format
+msgid ""
+"Available arguments:\n"
+"\n"
+"  -c --check-dependencies  Check dependencies of specified script\n"
+"  -d --debug               Enables debug mode\n"
+"  -f --force               Forcing commands (e.g. overwrite existing files)\n"
+"  -h --help                This page\n"
+"  -i --ini [inifile]       Ini-file using the installation. If not set, "
+"installer use [sourcedir]/install.ini\n"
+"  -n --no-color            Disable color output\n"
+"  -s --source [sourcedir]  Source dir of script. Default=\"$__si_act_dir\"\n"
+"  -t --target [targetdir]  Target directory. Default=system-wide\n"
+"                           You can use following abbreviations, or specify "
+"explicit target:\n"
+"                           * 'sys', 'system' or 'system-wide' for /usr/local/"
+"bin (/usr/local/share/locale for localization)\n"
+"                           * 'usr', 'user' or 'user-wide' for ~/.local/bin "
+"(~/.local/share/locale for localization)\n"
+"                           If specify explicit targetdir, script libraries "
+"and locale will install to that folder.\n"
+"                           Optional, if not specified, script assumes system-"
+"wide installation, \n"
+"                           fallback to user-wide if user hasn't root "
+"permission.\n"
+"\n"
+"  -v                       Enable verbose mode, print script as it is "
+"executed\n"
+"  -V --version             Display version and license information"
+msgstr ""
+"Available arguments:\n"
+"\n"
+"  -c --check-dependencies  Check dependencies of specified script\n"
+"  -d --debug               Enables debug mode\n"
+"  -f --force               Forcing commands (e.g. overwrite existing files)\n"
+"  -h --help                This page\n"
+"  -i --ini [inifile]       Ini-file using the installation. If not set, "
+"installer use [sourcedir]/install.ini\n"
+"  -n --no-color            Disable color output\n"
+"  -s --source [sourcedir]  Source dir of script. Default=\"$__si_act_dir\"\n"
+"  -t --target [targetdir]  Target directory. Default=system-wide\n"
+"                           You can use following abbreviations, or specify "
+"explicit target:\n"
+"                           * 'sys', 'system' or 'system-wide' for /usr/local/"
+"bin (/usr/local/share/locale for localization)\n"
+"                           * 'usr', 'user' or 'user-wide' for ~/.local/bin "
+"(~/.local/share/locale for localization)\n"
+"                           If specify explicit targetdir, script libraries "
+"and locale will install to that folder.\n"
+"                           Optional, if not specified, script assumes system-"
+"wide installation, \n"
+"                           fallback to user-wide if user hasn't root "
+"permission.\n"
+"\n"
+"  -v                       Enable verbose mode, print script as it is "
+"executed\n"
+"  -V --version             Display version and license information"
+
+#: script_install:121
+msgid ""
+"This command can install bash-script and it's dependencies from a specified\n"
+" folder, using install.ini file. \n"
+" It is part of BASH3 Boilerplate by krisztianmukli project."
+msgstr ""
+"This command can install bash-script and it's dependencies from a specified\n"
+" folder, using install.ini file. \n"
+" It is part of BASH3 Boilerplate by krisztianmukli project."
+
+#: script_install:124
+msgid "Default"
+msgstr "Default"
+
+#: script_install:125
+msgid "Required"
+msgstr "Required"
+
+#: script_install:126
+msgid "Standalone script installer"
+msgstr "Standalone script installer"
+
+#: script_install:128
+msgid "Licensed under the MIT license"
+msgstr "Licensed under the MIT license"
+
+#: script_install:138
+msgid "Starting package-installation"
+msgstr "Starting package-installation"
+
+#: script_install:145
+#, sh-format
+msgid "Installation of following dependencies was succesful: ${missingpkgs}"
+msgstr "Installation of following dependencies was succesful: ${missingpkgs}"
+
+#: script_install:149
+msgid "No valid packages"
+msgstr "No valid packages"
+
+#: script_install:153
+msgid "You need higher privileges for installing packages!"
+msgstr "You need higher privileges for installing packages!"
+
+#: script_install:157
+#, sh-format
+msgid ""
+"For installing following packages in macOS, you must use Homebrew or "
+"Macports: ${missingpkgs}"
+msgstr ""
+"For installing following packages in macOS, you must use Homebrew or "
+"Macports: ${missingpkgs}"
+
+#: script_install:161
+#, sh-format
+msgid ""
+"Install the following packages from shell in cygwin, must be use apt-cyg, or "
+"install them with Cygwin setup.exe: ${missingpkgs}"
+msgstr ""
+"Install the following packages from shell in cygwin, must be use apt-cyg, or "
+"install them with Cygwin setup.exe: ${missingpkgs}"
+
+#: script_install:165
+#, sh-format
+msgid ""
+"Unknown or unsupported operating system, cannot install following packages: "
+"${missingpkgs}"
+msgstr ""
+"Unknown or unsupported operating system, cannot install following packages: "
+"${missingpkgs}"
+
+#: script_install:169
+msgid "Unknown error during installing packages!"
+msgstr "Unknown error during installing packages!"
+
+#: script_install:173
+msgid "Finished the package-installation"
+msgstr "Finished the package-installation"
+
+#: script_install:201
+#, sh-format
+msgid "Installation unsuccessful: ${sourcedir} is not exists!"
+msgstr "Installation unsuccessful: ${sourcedir} is not exists!"
+
+#: script_install:209
+#, sh-format
+msgid "Installation unsuccessful: can not create ${targetdir}"
+msgstr "Installation unsuccessful: can not create ${targetdir}"
+
+#: script_install:211
+#, sh-format
+msgid "Installation unsuccessful: ${targetdir} not writable"
+msgstr "Installation unsuccessful: ${targetdir} not writable"
+
+#. /lib is exists
+#: script_install:216
+#, sh-format
+msgid "Installation unsuccessful: ${libsourcedir} is not exists!"
+msgstr "Installation unsuccessful: ${libsourcedir} is not exists!"
+
+#. /lib is exists, otherwise create it
+#: script_install:218
+#, sh-format
+msgid "Installation unsuccessful: can not create ${libtargetdir}"
+msgstr "Installation unsuccessful: can not create ${libtargetdir}"
+
+#. /lib is writable
+#: script_install:220
+#, sh-format
+msgid "Installation unsuccessful: ${libtargetdir} not writable"
+msgstr "Installation unsuccessful: ${libtargetdir} not writable"
+
+#: script_install:226
+#, sh-format
+msgid "Installation unsuccessful: can not create ${localetargetdir}"
+msgstr "Installation unsuccessful: can not create ${localetargetdir}"
+
+#: script_install:228
+#, sh-format
+msgid "Installation unsuccessful: ${localetargetdir} not writable"
+msgstr "Installation unsuccessful: ${localetargetdir} not writable"
+
+#: script_install:233
+#, sh-format
+msgid "Installation unsuccessful: unsupported filename (${script})"
+msgstr "Installation unsuccessful: unsupported filename (${script})"
+
+#: script_install:235 script_install:236 script_install:238 script_install:239
+#: script_install:243 script_install:253 script_install:255 script_install:257
+#: script_install:264
+msgid "Installation unsuccessful: there was an error during copying files"
+msgstr "Installation unsuccessful: there was an error during copying files"
+
+#: script_install:241
+#, sh-format
+msgid ""
+"Set executable permission was unsuccessful for file ${targetdir}/${script}! "
+"Maybe it need higher privileges!"
+msgstr ""
+"Set executable permission was unsuccessful for file ${targetdir}/${script}! "
+"Maybe it need higher privileges!"
+
+#: script_install:247 script_install:265
+#, sh-format
+msgid "Installation file ${script} was succesful to ${targetdir}"
+msgstr "Installation file ${script} was succesful to ${targetdir}"
+
+#: script_install:251
+#, sh-format
+msgid "Installation unsuccessful: unsupported filename ($lib)"
+msgstr "Installation unsuccessful: unsupported filename ($lib)"
+
+#: script_install:258
+#, sh-format
+msgid "Installation file ${lib} was succesful to ${libtargetdir}"
+msgstr "Installation file ${lib} was succesful to ${libtargetdir}"
+
+#: script_install:263
+#, sh-format
+msgid "Installation unsuccessful: unsupported filename (${payload})"
+msgstr "Installation unsuccessful: unsupported filename (${payload})"
+
+#: script_install:272 script_install:328
+#, sh-format
+msgid "Missing dependencies: ${missingpkgs}"
+msgstr "Missing dependencies: ${missingpkgs}"
+
+#: script_install:273 script_install:336
+msgid ""
+"Installation unsuccessful: there was an error during installing dependencies"
+msgstr ""
+"Installation unsuccessful: there was an error during installing dependencies"
+
+#: script_install:287
+#, sh-format
+msgid "Installation files was succesful to ${targetdir}"
+msgstr "Installation files was succesful to ${targetdir}"
+
+#: script_install:309
+msgid ""
+"~/.profile was updated, please login again or run 'source ~/.profile' "
+"command to reload PATH variable!"
+msgstr ""
+"~/.profile was updated, please login again or run 'source ~/.profile' "
+"command to reload PATH variable!"
+
+#: script_install:329
+#, sh-format
+msgid ""
+"Following packages are missing: ${missingpkgs}, would you like to install "
+"them?"
+msgstr ""
+"Following packages are missing: ${missingpkgs}, would you like to install "
+"them?"
+
+#: script_install:361 script_install:364
+msgid "Unsupported operating system. Installation is not possible."
+msgstr "Unsupported operating system. Installation is not possible."
+
+#: script_install:364
+msgid ""
+"Install script manually: \n"
+"    * Copy the script and the lib folder to your PATH.\n"
+"    * Copy to locale folder to your locale folder.\n"
+"    * Install dependencies."
+msgstr ""
+"Install script manually: \n"
+"    * Copy the script and the lib folder to your PATH.\n"
+"    * Copy to locale folder to your locale folder.\n"
+"    * Install dependencies."
+
+#: script_install:392
+#, sh-format
+msgid "User's home dir: ${__si_user_home}"
+msgstr "User's home dir: ${__si_user_home}"
+
+#: script_install:393
+#, sh-format
+msgid "Source dir: ${sourcedir}"
+msgstr "Source dir: ${sourcedir}"
+
+#: script_install:394
+#, sh-format
+msgid "Defined target dir: ${defined_targetdir}"
+msgstr "Defined target dir: ${defined_targetdir}"
+
+#: script_install:395
+#, sh-format
+msgid "Target directory, to the script will install: ${targetdir}"
+msgstr "Target directory, to the script will install: ${targetdir}"
+
+#: script_install:396
+#, sh-format
+msgid "Target directory, which is added to ~/.profile file: ${targetdirtext}"
+msgstr "Target directory, which is added to ~/.profile file: ${targetdirtext}"
+
+#: script_install:397
+#, sh-format
+msgid "Target directory for locale files: ${localedir}"
+msgstr "Target directory for locale files: ${localedir}"
+
+#: script_install:398
+#, sh-format
+msgid "Ini-file: ${inifile}"
+msgstr "Ini-file: ${inifile}"
+
+#: script_install:508
+#, sh-format
+msgid "Invalid use of script: ${__si_tmp_params}"
+msgstr "Invalid use of script: ${__si_tmp_params}"
+
+#: script_install:557
+#, sh-format
+msgid "Help using ${__si_base}"
+msgstr "Help using ${__si_base}"
+
+#: script_install:568
+msgid "Cannot continue without LOG_LEVEL."
+msgstr "Cannot continue without LOG_LEVEL."
+
+#: script_install:586
+#, sh-format
+msgid "Option -${__si_tmp_fullopt} requires an argument"
+msgstr "Option -${__si_tmp_fullopt}  requires an argument"
+
+#: script_install:610
+msgid "Cleaning up. Done"
+msgstr "Cleaning up. Done"
+
+#: script_install:621
+#, sh-format
+msgid "Error in ${__si_file} in function ${function} on line ${line}"
+msgstr "Error in ${__si_file} in function ${function} on line ${line}"

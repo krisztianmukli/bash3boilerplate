@@ -1,0 +1,528 @@
+#!/usr/bin/env bash
+#===============================================================================
+# Standalone script installer (installer)
+# Licensed under the MIT license
+#
+# This file can install bash-script and it's dependencies from a specified
+# folder, using install.ini file. 
+# It is part of BASH3 Boilerplate by krisztianmukli project.
+# 
+# Copyright (c) 2018 Krisztián Mukli
+# https://www.github.com/krisztianmukli/bash3boilerplate
+#
+# Notes
+#-------------------------------------------------------------------------------
+# Quickstart
+#
+#   script_install -s sourcedir [-t targetdir | -c]
+#
+# Setup information
+# Changelog
+# ToDo
+# Known bugs and limitations
+#
+# * When targetfile unwritable and cp ask 'try anyway?' and user choose No, 
+#   it will exit 0, and script_install say installation was succesful.
+# * Preinstall and postinstall script must be locate in source directory
+#
+# Based on BASH3 Boilerplate by krisztianmukli v1.0.0
+#===============================================================================
+# Init section
+#===============================================================================
+# Exit on error 
+set -o errexit 
+# Exit on error inside any functions or subshells
+set -o errtrace
+# Do not allow use of undefined vars. Use ${VAR:-} to use an undefined VAR
+set -o nounset 
+# Catch the error when mysqldump fails (but gzip succeeds) in `mysqldump |gzip`
+set -o pipefail 
+# Turn on traces, useful while debugging but commented out by default
+#set -o xtrace
+
+#===============================================================================
+# Globals section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Environment variables
+#-------------------------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
+  __inst_srcd=1
+  if [[ "${BASH_SOURCE[1]+x}" ]]; then
+    [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __inst_srcd=0
+    __inst_tmp_source_idx=1
+  fi
+  [[ "${__inst_usage+x}" ]] && __inst_external_usage=1
+else
+  __inst_srcd=0
+  [[ "${__inst_usage+x}" ]] && unset -v __inst_usage
+  [[ "${__inst_helptext+x}" ]] && unset -v __inst_helptext
+fi
+__inst_dir="$(cd "$(dirname "${BASH_SOURCE[${__inst_tmp_source_idx:-0}]}")" && pwd)"
+__inst_file="${__inst_dir}/$(basename "${BASH_SOURCE[${__inst_tmp_source_idx:-0}]}")"
+__inst_base="$(basename "${__inst_file}" .sh)"
+__inst_user_home="$([[ "${SUDO_USER+x}" ]] && getent passwd "${SUDO_USER}" | cut -d: -f6 || echo "$HOME")"
+# shellcheck disable=SC2034
+__inst_act_dir=$(pwd)
+declare -a __inst_created_dirs
+
+LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
+LOG_TIMEZONE="${LOG_TIMEZONE:-1}" # 0 = UTC, otherwise local
+NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
+
+#-------------------------------------------------------------------------------
+# Sourced files
+#-------------------------------------------------------------------------------
+export PATH="$(dirname ${__inst_dir})/lib:$PATH"
+source log.sh || (echo "Fatal error: Cannot find log.sh!"; exit 1)
+source os_detection.sh || (echo "Fatal error: Cannot find os_detection.sh!"; exit 1)
+source display_info.sh || (echo "Fatal error: Cannot find display_info.sh!"; exit 1)
+source ini_val.sh || (echo "Fatal error: Cannot find ini_val.sh!"; exit 1)
+source ask.sh || (echo "Fatal error: Cannot find ask.sh!"; exit 1)
+source gettext.sh || (echo "Fatal error: Cannot find gettext.sh!"; exit 1)
+
+#-------------------------------------------------------------------------------
+# Localization
+#-------------------------------------------------------------------------------
+export TEXTDOMAINDIR="$(dirname "${__inst_dir}")/locale"
+export TEXTDOMAIN="${__inst_base}"
+
+#-------------------------------------------------------------------------------
+# Usage 
+#-------------------------------------------------------------------------------
+[[ "${__inst_usage+x}" ]] || __inst_usage="$(eval_gettext "Available arguments:
+
+  -d --debug               Enables debug mode
+  -f --force               Forcing commands (e.g. overwrite existing files)
+  -h --help                This page
+  -n --no-color            Disable color output
+  -s --source [sourcedir]  Source dir of script. Default=\"\$__inst_act_dir\"
+  -t --target [targetdir]  Target directory. Default=system-wide
+                           You can use following abbreviations, or specify explicit target:
+                           * 'sys', 'system' or 'system-wide' for /usr/local/bin 
+                           * 'usr', 'user' or 'user-wide' for ~/.local/bin
+                           If specify explicit targetdir, script will install the specified folder
+                           Optional, if not specified, assuming system-wide installation.
+
+  -v                       Enable verbose mode, print script as it is executed
+  -V --version             Display version and license information")"
+
+[[ "${__inst_helptext+x}" ]] || __inst_helptext="$(gettext "This command can install bash-script and it's dependencies from a specified
+ folder, using install.ini file. 
+ It is part of BASH3 Boilerplate by krisztianmukli project.")"
+__inst_defaulttext="$(gettext "Default")"
+__inst_requiredtext="$(gettext "Required")"
+__inst_name="$(gettext "Standalone script installer")"
+__inst_version="v1.0.0"
+__inst_license="$(gettext "Licensed under the MIT license")"
+
+#===============================================================================
+# Functions section
+#===============================================================================
+function check_dir() {
+local dir=${1:-}
+local mode="${2:-}"
+
+  pathchk -P "${dir}" || emergency "$(eval_gettext "Installation unsuccessful: unsupported foldername (\$dir)")"
+
+  # shellcheck disable=SC1001
+  [[ "${dir}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Installation unsuccessful: Unsupported characters in foldername (\$dir)")"
+
+  if [[ ! -e "${dir}" ]]; then 
+
+    if [[ "${mode}" = "w" ]]; then
+      owner="$(stat "$(dirname "${dir}")" -c %u)"
+      group="$(stat "$(dirname "${dir}")" -c %g)"
+      mod="$(stat "$(dirname "${dir}")" -c %a)"
+      install -d -o "${owner}" -g "${group}" -m "${mod}" "${dir}" || emergency "$(eval_gettext "Installation unsuccessful: can not create \${dir}")";
+      __inst_created_dirs+=("${dir}")
+    elif [[ "${mode}" = "r" ]]; then
+      emergency "$(eval_gettext "Installation unsuccessful: \${dir} does not exist")"
+    fi
+
+  fi
+
+  [[ ! -d "${dir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${dir} is not a directory")"
+  [[ ! -r "${dir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${dir} is not readable!")"
+
+  if [[ "${mode}" = "w" ]]; then
+    [[ ! -w "${dir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${dir} is not writable")"
+  fi
+}
+
+function install_dir() {
+local sourcedir="${1:-}"
+local targetdir="${2:-}"
+
+check_dir "${targetdir}"
+local owner="$(stat "${targetdir}" -c %u)"
+local group="$(stat "${targetdir}" -c %g)"
+
+  for file in ${sourcedir}; do
+    if [[ -f "${file}" ]]; then 
+      local mod="$(stat "${file}" -c %a)"
+      install -C -o "${owner}" -g "${group}" -m "${mod}" "${file}" "${targetdir}/${file}" || emergency "$(eval_gettext "Installation unsuccessful: install \${file} was failed")"
+    elif [[ -d "${file}" ]]; then install_dir "${file}" "${targetdir}"
+    else warning "$(eval_gettext "\${file} is not recognized as a file or folder.")"
+    fi
+  done
+}
+#-------------------------------------------------------------------------------
+# edit_profile: Add script's targetdir to user's ~/.profile file
+# Arguments:
+#   edit_profile folder
+# Returns:
+#   return 1 if unsuccessful (there's no folder)
+#-------------------------------------------------------------------------------
+function edit_profile(){
+local folder=${1:-}
+  if [[ ! -z "${folder}" ]]; then
+
+      if ! grep -q "${folder}" "${__si_user_home}/.profile"; then
+        {
+          echo ""
+          echo "# set PATH so it includes user's private bin if it exists - Added by b3bp installer"
+          echo "if [ -d \"${folder}\" ] ; then"
+          echo "    PATH=\"${folder}:\$PATH\" "
+          echo "fi"
+        } >> "${__si_user_home}/.profile"
+	warning "$(gettext "~/.profile was updated, please login again or run 'source ~/.profile' command to reload PATH variable!")"
+        return 0
+      fi
+
+  fi
+  return 1
+}
+#===============================================================================
+# Main section
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Parse usage string
+#-------------------------------------------------------------------------------
+while read -r __inst_tmp_line; do
+  if [[ "${__inst_tmp_line}" =~ ^- ]]; then
+    # fetch single character version of option string
+    __inst_tmp_opt="${__inst_tmp_line%% *}"
+    __inst_tmp_opt="${__inst_tmp_opt:1}"
+
+    # fetch long version if present
+    __inst_tmp_long_opt=""
+
+    if [[ "${__inst_tmp_line}" = *"--"* ]]; then
+      __inst_tmp_long_opt="${__inst_tmp_line#*--}"
+      __inst_tmp_long_opt="${__inst_tmp_long_opt%% *}"
+    fi
+
+    # map opt long name to+from opt short name
+    printf -v "__inst_tmp_opt_long2short_${__inst_tmp_long_opt//-/_}" '%s' "${__inst_tmp_opt}"
+    printf -v "__inst_tmp_opt_short2long_${__inst_tmp_opt}" '%s' "${__inst_tmp_long_opt//-/_}"
+
+    # check if option takes an argument
+    if [[ "${__inst_tmp_line}" =~ \[.*\] ]]; then
+      __inst_tmp_opt="${__inst_tmp_opt}:" # add : if opt has arg
+      __inst_tmp_init=""  # it has an arg. init with ""
+      printf -v "__inst_tmp_has_arg_${__inst_tmp_opt:0:1}" '%s' "1"
+    elif [[ "${__inst_tmp_line}" =~ \{.*\} ]]; then
+      __inst_tmp_opt="${__inst_tmp_opt}:" # add : if opt has arg
+      __inst_tmp_init=""  # it has an arg. init with ""
+      # remember that this option requires an argument
+      printf -v "__inst_tmp_has_arg_${__inst_tmp_opt:0:1}" '%s' "2"
+    else
+      __inst_tmp_init="0" # it's a flag. init with 0
+      printf -v "__inst_tmp_has_arg_${__inst_tmp_opt:0:1}" '%s' "0"
+    fi
+    __inst_tmp_opts="${__inst_tmp_opts:-}${__inst_tmp_opt}"
+  fi
+
+  [[ "${__inst_tmp_opt:-}" ]] || continue
+
+  if [[ "${__inst_tmp_line}" =~ ^"${__inst_defaulttext}"= ]] \
+  || [[ "${__inst_tmp_line}" =~ \.\ *"${__inst_defaulttext}"= ]]; then
+    __inst_tmp_default="1"
+    __inst_tmp_defaulttext="${__inst_defaulttext}"
+  elif [[ "${__inst_tmp_line}" =~ ^Default= ]] \
+    || [[ "${__inst_tmp_line}" =~ \.\ *Default= ]]; then
+    __inst_tmp_default="1"
+    __inst_tmp_defaulttext=Default
+  else
+    [[ ${__inst_tmp_default+x} ]] && unset __inst_tmp_default
+    [[ ${__inst_tmp_defaulttext+x} ]] && unset __inst_tmp_defaulttext
+  fi
+
+  if [[ ${__inst_tmp_default:-} = "1" ]]; then
+    # ignore default value if option does not have an argument
+    __inst_tmp_varname="__inst_tmp_has_arg_${__inst_tmp_opt:0:1}"
+
+    if [[ "${!__inst_tmp_varname}" != "0" ]]; then
+      __inst_tmp_init="${__inst_tmp_line##*${__inst_tmp_defaulttext}=}"
+      __inst_tmp_re='^"(.*)"$'
+      if [[ "${__inst_tmp_init}" =~ ${__inst_tmp_re} ]]; then
+        __inst_tmp_init="${BASH_REMATCH[1]}"
+      else
+        __inst_tmp_re="^'(.*)'$"
+        if [[ "${__inst_tmp_init}" =~ ${__inst_tmp_re} ]]; then
+          __inst_tmp_init="${BASH_REMATCH[1]}"
+        fi
+      fi
+    fi 
+  fi
+
+  if [[ "${__inst_tmp_line}" =~ ^"${__inst_requiredtext}"\. ]] \
+  || [[ "${__inst_tmp_line}" =~ \.\ *"${__inst_requiredtext}"\. ]] \
+  || [[ "${__inst_tmp_line}" =~ ^Required\. ]] \
+  || [[ "${__inst_tmp_line}" =~ \.\ *Required\. ]]; then
+    # remember that this option requires an argument
+    printf -v "__inst_tmp_has_arg_${__inst_tmp_opt:0:1}" '%s' "2"
+  fi
+
+  printf -v "__inst_arg_${__inst_tmp_opt:0:1}" '%s' "${__inst_tmp_init}"
+done <<< "${__inst_usage:-}"
+
+#-------------------------------------------------------------------------------
+# Parse command-line arguments
+#-------------------------------------------------------------------------------
+# run getopts only if options were specified in __usage
+if [[ "${__inst_tmp_opts:-}" ]]; then
+  # Allow long options like --this
+  __inst_tmp_opts="${__inst_tmp_opts}-:"
+
+  # Reset in case getopts has been used previously in the shell.
+  OPTIND=1
+
+  # start parsing command line
+  set +o nounset # unexpected arguments will cause unbound variables
+                 # to be dereferenced
+  # Overwrite $arg_<flag> defaults with the actual CLI options
+  while getopts "${__inst_tmp_opts}" __inst_tmp_opt; do
+    if [[ "${__inst_tmp_opt}" = "?" ]]; then
+      # shellcheck disable=SC2034
+      __inst_tmp_params="${*}"
+      display_info "$(eval_gettext "Invalid use of script: \${__inst_tmp_params}")" "\${__inst_usage}" "\${__inst_helptext}"
+    fi
+
+    if [[ "${__inst_tmp_opt}" = "-" ]]; then
+      # OPTARG is long-option-name or long-option=value
+      if [[ "${OPTARG}" =~ .*=.* ]]; then
+        # --key=value format
+        __inst_tmp_long_opt=${OPTARG/=*/}
+        # Set opt to the short option corresponding to the long option
+        __inst_tmp_varname="__inst_tmp_opt_long2short_${__inst_tmp_long_opt//-/_}"
+        printf -v "__inst_tmp_opt" '%s' "${!__inst_tmp_varname}"
+        OPTARG=${OPTARG#*=}
+      else
+        # --key value format
+        # Map long name to short version of option
+        __inst_tmp_varname="__inst_tmp_opt_long2short_${OPTARG//-/_}"
+        printf -v "__inst_tmp_opt" '%s' "${!__inst_tmp_varname}"
+        # Only assign OPTARG if option takes an argument
+        __inst_tmp_varname="__inst_tmp_has_arg_${__inst_tmp_opt}"
+        printf -v "OPTARG" '%s' "${@:OPTIND:${!__inst_tmp_varname}}"
+        # shift over the argument if argument is expected
+        ((OPTIND+=__inst_tmp_has_arg_${__inst_tmp_opt}))
+      fi
+      # we have set opt/OPTARG to the short value and the argument as OPTARG if it exists
+    fi
+    __inst_tmp_varname="__inst_arg_${__inst_tmp_opt:0:1}"
+    __inst_tmp_default="${!__inst_tmp_varname}"
+
+    __inst_tmp_value="${OPTARG}"
+    if [[ -z "${OPTARG}" ]]; then
+      __inst_tmp_value=$((__inst_tmp_default + 1))
+    fi
+
+    printf -v "${__inst_tmp_varname}" '%s' "${__inst_tmp_value}"
+    debug "cli arg ${__inst_tmp_varname} = (${__inst_tmp_default}) -> ${!__inst_tmp_varname}"
+  done
+  set -o nounset # no more unbound variable references expected
+
+  shift $((OPTIND-1))
+
+  if [[ "${1:-}" = "--" ]] ; then
+    shift
+  fi
+fi
+
+#-------------------------------------------------------------------------------
+# Helper functions
+#-------------------------------------------------------------------------------
+if [[ "${__inst_arg_h:?}" = "1" ]]; then
+  # Help exists with code 1
+  display_info "$(eval_gettext "Help using \${__inst_base}")" "${__inst_usage}" "${__inst_helptext}"
+fi
+
+if [[ "${__inst_arg_V:?}" = "1" ]]; then
+  # Version exists with code 1
+  display_info "${__inst_name}" "${__inst_version}" "${__inst_license}"
+fi
+
+#-------------------------------------------------------------------------------
+# Validate required arguments
+#-------------------------------------------------------------------------------
+[[ "${LOG_LEVEL:-}" ]] || emergency "$(gettext "Cannot continue without LOG_LEVEL.")"
+
+#-------------------------------------------------------------------------------
+# Validate required option arguments
+#-------------------------------------------------------------------------------
+for __inst_tmp_varname in ${!__inst_tmp_has_arg_*}; do
+  # validate only options which required an argument
+  [[ "${!__inst_tmp_varname}" = "2" ]] || continue
+
+  __inst_tmp_opt_short="${__inst_tmp_varname##*_}"
+  __inst_tmp_varname="__inst_arg_${__inst_tmp_opt_short}"
+  [[ "${!__inst_tmp_varname}" ]] && continue
+
+  __inst_tmp_varname="__inst_tmp_opt_short2long_${__inst_tmp_opt_short}"
+  printf -v "__inst_tmp_opt_long" '%s' "${!__inst_tmp_varname}"
+  [[ "${__inst_tmp_opt_long:-}" ]] && __inst_tmp_opt_long=" (--${__inst_tmp_opt_long//_/-})"
+ 
+  # shellcheck disable=SC2034 
+  __inst_tmp_fullopt=${__inst_tmp_opt_short}${__inst_tmp_opt_long:-}
+  display_info "$(eval_gettext "Option -\${__inst_tmp_fullopt} requires an argument")" "${__inst_usage}" "${__inst_helptext}"
+done
+
+#-------------------------------------------------------------------------------
+# Cleanup temporary variables 
+#-------------------------------------------------------------------------------
+for __tmp_varname in ${!__inst_tmp_*}; do
+  unset -v "${__tmp_varname}"
+done
+
+unset -v __tmp_varname
+
+#-------------------------------------------------------------------------------
+# Externally supplied __inst_usage. Nothing else to do here
+#-------------------------------------------------------------------------------
+if [[ "${__inst_external_usage:-}" == 1 ]]; then
+  unset -v __inst_external_usage
+  return
+fi
+
+#-------------------------------------------------------------------------------
+# Signal trapping and backtracing
+#-------------------------------------------------------------------------------
+function __inst_cleanup_before_exit () {
+  info "$(gettext "Cleaning up. Done")"
+}
+trap __inst_cleanup_before_exit EXIT
+
+# requires `set -o errtrace`
+__inst_err_report() {
+  local error_code
+  error_code=${?}
+  # shellcheck disable=SC2034
+  function=${1}
+  # shellcheck disable=SC2034
+  line=${2}
+
+  error "$(eval_gettext "Error in \${__inst_file} in function \${function} on line \${line}")"
+  exit ${error_code}
+}
+# Uncomment the following line for always providing an error backtrace
+# trap '__inst_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+
+#-------------------------------------------------------------------------------
+# Call internal functions
+#-------------------------------------------------------------------------------
+# debug mode
+if [[ "${__inst_arg_d:?}" = "1" ]]; then
+  set -o xtrace
+  LOG_LEVEL="7"
+  # Enable error backtracing
+  trap '__inst_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+fi
+
+# verbose mode
+if [[ "${__inst_arg_v:?}" = "1" ]]; then
+  set -o verbose
+fi
+
+# no color mode
+if [[ "${__inst_arg_n:?}" = "1" ]]; then
+  NO_COLOR="true"
+fi
+
+#-------------------------------------------------------------------------------
+# Runtime
+#-------------------------------------------------------------------------------
+if [[ "${__inst_srcd:-}" != "0" ]]; then exit 0; fi
+
+# Check supported operating system
+if [[ "${__ostype}" = "unknown" ]] ; then
+  emergency "$(gettext "Unsupported operating system. Installation is not possible.")"
+elif [[ "${__ostype}" != "linux-gnu" ]]; then
+  emergency "$(gettext "Untested operating system. Installation is not possible.")" 
+fi
+
+# Set sourcedir
+sourcedir="${__inst_arg_s:-}"
+pkgname="$(basename "${sourcedir}")"
+
+# Check sourcedir
+check_dir "${sourcedir}/CONTENTS" "r"
+check_dir "${sourcedir}/CONTROL" "r"
+md5sum --status --check "${sourcedir}/md5sums" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: checksum error")"
+
+# Set targetdir
+__inst_arg_t=$(sed "s|~|$HOME|g" <<< "${__inst_arg_t:-}") # Workaround for such cases: "~/path/to/file"
+__inst_arg_t=$(tr "[:upper:]" "[:lower:]" <<< "${__inst_arg_t}")
+
+if [[ "${__inst_arg_t}" =~ ^sys(tem)?(-wide)?$ ]]; then
+  targetdir="/usr/local"
+  controldir="/var/lib/${pkgname}"
+elif [[ "${__inst_arg_t}" =~ ^us(e)?r(-wide)?$ ]]; then 
+  targetdir="${__inst_user_home}/.local"
+  controldir="${__inst_user_home}/.var/lib/${pkgname}"
+else 
+  targetdir="${__inst_arg_t}"
+  controldir="${__inst_arg_t}/var/lib/${pkgname}"
+fi
+
+# Check targetdir
+check_dir "${targetdir}" "w"
+check_dir "${controldir}" "w"
+
+# Preinstall
+if [[ -e "${sourcedir}/CONTROL/preinst" ]] && [[ -f "${sourcedir}/CONTROL/preinst" ]] && [[ -x "${sourcedir}/CONTROL/preinst" ]]; then
+  if "${__inst_arg_f}" = "1" ]]; then
+    "${sourcedir}/CONTROL/preinst" --mode install --force || emergency "$(eval_gettext "Installation unsuccessful: preinstall task was failed.")"
+  else
+    "${sourcedir}/CONTROL/preinst" --mode install || emergency "$(eval_gettext "Installation unsuccessful: preinstall task was failed.")"
+  fi
+fi
+__inst_preinst="1"
+
+# Install
+[[ -e "${sourcedir}/CONTENTS/bin" ]] && install_dir "${sourcedir}/CONTENTS/bin" "${targetdir}/bin"; __inst_bin="1"
+[[ -e "${sourcedir}/CONTENTS/etc" ]] && install_dir "${sourcedir}/CONTENTS/etc" "${targetdir}/etc"; __inst_etc="1"
+[[ -e "${sourcedir}/CONTENTS/lib" ]] && install_dir "${sourcedir}/CONTENTS/lib" "${targetdir}/lib"; __inst_lib="1"
+[[ -e "${sourcedir}/CONTENTS/share" ]] && install_dir "${sourcedir}/CONTENTS/share" "${targetdir}/share"; __inst_share="1"
+
+# Postinstall
+if [[ -e "${sourcedir}/CONTROL/postinst" ]] && [[ -f "${sourcedir}/CONTROL/postinst" ]] && [[ -x "${sourcedir}/CONTROL/postinst" ]]; then
+  if [[ "${__inst_arg_f}" = "1" ]]; then
+    "${sourcedir}/CONTROL/postinst" --mode install --force || emergency "$(eval_gettext "Installation unsuccessful: postinstall task was failed.")"
+  else
+    "${sourcedir}/CONTROL/postinst" --mode install || emergency "$(eval_gettext "Installation unsuccessful: postinstall task was failed.")"
+  fi
+fi
+__inst_postinst="1"
+
+# Edit ~/.profile
+if grep -q "${__inst_user_home}" <<< "${targetdir}"; then 
+  if edit_profile "${targetdir}/bin"; then
+    source "${__si_user_home}/.profile"
+    export PATH
+  else
+    warning "$(gettext "Edit ~/.profile file was unsuccessful")"
+  fi
+fi
+
+# Install control-files
+install_dir "${sourcedir}/CONTROL" "${controldir}"; __inst_control="1"
+
+info "$(gettext "Installation was succesful")"
+#===============================================================================
+# END OF FILE
+#===============================================================================

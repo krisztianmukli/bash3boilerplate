@@ -1,0 +1,357 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: BASH3 Boilerplate by krisztianmukli\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-06-27 09:44+0200\n"
+"PO-Revision-Date: 2018-06-27 09:46+0200\n"
+"Last-Translator: Mukli Krisztián <krisztianmukli@mukli.hu>\n"
+"Language-Team: Mukli Krisztián <krisztianmukli@mukli.hu>\n"
+"Language: hu\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 2.0.6\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+
+#: script_install:101
+#, sh-format
+msgid ""
+"Available arguments:\n"
+"\n"
+"  -c --check-dependencies  Check dependencies of specified script\n"
+"  -d --debug               Enables debug mode\n"
+"  -f --force               Forcing commands (e.g. overwrite existing files)\n"
+"  -h --help                This page\n"
+"  -i --ini [inifile]       Ini-file using the installation. If not set, "
+"installer use [sourcedir]/install.ini\n"
+"  -n --no-color            Disable color output\n"
+"  -s --source [sourcedir]  Source dir of script. Default=\"$__si_act_dir\"\n"
+"  -t --target [targetdir]  Target directory. Default=system-wide\n"
+"                           You can use following abbreviations, or specify "
+"explicit target:\n"
+"                           * 'sys', 'system' or 'system-wide' for /usr/local/"
+"bin (/usr/local/share/locale for localization)\n"
+"                           * 'usr', 'user' or 'user-wide' for ~/.local/bin "
+"(~/.local/share/locale for localization)\n"
+"                           If specify explicit targetdir, script libraries "
+"and locale will install to that folder.\n"
+"                           Optional, if not specified, script assumes system-"
+"wide installation, \n"
+"                           fallback to user-wide if user hasn't root "
+"permission.\n"
+"\n"
+"  -v                       Enable verbose mode, print script as it is "
+"executed\n"
+"  -V --version             Display version and license information"
+msgstr ""
+"Használható argumentumok:\n"
+"\n"
+"  -c --check-dependencies  Ellenőrzi a megadott szkript függőségeit\n"
+"  -d --debug               Hibakeresési mód engedélyezése\n"
+"  -f --force               Utasítások erőltetése (pl. fájlok felülírásánál)\n"
+"  -h --help                Súgó\n"
+"  -i --ini [inifile]       Telepítéshez használt .ini-fájl. Ha nincs megadva "
+"a telepítő a [sourcedir]/install.ini -t használja.\n"
+"  -n --no-color            Színes kimenet kikapcsolása\n"
+"  -s --source [sourcedir]  Szkript forráskönyvtára. Alapértelmezett="
+"\"$__si_act_dir\"\n"
+"  -t --target [targetdir]  Célkönyvtár. Alapértelmezett=system-wide\n"
+"                           Megadhatja a következő rövidítéseket, vagy "
+"közvetlen elérési utat:\n"
+"                           * 'sys', 'system' vagy 'system-wide' esetén a /"
+"usr/local/bin (/usr/local/share/locale a lokalizációhoz) lesz használva a "
+"telepítéshez\n"
+"                           * 'usr', 'user' vagy 'user-wide' a ~/.local/bin "
+"(~/.local/share/locale a lokalizációhoz) lesz használva a telepítéshez\n"
+"                           Ha közvetlen elérési utat ad meg, akkor a "
+"szkript, a programkönyvtárak és a lokalizációs fájlok is oda települnek\n"
+"                           Opcionális, ha nincs megadva a szkript "
+"rendszerszintű telepítést feltételez\n"
+"                           rendszergazdai jogok hiánya esetén a felhasználó "
+"könyvtárába telepít.\n"
+"  -v                       Részletes mód engedélyezése, kiíratja a szkriptet "
+"futás közben\n"
+"  -V --version             Verzió és licencinformációk megjelenítése"
+
+#: script_install:121
+msgid ""
+"This command can install bash-script and it's dependencies from a specified\n"
+" folder, using install.ini file. \n"
+" It is part of BASH3 Boilerplate by krisztianmukli project."
+msgstr ""
+"Telepíti a megadott könyvtárból a bash-szkripteket, az install.ini fájl "
+"használatával.\n"
+" A BASH3 Boilerplate by krisztianmukli projekt része."
+
+#: script_install:124
+msgid "Default"
+msgstr "Alapértelmezett"
+
+#: script_install:125
+msgid "Required"
+msgstr "Kötelező"
+
+#: script_install:126
+msgid "Standalone script installer"
+msgstr "Önálló szkript telepítő"
+
+#: script_install:128
+msgid "Licensed under the MIT license"
+msgstr "MIT licensz alatt kiadva"
+
+#: script_install:138
+msgid "Starting package-installation"
+msgstr "Csomagtelepítés indítása"
+
+#: script_install:145
+#, sh-format
+msgid "Installation of following dependencies was succesful: ${missingpkgs}"
+msgstr "A következő függőségek telepítése sikeres: ${missingpkgs}"
+
+#: script_install:149
+msgid "No valid packages"
+msgstr "Nincs érvényes csomag"
+
+#: script_install:153
+msgid "You need higher privileges for installing packages!"
+msgstr "Magasabb jogosultságokra van szükség a csomagok telepítéséhez!"
+
+#: script_install:157
+#, sh-format
+msgid ""
+"For installing following packages in macOS, you must use Homebrew or "
+"Macports: ${missingpkgs}"
+msgstr ""
+"A következő csomagok telepítéséhez macOS alatt a HomeBrew vagy a Macports "
+"szükséges: ${missingpkgs}"
+
+#: script_install:161
+#, sh-format
+msgid ""
+"Install the following packages from shell in cygwin, must be use apt-cyg, or "
+"install them with Cygwin setup.exe: ${missingpkgs}"
+msgstr ""
+"A következő csomagok telepítéséhez a rendszerhéjból cygwin alatt, szükség "
+"van az apt-cyg parancsra, vagy használhatja a Cygwin setup.exe-jét: "
+"${missingpkgs}"
+
+#: script_install:165
+#, sh-format
+msgid ""
+"Unknown or unsupported operating system, cannot install following packages: "
+"${missingpkgs}"
+msgstr ""
+"Ismeretlen vagy nem támogatott operációs rendszer, nem lehet telepíteni a "
+"következő csomagokat: ${missingpkgs}"
+
+#: script_install:169
+msgid "Unknown error during installing packages!"
+msgstr "Ismeretlen hiba csomagtelepítés közben!"
+
+#: script_install:173
+msgid "Finished the package-installation"
+msgstr "Csomagtelepítés kész"
+
+#: script_install:201
+#, sh-format
+msgid "Installation unsuccessful: ${sourcedir} is not exists!"
+msgstr "Telepítés sikertelen: ${sourcedir} nem létezik!"
+
+#: script_install:209
+#, sh-format
+msgid "Installation unsuccessful: can not create ${targetdir}"
+msgstr "Telepítés sikertelen: nem lehet létrehozni a(z) ${targetdir} mappát"
+
+#: script_install:211
+#, sh-format
+msgid "Installation unsuccessful: ${targetdir} not writable"
+msgstr "Telepítés sikertelen: ${targetdir} nem írható"
+
+#. /lib is exists
+#: script_install:216
+#, sh-format
+msgid "Installation unsuccessful: ${libsourcedir} is not exists!"
+msgstr "Telepítés sikertelen: ${libsourcedir} nem létezik!"
+
+#. /lib is exists, otherwise create it
+#: script_install:218
+#, sh-format
+msgid "Installation unsuccessful: can not create ${libtargetdir}"
+msgstr "Telepítés sikertelen: Nem lehet létrehozni a(z) ${libtargetdir} mappát"
+
+#. /lib is writable
+#: script_install:220
+#, sh-format
+msgid "Installation unsuccessful: ${libtargetdir} not writable"
+msgstr "Telepítés sikertelen: ${libtargetdir} nem írható"
+
+#: script_install:226
+#, sh-format
+msgid "Installation unsuccessful: can not create ${localetargetdir}"
+msgstr ""
+"Telepítés sikertelen: nem lehet létrehozni a(z) ${localetargetdir} mappát"
+
+#: script_install:228
+#, sh-format
+msgid "Installation unsuccessful: ${localetargetdir} not writable"
+msgstr "Telepítés sikertelen: ${localetargetdir}  nem írható"
+
+#: script_install:233
+#, sh-format
+msgid "Installation unsuccessful: unsupported filename (${script})"
+msgstr "Telepítés sikertelen: nem támogatott fájlnév (${script})"
+
+#: script_install:235 script_install:236 script_install:238 script_install:239
+#: script_install:243 script_install:253 script_install:255 script_install:257
+#: script_install:264
+msgid "Installation unsuccessful: there was an error during copying files"
+msgstr "Telepítés sikertelen: hiba történt a fájlok másolása közben"
+
+#: script_install:241
+#, sh-format
+msgid ""
+"Set executable permission was unsuccessful for file ${targetdir}/${script}! "
+"Maybe it need higher privileges!"
+msgstr ""
+"Futtatási jogok beállítása sikertelen a ${targetdir}/${script} fájlra! "
+"Lehetséges, hogy magasabb jogosultságok szükségesek!"
+
+#: script_install:247 script_install:265
+#, sh-format
+msgid "Installation file ${script} was succesful to ${targetdir}"
+msgstr "A(z) ${script} telepítése a(z) ${targetdir} mappába sikeres"
+
+#: script_install:251
+#, sh-format
+msgid "Installation unsuccessful: unsupported filename ($lib)"
+msgstr "Telepítés sikertelen: nem támogatott fájlnév ($lib)"
+
+#: script_install:258
+#, sh-format
+msgid "Installation file ${lib} was succesful to ${libtargetdir}"
+msgstr "A(z) ${lib} telepítése a(z) ${libtargetdir} mappába sikeres"
+
+#: script_install:263
+#, sh-format
+msgid "Installation unsuccessful: unsupported filename (${payload})"
+msgstr "Telepítés sikertelen: nem támogatott fájlnév (${payload})"
+
+#: script_install:272 script_install:328
+#, sh-format
+msgid "Missing dependencies: ${missingpkgs}"
+msgstr "Hiányzó függőségek: ${missingpkgs}"
+
+#: script_install:273 script_install:336
+msgid ""
+"Installation unsuccessful: there was an error during installing dependencies"
+msgstr "Telepítés sikertelen: hiba történt a függőségek telepítése során"
+
+#: script_install:287
+#, sh-format
+msgid "Installation files was succesful to ${targetdir}"
+msgstr "Fájlok sikeresen telepítve a(z) ${targetdir} mappába"
+
+#: script_install:309
+msgid ""
+"~/.profile was updated, please login again or run 'source ~/.profile' "
+"command to reload PATH variable!"
+msgstr ""
+"A ~/.profile fájl módosításra került, jelentkezzen be újra, vagy futassa a "
+"'source ~/.profile' utasítást a PATH környezeti változó értékének "
+"frissítéséhez!"
+
+#: script_install:329
+#, sh-format
+msgid ""
+"Following packages are missing: ${missingpkgs}, would you like to install "
+"them?"
+msgstr ""
+"A következő csomagok hiányoznak: ${missingpkgs}, szeretné telepíteni őket?"
+
+#: script_install:361 script_install:364
+msgid "Unsupported operating system. Installation is not possible."
+msgstr "Nem támogatott operációs rendszer. A telepítés nem lehetséges."
+
+#: script_install:364
+msgid ""
+"Install script manually: \n"
+"    * Copy the script and the lib folder to your PATH.\n"
+"    * Copy to locale folder to your locale folder.\n"
+"    * Install dependencies."
+msgstr ""
+"Szkript telepítése manuálisan:\n"
+"  *Másolja le a szkriptet és 'lib' mappa tartalmát egy a PATH környezeti "
+"változóban megtalálható mappába.\n"
+"*\n"
+"  * Másolja le a 'locale' mappa tartalmát a lokalizációs fájlok helyére.\n"
+"  *Telepítse a függőségeket."
+
+#: script_install:392
+#, sh-format
+msgid "User's home dir: ${__si_user_home}"
+msgstr "Felhasználó mappája: ${__si_user_home}"
+
+#: script_install:393
+#, sh-format
+msgid "Source dir: ${sourcedir}"
+msgstr "Forrásmappa: ${sourcedir}"
+
+#: script_install:394
+#, sh-format
+msgid "Defined target dir: ${defined_targetdir}"
+msgstr "Megadott célkönyvtár: ${defined_targetdir}"
+
+#: script_install:395
+#, sh-format
+msgid "Target directory, to the script will install: ${targetdir}"
+msgstr "Célkönyvtár, ahova a szkript telepítésre kerül: ${targetdir}"
+
+#: script_install:396
+#, sh-format
+msgid "Target directory, which is added to ~/.profile file: ${targetdirtext}"
+msgstr ""
+"Célkönyvtár, ami hozzáadásra kerül a ~/.profile fájlhoz: ${targetdirtext}"
+
+#: script_install:397
+#, sh-format
+msgid "Target directory for locale files: ${localedir}"
+msgstr "Célkönyvtár a lokalizációs fájloknak: ${localedir}"
+
+#: script_install:398
+#, sh-format
+msgid "Ini-file: ${inifile}"
+msgstr "Ini-fájl: ${inifile}"
+
+#: script_install:508
+#, sh-format
+msgid "Invalid use of script: ${__si_tmp_params}"
+msgstr "Szkript érvénytelen használata: ${__si_tmp_params}"
+
+#: script_install:557
+#, sh-format
+msgid "Help using ${__si_base}"
+msgstr "${__si_base} súgó"
+
+#: script_install:568
+msgid "Cannot continue without LOG_LEVEL."
+msgstr "Nem folytatható LOG_LEVEL nélkül."
+
+#: script_install:586
+#, sh-format
+msgid "Option -${__si_tmp_fullopt} requires an argument"
+msgstr "A(z) -${__si_tmp_fullopt} kapcsolónak argumentum megadása szükséges"
+
+#: script_install:610
+msgid "Cleaning up. Done"
+msgstr "Takarítás. Kész"
+
+#: script_install:621
+#, sh-format
+msgid "Error in ${__si_file} in function ${function} on line ${line}"
+msgstr "Hiba a ${__si_file} fájl ${function} funkciójában a ${line}. sorban"

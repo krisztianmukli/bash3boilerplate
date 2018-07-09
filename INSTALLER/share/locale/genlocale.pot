@@ -1,0 +1,113 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-06-25 12:56+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: genlocale:90
+msgid ""
+"Available arguments:\n"
+"  \n"
+"  -b --bash           Use BASH built-in localization, otherwise use "
+"gettext.\n"
+"  -f --file  [arg]    Filename to process. Required.\n"
+"  -u --update         Only update locale files\n"
+"  -l --locale [langs] Language code list of generated locale files (comma or "
+"space separated)\n"
+"  -v                  Enable verbose mode, print script as it is executed\n"
+"  -d --debug          Enables debug mode\n"
+"  -h --help           This page\n"
+"  -n --no-color       Disable color output\n"
+"  -V --version        Display version and license information"
+msgstr ""
+
+#: genlocale:102
+msgid "This file can generate or update localization files for a bash script"
+msgstr ""
+
+#: genlocale:103
+msgid "Default"
+msgstr ""
+
+#: genlocale:104
+msgid "Required"
+msgstr ""
+
+#: genlocale:105
+msgid "Generate locale"
+msgstr ""
+
+#: genlocale:107
+msgid "Licensed under the MIT license"
+msgstr ""
+
+#: genlocale:125
+msgid "Cannot create locale folder!"
+msgstr ""
+
+#: genlocale:152
+#, sh-format
+msgid "Update locale failed: ${folder}/locale/${loc}/LC_MESSAGES/${script}.po!"
+msgstr ""
+
+#: genlocale:155
+msgid "Update locale success"
+msgstr ""
+
+#: genlocale:161
+#, sh-format
+msgid "Create directory failed: ${folder}/locale/${loc}/LC_MESSAGES!"
+msgstr ""
+
+#: genlocale:165
+msgid "Copy locale failed!"
+msgstr ""
+
+#: genlocale:168
+msgid "Generate locale success"
+msgstr ""
+
+#: genlocale:260
+#, sh-format
+msgid "Invalid use of script: ${__gl_tmp_params}"
+msgstr ""
+
+#: genlocale:309
+#, sh-format
+msgid "Help using ${__gl_base}"
+msgstr ""
+
+#: genlocale:320
+msgid "Setting a filename with -f or --file is required"
+msgstr ""
+
+#: genlocale:321
+msgid "Cannot continue without LOG_LEVEL."
+msgstr ""
+
+#: genlocale:338
+msgid ""
+"Option -${__gl_tmp_opt_short}${__gl_tmp_opt_long:-} requires an argument"
+msgstr ""
+
+#: genlocale:362
+msgid "Cleaning up. Done"
+msgstr ""
+
+#: genlocale:373
+#, sh-format
+msgid "Error in ${__gl_file} in function ${function} on line ${line}"
+msgstr ""

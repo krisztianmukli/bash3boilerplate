@@ -1,0 +1,129 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: BASH3 Boilerplate by krisztianmukli\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-06-25 12:56+0200\n"
+"PO-Revision-Date: 2018-06-25 12:58+0200\n"
+"Last-Translator: Mukli Krisztián <krisztianmukli@mukli.hu>\n"
+"Language-Team: Krisztian Mukli <krisztianmukli>mukli.hu>\n"
+"Language: en_US\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.6\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+
+#: genlocale:90
+msgid ""
+"Available arguments:\n"
+"  \n"
+"  -b --bash           Use BASH built-in localization, otherwise use "
+"gettext.\n"
+"  -f --file  [arg]    Filename to process. Required.\n"
+"  -u --update         Only update locale files\n"
+"  -l --locale [langs] Language code list of generated locale files (comma or "
+"space separated)\n"
+"  -v                  Enable verbose mode, print script as it is executed\n"
+"  -d --debug          Enables debug mode\n"
+"  -h --help           This page\n"
+"  -n --no-color       Disable color output\n"
+"  -V --version        Display version and license information"
+msgstr ""
+"Available arguments:\n"
+"  \n"
+"  -b --bash           Use BASH built-in localization, otherwise use "
+"gettext.\n"
+"  -f --file  [arg]    Filename to process. Required.\n"
+"  -u --update         Only update locale files\n"
+"  -l --locale [langs] Language code list of generated locale files (comma or "
+"space separated)\n"
+"  -v                  Enable verbose mode, print script as it is executed\n"
+"  -d --debug          Enables debug mode\n"
+"  -h --help           This page\n"
+"  -n --no-color       Disable color output\n"
+"  -V --version        Display version and license information"
+
+#: genlocale:102
+msgid "This file can generate or update localization files for a bash script"
+msgstr "This file can generate or update localization files for a bash script"
+
+#: genlocale:103
+msgid "Default"
+msgstr "Default"
+
+#: genlocale:104
+msgid "Required"
+msgstr "Required"
+
+#: genlocale:105
+msgid "Generate locale"
+msgstr "Generate locale"
+
+#: genlocale:107
+msgid "Licensed under the MIT license"
+msgstr "Licensed under the MIT license"
+
+#: genlocale:125
+msgid "Cannot create locale folder!"
+msgstr "Cannot create locale folder!"
+
+#: genlocale:152
+#, sh-format
+msgid "Update locale failed: ${folder}/locale/${loc}/LC_MESSAGES/${script}.po!"
+msgstr ""
+"Update locale failed: ${folder}/locale/${loc}/LC_MESSAGES/${script}.po!"
+
+#: genlocale:155
+msgid "Update locale success"
+msgstr "Update locale success"
+
+#: genlocale:161
+#, sh-format
+msgid "Create directory failed: ${folder}/locale/${loc}/LC_MESSAGES!"
+msgstr "Create directory failed: ${folder}/locale/${loc}/LC_MESSAGES!"
+
+#: genlocale:165
+msgid "Copy locale failed!"
+msgstr "Copy locale failed!"
+
+#: genlocale:168
+msgid "Generate locale success"
+msgstr "Generate locale success"
+
+#: genlocale:260
+#, sh-format
+msgid "Invalid use of script: ${__gl_tmp_params}"
+msgstr "Invalid use of script: ${__gl_tmp_params}"
+
+#: genlocale:309
+#, sh-format
+msgid "Help using ${__gl_base}"
+msgstr "Help using ${__gl_base}"
+
+#: genlocale:320
+msgid "Setting a filename with -f or --file is required"
+msgstr "Setting a filename with -f or --file is required"
+
+#: genlocale:321
+msgid "Cannot continue without LOG_LEVEL."
+msgstr "Cannot continue without LOG_LEVEL."
+
+#: genlocale:338
+msgid ""
+"Option -${__gl_tmp_opt_short}${__gl_tmp_opt_long:-} requires an argument"
+msgstr ""
+"Option -${__gl_tmp_opt_short}${__gl_tmp_opt_long:-} requires an argument"
+
+#: genlocale:362
+msgid "Cleaning up. Done"
+msgstr "Cleaning up. Done"
+
+#: genlocale:373
+#, sh-format
+msgid "Error in ${__gl_file} in function ${function} on line ${line}"
+msgstr "Error in ${__gl_file} in function ${function} on line ${line}"

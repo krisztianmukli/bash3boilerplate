@@ -1,0 +1,289 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: BASH3 Boilerplate by krisztianmukli\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-06-25 13:54+0200\n"
+"PO-Revision-Date: 2018-06-25 13:03+0200\n"
+"Last-Translator: Mukli Krisztián <krisztianmukli@mukli.hu>\n"
+"Language-Team: Krisztian Mukli <krisztianmukli@mukli.hu>\n"
+"Language: en_US\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.6\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: script_remove:95
+msgid ""
+"Available arguments:\n"
+"\n"
+"  -s --script [scriptfile] Remove specified scriptfile and it's localization "
+"and payloads. Required.\n"
+"  -l --with-libraries      Remove specified scriptfile and it's libraries, "
+"if any\n"
+"  -D --with-dependencies   Remove specified scriptfile and it's "
+"dependencies\n"
+"  -d --debug               Enables debug mode\n"
+"  -f --force               Force remove commands\n"
+"  -h --help                This page\n"
+"  -n --no-color            Disable color output\n"
+"  -v                       Enable verbose mode, print script as it is "
+"executed\n"
+"  -V --version             Display version and license information"
+msgstr ""
+"Available arguments:\n"
+"\n"
+"  -s --script [scriptfile] Remove specified scriptfile and it's localization "
+"and payloads. Required.\n"
+"  -l --with-libraries      Remove specified scriptfile and it's libraries, "
+"if any\n"
+"  -D --with-dependencies   Remove specified scriptfile and it's "
+"dependencies\n"
+"  -d --debug               Enables debug mode\n"
+"  -f --force               Force remove commands\n"
+"  -h --help                This page\n"
+"  -n --no-color            Disable color output\n"
+"  -v                       Enable verbose mode, print script as it is "
+"executed\n"
+"  -V --version             Display version and license information"
+
+#: script_remove:107
+msgid ""
+"This command can uninstall bash-script and it's dependencies from a "
+"specified\n"
+" folder, using script own ini file. \n"
+" It is part of BASH3 Boilerplate by krisztianmukli project."
+msgstr ""
+"This command can uninstall bash-script and it's dependencies from a "
+"specified\n"
+" folder, using script own ini file. \n"
+" It is part of BASH3 Boilerplate by krisztianmukli project."
+
+#: script_remove:110
+msgid "Default"
+msgstr "Default"
+
+#: script_remove:111
+msgid "Required"
+msgstr "Required"
+
+#: script_remove:112
+msgid "Standalone script uninstaller"
+msgstr "Standalone script uninstaller"
+
+#: script_remove:114
+msgid "Licensed under the MIT license"
+msgstr "Licensed under the MIT license"
+
+#: script_remove:124
+msgid "Starting package-remove"
+msgstr "Starting package-remove"
+
+#: script_remove:131
+#, sh-format
+msgid "Removing of following dependencies was succesful: ${dependencies}"
+msgstr "Removing of following dependencies was succesful: ${dependencies}"
+
+#: script_remove:135
+msgid "No valid packages"
+msgstr "No valid packages"
+
+#: script_remove:139
+msgid "You need higher privileges for removing packages!"
+msgstr "You need higher privileges for removing packages!"
+
+#: script_remove:143
+#, sh-format
+msgid ""
+"For removing following packages in macOS, you must use Homebrew or Macports: "
+"${dependencies}"
+msgstr ""
+"For removing following packages in macOS, you must use Homebrew or Macports: "
+"${dependencies}"
+
+#: script_remove:147
+#, fuzzy, sh-format
+msgid ""
+"Removing following packages from shell in cygwin, must be use apt-cyg, or "
+"install them with Cygwin setup.exe: ${dependencies}"
+msgstr ""
+"For removing following packages in macOS, you must use Homebrew or Macports: "
+"${dependencies}"
+
+#: script_remove:151
+#, fuzzy, sh-format
+msgid ""
+"Unknown or unsupported operating system, cannot remove following packages: "
+"${dependencies}"
+msgstr ""
+"Unknown or unsupported operating system, cannot remove following packages:: "
+"${dependencies}"
+
+#: script_remove:155
+msgid "Unknown error during removing packages!"
+msgstr "Unknown error during removing packages!"
+
+#: script_remove:159
+msgid "Finished the package-removing"
+msgstr "Finished the package-removing"
+
+#: script_remove:174
+msgid "Assuming local install, trying to user's PATH"
+msgstr "Assuming local install, trying to user's PATH"
+
+#: script_remove:179
+#, sh-format
+msgid "Targetdir, where installed script were: ${targetdir}"
+msgstr "Targetdir, where installed script were: ${targetdir}"
+
+#: script_remove:195
+#, sh-format
+msgid "Removing script unsuccessful: ${targetdir} is not exists!"
+msgstr "Removing script unsuccessful: ${targetdir} is not exists!"
+
+#: script_remove:198
+#, sh-format
+msgid ""
+"Removing script unsuccessful: ${targetdir} is not writable! It may need "
+"higher privileges."
+msgstr ""
+"Removing script unsuccessful: ${targetdir} is not writable! It may need "
+"higher privileges."
+
+#: script_remove:207
+#, sh-format
+msgid "Removing script was unsuccessful: unsupported filename ($script)"
+msgstr "Removing script was unsuccessful: unsupported filename ($script)"
+
+#: script_remove:209 script_remove:210 script_remove:213 script_remove:214
+#, sh-format
+msgid ""
+"Removing script was unsuccessful: there was an error during removing file "
+"${script}"
+msgstr ""
+"Removing script was unsuccessful: there was an error during removing file "
+"${script}"
+
+#: script_remove:211 script_remove:215
+msgid "Removing unsuccessful: there was an error during removing files"
+msgstr "Removing unsuccessful: there was an error during removing files"
+
+#: script_remove:217
+#, sh-format
+msgid "Removing file ${targetdir}/${script} was succesfully removed"
+msgstr "Removing file ${targetdir}/${script} was succesfully removed"
+
+#: script_remove:222
+#, sh-format
+msgid "Removing payloads was unsuccessful: unsupported filename (${payload})"
+msgstr "Removing payloads was unsuccessful: unsupported filename (${payload})"
+
+#: script_remove:224 script_remove:226
+#, sh-format
+msgid ""
+"Removing payloads was unsuccessful: there was an error during removing "
+"files: ${targetdir}/${payload}"
+msgstr ""
+"Removing payloads was unsuccessful: there was an error during removing "
+"files: ${targetdir}/${payload}"
+
+#: script_remove:228
+#, sh-format
+msgid "The file ${sourcedir}/${payload} was succesfully removed."
+msgstr "The file ${sourcedir}/${payload} was succesfully removed."
+
+#: script_remove:234
+#, sh-format
+msgid "Removing libraries was unsuccessful: unsupported filename ($lib)"
+msgstr "Removing libraries was unsuccessful: unsupported filename ($lib)"
+
+#: script_remove:236
+#, sh-format
+msgid ""
+"Removing libraries was unsuccessful: there was an error during removing "
+"files ${libtargetdir}/${lib}"
+msgstr ""
+"Removing libraries was unsuccessful: there was an error during removing "
+"files ${libtargetdir}/${lib}"
+
+#: script_remove:237 script_remove:239 script_remove:240
+msgid ""
+"Removing libraries was unsuccessful: there was an error during removing files"
+msgstr ""
+"Removing libraries was unsuccessful: there was an error during removing files"
+
+#: script_remove:242
+#, sh-format
+msgid "Removing file ${targetdir}/lib/${lib} was succesful"
+msgstr "Removing file ${targetdir}/lib/${lib} was succesful"
+
+#: script_remove:253
+#, sh-format
+msgid ""
+"Script use the following packages as dependencies: ${dependencies}.\\nWould "
+"you like to remove them? It can effect to other softwares, don't do it if "
+"you don't understand!"
+msgstr ""
+"Script use the following packages as dependencies: ${dependencies}.\\nWould "
+"you like to remove them? It can effect to other softwares, don't do it if "
+"you don't understand!"
+
+#: script_remove:254
+#, sh-format
+msgid "Removing dependencies: ${dependencies}"
+msgstr "Removing dependencies: ${dependencies}"
+
+#: script_remove:255
+msgid ""
+"Removing packages unsuccessful: there was an error during removing "
+"dependencies"
+msgstr ""
+"Removing packages unsuccessful: there was an error during removing "
+"dependencies"
+
+#: script_remove:266
+msgid "Removing script was success."
+msgstr "Removing script was success."
+
+#: script_remove:268
+msgid "Script is unavailable or doesn't exists!"
+msgstr "Script is unavailable or doesn't exists!"
+
+#: script_remove:358
+#, sh-format
+msgid "Invalid use of script: ${__sr_tmp_params}"
+msgstr "Invalid use of script: ${__sr_tmp_params}"
+
+#: script_remove:407
+#, sh-format
+msgid "Help using ${__sr_base}"
+msgstr "Help using ${__sr_base}"
+
+#: script_remove:418
+msgid "Setting a filename with -s or --source is required"
+msgstr "Setting a filename with -s or --source is required"
+
+#: script_remove:419
+msgid "Cannot continue without LOG_LEVEL."
+msgstr "Cannot continue without LOG_LEVEL."
+
+#: script_remove:436
+msgid ""
+"Option -${__sr_tmp_opt_short}${__sr_tmp_opt_long:-} requires an argument"
+msgstr ""
+"Option -${__sr_tmp_opt_short}${__sr_tmp_opt_long:-} requires an argument"
+
+#: script_remove:460
+msgid "Cleaning up. Done"
+msgstr "Cleaning up. Done"
+
+#: script_remove:471
+#, sh-format
+msgid "Error in ${__sr_file} in function ${function} on line ${line}"
+msgstr "Error in ${__sr_file} in function ${function} on line ${line}"
