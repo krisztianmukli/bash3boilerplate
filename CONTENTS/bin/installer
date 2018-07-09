@@ -74,7 +74,7 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 #-------------------------------------------------------------------------------
 # Sourced files
 #-------------------------------------------------------------------------------
-export PATH="$(dirname "${__inst_dir}")/lib:$PATH"
+export PATH="$(dirname ${__inst_dir})/lib:$PATH"
 source log.sh || (echo "Fatal error: Cannot find log.sh!"; exit 1)
 source os_detection.sh || (echo "Fatal error: Cannot find os_detection.sh!"; exit 1)
 source display_info.sh || (echo "Fatal error: Cannot find display_info.sh!"; exit 1)
@@ -122,6 +122,7 @@ __inst_license="$(gettext "Licensed under the MIT license")"
 #===============================================================================
 function check_dir() {
 local dir=${1:-}
+local mode="${2:-}"
 
   pathchk -P "${dir}" || emergency "$(eval_gettext "Installation unsuccessful: unsupported foldername (\$dir)")"
 
@@ -129,16 +130,25 @@ local dir=${1:-}
   [[ "${dir}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Installation unsuccessful: Unsupported characters in foldername (\$dir)")"
 
   if [[ ! -e "${dir}" ]]; then 
-    owner="$(stat "$(dirname "${dir}")" -c %u)"
-    group="$(stat "$(dirname "${dir}")" -c %g)"
-    mod="$(stat "$(dirname "${dir}")" -c %a)"
-    install -d -o "${owner}" -g "${group}" -m "${mod}" "${dir}" || emergency "$(eval_gettext "Installation unsuccessful: can not create \${dir}")";
-    __inst_created_dirs+=("${dir}")
+
+    if [[ "${mode}" = "w" ]]; then
+      owner="$(stat "$(dirname "${dir}")" -c %u)"
+      group="$(stat "$(dirname "${dir}")" -c %g)"
+      mod="$(stat "$(dirname "${dir}")" -c %a)"
+      install -d -o "${owner}" -g "${group}" -m "${mod}" "${dir}" || emergency "$(eval_gettext "Installation unsuccessful: can not create \${dir}")";
+      __inst_created_dirs+=("${dir}")
+    elif [[ "${mode}" = "r" ]]; then
+      emergency "$(eval_gettext "Installation unsuccessful: \${dir} does not exist")"
+    fi
+
   fi
 
   [[ ! -d "${dir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${dir} is not a directory")"
   [[ ! -r "${dir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${dir} is not readable!")"
-  [[ ! -w "${dir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${dir} is not writable")"
+
+  if [[ "${mode}" = "w" ]]; then
+    [[ ! -w "${dir}" ]] && emergency "$(eval_gettext "Installation unsuccessful: \${dir} is not writable")"
+  fi
 }
 
 function install_dir() {
@@ -158,7 +168,32 @@ local group="$(stat "${targetdir}" -c %g)"
     fi
   done
 }
+#-------------------------------------------------------------------------------
+# edit_profile: Add script's targetdir to user's ~/.profile file
+# Arguments:
+#   edit_profile folder
+# Returns:
+#   return 1 if unsuccessful (there's no folder)
+#-------------------------------------------------------------------------------
+function edit_profile(){
+local folder=${1:-}
+  if [[ ! -z "${folder}" ]]; then
 
+      if ! grep -q "${folder}" "${__si_user_home}/.profile"; then
+        {
+          echo ""
+          echo "# set PATH so it includes user's private bin if it exists - Added by b3bp installer"
+          echo "if [ -d \"${folder}\" ] ; then"
+          echo "    PATH=\"${folder}:\$PATH\" "
+          echo "fi"
+        } >> "${__si_user_home}/.profile"
+	warning "$(gettext "~/.profile was updated, please login again or run 'source ~/.profile' command to reload PATH variable!")"
+        return 0
+      fi
+
+  fi
+  return 1
+}
 #===============================================================================
 # Main section
 #===============================================================================
@@ -412,7 +447,7 @@ fi
 # Runtime
 #-------------------------------------------------------------------------------
 if [[ "${__inst_srcd:-}" != "0" ]]; then exit 0; fi
-i
+
 # Check supported operating system
 if [[ "${__ostype}" = "unknown" ]] ; then
   emergency "$(gettext "Unsupported operating system. Installation is not possible.")"
@@ -422,8 +457,11 @@ fi
 
 # Set sourcedir
 sourcedir="${__inst_arg_s:-}"
+pkgname="$(basename "${sourcedir}")"
 
 # Check sourcedir
+check_dir "${sourcedir}/CONTENTS" "r"
+check_dir "${sourcedir}/CONTROL" "r"
 md5sum --status --check "${sourcedir}/md5sums" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: checksum error")"
 
 # Set targetdir
@@ -432,26 +470,57 @@ __inst_arg_t=$(tr "[:upper:]" "[:lower:]" <<< "${__inst_arg_t}")
 
 if [[ "${__inst_arg_t}" =~ ^sys(tem)?(-wide)?$ ]]; then
   targetdir="/usr/local"
+  controldir="/var/lib/${pkgname}"
 elif [[ "${__inst_arg_t}" =~ ^us(e)?r(-wide)?$ ]]; then 
   targetdir="${__inst_user_home}/.local"
+  controldir="${__inst_user_home}/.var/lib/${pkgname}"
 else 
   targetdir="${__inst_arg_t}"
+  controldir="${__inst_arg_t}/var/lib/${pkgname}"
 fi
 
 # Check targetdir
-check_dir "${targetdir}"
+check_dir "${targetdir}" "w"
+check_dir "${controldir}" "w"
 
 # Preinstall
-"${sourcedir}/preinst" "${force}" || emergency "$(eval_gettext "Installation unsuccessful: preinstall task was failed.")"
+if [[ -e "${sourcedir}/CONTROL/preinst" ]] && [[ -f "${sourcedir}/CONTROL/preinst" ]] && [[ -x "${sourcedir}/CONTROL/preinst" ]]; then
+  if "${__inst_arg_f}" = "1" ]]; then
+    "${sourcedir}/CONTROL/preinst" --mode install --force || emergency "$(eval_gettext "Installation unsuccessful: preinstall task was failed.")"
+  else
+    "${sourcedir}/CONTROL/preinst" --mode install || emergency "$(eval_gettext "Installation unsuccessful: preinstall task was failed.")"
+  fi
+fi
+__inst_preinst="1"
 
 # Install
-[[ -e "${sourcedir}/bin" ]] && install_dir "${targetdir}/bin"; __inst_bin="1"
-[[ -e "${sourcedir}/etc" ]] && install_dir "${sourcedir}/etc" "${targetdir}/etc"; __inst_etc="1"
-[[ -e "${sourcedir}/lib" ]] && install_dir "${sourcedir}/lib" "${targetdir}/lib"; __inst_lib="1"
-[[ -e "${sourcedir}/share" ]] && install_dir "${sourcedir}/share" "${targetdir}/share"; __inst_share="1"
+[[ -e "${sourcedir}/CONTENTS/bin" ]] && install_dir "${sourcedir}/CONTENTS/bin" "${targetdir}/bin"; __inst_bin="1"
+[[ -e "${sourcedir}/CONTENTS/etc" ]] && install_dir "${sourcedir}/CONTENTS/etc" "${targetdir}/etc"; __inst_etc="1"
+[[ -e "${sourcedir}/CONTENTS/lib" ]] && install_dir "${sourcedir}/CONTENTS/lib" "${targetdir}/lib"; __inst_lib="1"
+[[ -e "${sourcedir}/CONTENTS/share" ]] && install_dir "${sourcedir}/CONTENTS/share" "${targetdir}/share"; __inst_share="1"
 
 # Postinstall
-"${sourcedir}/postinst" "${force}" || emergency "$(eval_gettext "Installation unsuccessful: postinstall task was failed.")"
+if [[ -e "${sourcedir}/CONTROL/postinst" ]] && [[ -f "${sourcedir}/CONTROL/postinst" ]] && [[ -x "${sourcedir}/CONTROL/postinst" ]]; then
+  if [[ "${__inst_arg_f}" = "1" ]]; then
+    "${sourcedir}/CONTROL/postinst" --mode install --force || emergency "$(eval_gettext "Installation unsuccessful: postinstall task was failed.")"
+  else
+    "${sourcedir}/CONTROL/postinst" --mode install || emergency "$(eval_gettext "Installation unsuccessful: postinstall task was failed.")"
+  fi
+fi
+__inst_postinst="1"
+
+# Edit ~/.profile
+if grep -q "${__inst_user_home}" <<< "${targetdir}"; then 
+  if edit_profile "${targetdir}/bin"; then
+    source "${__si_user_home}/.profile"
+    export PATH
+  else
+    warning "$(gettext "Edit ~/.profile file was unsuccessful")"
+  fi
+fi
+
+# Install control-files
+install_dir "${sourcedir}/CONTROL" "${controldir}"; __inst_control="1"
 
 info "$(gettext "Installation was succesful")"
 #===============================================================================

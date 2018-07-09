@@ -86,7 +86,7 @@ export TEXTDOMAIN="${__preinst_base}"
 [[ "${__preinst_usage+x}" ]] || __preinst_usage="$(gettext "Available arguments:
 
   -f --force       Force commands
-  -m --mode [arg]  Mode of install. Default=install
+  -m --mode [arg]  Mode of install. Default=~\"install\"
                    It can be \"install\" or \"revert\"
   -v               Enable verbose mode, print script as it is executed
   -d --debug       Enables debug mode
@@ -502,7 +502,12 @@ if [[ "${__preinst_arg_m}" = "install" ]]; then
   install_thirdparties || emergency "$(gettext "Installation unsuccessful: there was an error during installing thirdparty dependencies")"
   __preinst_thirdparties="1" # flag for thirdparty install was success
 
-elif [[ "${__preinst_arg_m}" = "revert" ]]; then exit 0; # call __preinst_cleanup_before_exit
+elif [[ "${__preinst_arg_m}" = "revert" ]]; then
+    error "$(gettext "Revert changes.")"
+    remove_thirdparties || error "$(gettext "Revert changes was unsuccessful: there was errors during remove thirdparty dependencies.")"
+    remove_dependencies "${__preinst_packages}" "1" || error "$(eval_gettext "Revert changes was unsuccessful: there was an error during installing dependencies: \${__preinst_packages}")" 
+    reset_daemons || error "$(gettext "Revert changes was unsuccessful: there was an error during controlling daemons")"
+    reset_env || error "$(gettext "Revert changes was unsuccessful: there was an error during resetting environment variables")"
 fi
 exit $?
 #===============================================================================

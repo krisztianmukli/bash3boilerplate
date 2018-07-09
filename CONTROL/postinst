@@ -56,7 +56,6 @@ __postinst_dir="$(cd "$(dirname "${BASH_SOURCE[${__postinst_tmp_source_idx:-0}]}
 __postinst_file="${__postinst_dir}/$(basename "${BASH_SOURCE[${__postinst_tmp_source_idx:-0}]}")"
 __postinst_base="$(basename "${__postinst_file}" .sh)"
 __postinst_setenv="0"
-__postinst_edit_profile="0"
 __postinst_daemons="0"
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
@@ -66,7 +65,7 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 #-------------------------------------------------------------------------------
 # Sourced files
 #-------------------------------------------------------------------------------
-export PATH="${__postinst_dir}:${__postinst_dir}/lib:$PATH"
+export PATH="$(dirname "${__postinst_dir}")/lib:$PATH"
 source log.sh || (echo "Fatal error: Cannot find log.sh!"; exit 1)
 source os_detection.sh || (echo "Fatal error: Cannot find os_detection.sh!"; exit 1)
 source display_info.sh || (echo "Fatal error: Cannot find display_info.sh!"; exit 1)
@@ -83,82 +82,43 @@ export TEXTDOMAIN="${__postinst_base}"
 #-------------------------------------------------------------------------------
 [[ "${__postinst_usage+x}" ]] || __postinst_usage="$(gettext "Available arguments:
 
-  -f --file  [arg] Filename to process. Required.
-  -t --temp  [arg] Location of tempfile. Default=\"/tmp/bar\"
+  -f --force       Force commands
+  -m --mode [arg]  Mode of install. Default=~\"install\"
+                   It can be \"install\" or \"revert\"
   -v               Enable verbose mode, print script as it is executed
   -d --debug       Enables debug mode
   -h --help        This page
   -n --no-color    Disable color output
-  -1 --one         Do just one thing
   -V --version     Display version and license information")"
 
-[[ "${__postinst_helptext+x}" ]] || __postinst_helptext="$(gettext "This is Bash3 Boilerplates help text. Feel free to add any description of your
- program or elaborate more on command-line arguments. This section is not
- parsed and will be added as-is to the help.")"
+[[ "${__postinst_helptext+x}" ]] || __postinst_helptext="$(gettext "Postinstall script for script installer")"
 __postinst_defaulttext="$(gettext "Default")"
 __postinst_requiredtext="$(gettext "Required")"
-__postinst_name="$(gettext "BASH3 Boilerplate by krisztianmukli")"
+__postinst_name="$(gettext "Postinstall script for script installer")"
 __postinst_version="v1.0.0"
 __postinst_license="$(gettext "Licensed under the MIT license")"
 
 #===============================================================================
 # Functions section
 #===============================================================================
-#-------------------------------------------------------------------------------
-# Main function
-# Arguments:
-#   None
-# Returns:
-#   None
-#-------------------------------------------------------------------------------
-function main() {
-  if [[ "${__postinst_arg_f}" = "test" ]]; then
-    echo "${__postinst_name}"
-    gettext "Demo and test of the Bash-script template"
-  fi
-
-  create_tempdir 
-  [[ -d "${__postinst_tmpdir}" ]] && touch "${__postinst_tmpdir}/testfile"
-
-  info "__postinst_srcd: ${__postinst_srcd}"
-  info "__postinst_file: ${__postinst_file}"
-  info "__postinst_dir: ${__postinst_dir}"
-  info "__postinst_base: ${__postinst_base}"
-  
-  info "__ostype: ${__ostype}"
-  info "__osfamily: ${__osfamily}"
-  info "__osname: ${__osname}"
-  info "__osversion: ${__osversion}"
-  info "__kernelversion: ${__kernelversion}"
-  info "__arch: ${__arch}"
-  info "__subsystem: ${__subsystem}"
-
-  info "__postinst_arg_f: ${__postinst_arg_f}"
-  info "__postinst_arg_d: ${__postinst_arg_d}"
-  info "__postinst_arg_v: ${__postinst_arg_v}"
-  info "__postinst_arg_h: ${__postinst_arg_h}"
-  info "__postinst_arg_t: ${__postinst_arg_t}"
-
-  info "$(echo -e "$(gettext "multiple lines example - line #1\\nmultiple lines example - line #2\\nimagine logging the output of 'ls -al /path/'")")"
-
-  # All of these go to STDERR, so you can use STDOUT for piping machine readable information to other software
-  debug "$(gettext "Info useful to developers for debugging the application, not useful during operations.")"
-  info "$(gettext "Normal operational messages - may be harvested for reporting, measuring throughput, etc. - no action required.")"
-  notice "$(gettext "Events that are unusual but not error conditions - might be summarized in an email to developers or admins to spot potential problems - no immediate action required.")"
-  warning "$(gettext "Warning messages, not an error, but indication that an error will occur if action is not taken, e.g. file system 85% full - each item must be resolved within a given time. This is a debug message")"
-  error "$(gettext "Non-urgent failures, these should be relayed to developers or admins; each item must be resolved within a given time.")"
-  critical "$(gettext "Should be corrected immediately, but indicates failure in a primary system, an example is a loss of a backup ISP connection.")"
-  alert "$(gettext "Should be corrected immediately, therefore notify staff who can fix the problem. An example would be the loss of a primary ISP connection.")"
-  if [[ "${__postinst_arg_f}" != "test" ]]; then
-    emergency "$(gettext "A \\\"panic\\\" condition usually affecting multiple apps/servers/sites. At this level it would usually notify all tech staff on call.")"
-  fi
-  read -n 1 -s -r -p "$(gettext "Press any key to continue")" && echo ""
+function set_env() {
+  # EDIT THIS FUNCTION
+  return 0
 }
-
-#===============================================================================
-# Main section
-#===============================================================================
-
+function reset_env() {
+  # EDIT THIS FUNCTION
+  return 0
+}
+function set_daemons() {
+  # EDIT THIS FUNCTION
+  return 0
+}
+function reset_daemons() {
+  # EDIT THIS FUNCTION
+  return 0
+}
+function revert_postinst() {
+}
 #-------------------------------------------------------------------------------
 # Parse usage string
 #-------------------------------------------------------------------------------
@@ -353,13 +313,17 @@ fi
 #-------------------------------------------------------------------------------
 # Signal trapping and backtracing
 #-------------------------------------------------------------------------------
-function create_tempdir() {
-  (umask 077 && mkdir "${__postinst_tmpdir}") || emergency "$(gettext "Could not create temporary directory! Exiting.")"
-}
-
 function __postinst_cleanup_before_exit () {
-  rm -rf "${__postinst_tmpdir}"
-  info "$(gettext "Cleaning up. Done")"
+
+  if [[ "${__postinst_daemons}" = "0" ]]; then
+    error "$(gettext "Revert changes.")"
+    reset_daemons || error "$(gettext "Revert changes was unsuccessful: there was an error during controlling daemons")"
+    reset_env || error "$(gettext "Revert changes was unsuccessful: there was an error during resetting environment variables")"
+  elif [[ "${__postinst_setenv}" = "0" ]]; then
+    error "$(gettext "Revert changes.")"
+    reset_env || error "$(gettext "Revert changes was unsuccessful: there was an error during resetting environment variables")"
+  fi
+
 }
 trap __postinst_cleanup_before_exit EXIT
 
@@ -399,10 +363,27 @@ fi
 #-------------------------------------------------------------------------------
 # Runtime
 #-------------------------------------------------------------------------------
-if [[ "${__postinst_srcd:-}" == 0 ]]; then
-  main
+if [[ "${__postinst_srcd:-}" != 0 ]]; then exit 0; fi
+
+if [[ "${__postinst_arg_m}" = "install" ]]; then
+  
+  # Starting or stopping daemons or services - EDIT THIS SECTION
+  set_daemons || emergency "$(gettext "Installation unsuccessful: there was an error during controlling daemons")"
+  __postinst_daemons="1" # flag for set daemons was success
+
+  # Settings environmental variables - EDIT THIS SECTION
+  set_env || emergency "$(gettext "Installation unsuccessful: there was an error during setting environment variables")"
+  __postinst_setenv="1" # flag for set environment variables was success
+
+elif [[ "${__postinst_arg_m}" = "revert" ]]; then 
+
+  error "$(gettext "Revert changes.")"
+  reset_daemons || error "$(gettext "Revert changes was unsuccessful: there was an error during controlling daemons")"
+  reset_env || error "$(gettext "Revert changes was unsuccessful: there was an error during resetting environment variables")"
+
 fi
 
+exit $?
 #===============================================================================
 # END OF FILE
 #===============================================================================
