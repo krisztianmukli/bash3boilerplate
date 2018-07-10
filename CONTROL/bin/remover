@@ -44,21 +44,21 @@ set -o pipefail
 # Environment variables
 #-------------------------------------------------------------------------------
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]] ; then
-  __sr_srcd=1
+  __uninst_srcd=1
   if [[ "${BASH_SOURCE[1]+x}" ]]; then
-    [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __sr_srcd=0
-    __sr_tmp_source_idx=1
+    [[ "${BASH_SOURCE[1]}" = "${0}" ]] && __uninst_srcd=0
+    __uninst_tmp_source_idx=1
   fi
-  [[ "${__sr_usage+x}" ]] && __sr_external_usage=1
+  [[ "${__uninst_usage+x}" ]] && __uninst_external_usage=1
 else
-  __sr_srcd=0
-  [[ "${__sr_usage+x}" ]] && unset -v __sr_usage
-  [[ "${__sr_helptext+x}" ]] && unset -v __sr_helptext
+  __uninst_srcd=0
+  [[ "${__uninst_usage+x}" ]] && unset -v __uninst_usage
+  [[ "${__uninst_helptext+x}" ]] && unset -v __uninst_helptext
 fi
-__sr_dir="$(cd "$(dirname "${BASH_SOURCE[${__sr_tmp_source_idx:-0}]}")" && pwd)"
-__sr_file="${__sr_dir}/$(basename "${BASH_SOURCE[${__sr_tmp_source_idx:-0}]}")"
-__sr_base="$(basename "${__sr_file}" .sh)"
-__sr_user_home="$([[ "${SUDO_USER+x}" ]] && getent passwd "${SUDO_USER}" | cut -d: -f6 || echo "$HOME")"
+__uninst_dir="$(cd "$(dirname "${BASH_SOURCE[${__uninst_tmp_source_idx:-0}]}")" && pwd)"
+__uninst_file="${__uninst_dir}/$(basename "${BASH_SOURCE[${__uninst_tmp_source_idx:-0}]}")"
+__uninst_base="$(basename "${__uninst_file}" .sh)"
+__uninst_user_home="$([[ "${SUDO_USER+x}" ]] && getent passwd "${SUDO_USER}" | cut -d: -f6 || echo "$HOME")"
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 LOG_TIMEZONE="${LOG_TIMEZONE:-1}" # 0 = UTC, otherwise local
@@ -67,7 +67,7 @@ NO_COLOR="${NO_COLOR:-}"    # true = disable color. otherwise autodetected
 #-------------------------------------------------------------------------------
 # Sourced files
 #-------------------------------------------------------------------------------
-export PATH="${__sr_dir}/lib:$PATH"
+export PATH="${__uninst_dir}/lib:$PATH"
 source log.sh || (echo "Fatal error: Cannot find log.sh!"; exit 1)
 source os_detection.sh || (echo "Fatal error: Cannot find os_detection.sh!"; exit 1)
 source display_info.sh || (echo "Fatal error: Cannot find display_info.sh!"; exit 1)
@@ -77,26 +77,18 @@ source gettext.sh || (echo "Fatal error: Cannot find gettext.sh!"; exit 1)
 #-------------------------------------------------------------------------------
 # Localization
 #-------------------------------------------------------------------------------
-__sr_localepath=( "${__sr_dir}/locale" "${HOME}/.local/share/locale" "/usr/local/share/locale" "/usr/share/locale" )
-  for folder in "${__sr_localepath[@]}"; do
-    if [[ -d "${folder}" ]]; then
-      count=$(find "${folder}" -name "${__sr_base}.mo" | wc -l )
-      if [[ $count -gt 0 ]]; then
-        export TEXTDOMAINDIR="${folder}"
-        break
-      fi
-    fi
-  done
-export TEXTDOMAIN="${__sr_base}"
+export TEXTDOMAINDIR="$(dirname "${__uninst_dir}")/locale"
+export TEXTDOMAIN="${__uninst_base}"
 
 #-------------------------------------------------------------------------------
 # Usage 
 #-------------------------------------------------------------------------------
-[[ "${__sr_usage+x}" ]] || __sr_usage="$(gettext "Available arguments:
+[[ "${__uninst_usage+x}" ]] || __uninst_usage="$(gettext "Available arguments:
 
-  -s --script [scriptfile] Remove specified scriptfile and it's localization and payloads. Required.
-  -l --with-libraries      Remove specified scriptfile and it's libraries, if any
-  -D --with-dependencies   Remove specified scriptfile and it's dependencies
+  -p --package [package]   Uninstall specified package. Required
+  -t --target [target]     Specify folder of the package. 
+                           If not specified, uninstaller finds the package in /usr/local and ~/.local
+  -D --with-dependencies   Uninstall dependencies too
   -d --debug               Enables debug mode
   -f --force               Force remove commands
   -h --help                This page
@@ -104,18 +96,32 @@ export TEXTDOMAIN="${__sr_base}"
   -v                       Enable verbose mode, print script as it is executed
   -V --version             Display version and license information")"
 
-[[ "${__sr_helptext+x}" ]] || __sr_helptext="$(gettext "This command can uninstall bash-script and it's dependencies from a specified
+[[ "${__uninst_helptext+x}" ]] || __uninst_helptext="$(gettext "This command can uninstall bash-script and it's dependencies from a specified
  folder, using script own ini file. 
  It is part of BASH3 Boilerplate by krisztianmukli project.")"
-__sr_defaulttext="$(gettext "Default")"
-__sr_requiredtext="$(gettext "Required")"
-__sr_name="$(gettext "Standalone script uninstaller")"
-__sr_version="v1.0.0"
-__sr_license="$(gettext "Licensed under the MIT license")"
+__uninst_defaulttext="$(gettext "Default")"
+__uninst_requiredtext="$(gettext "Required")"
+__uninst_name="$(gettext "Standalone script uninstaller")"
+__uninst_version="v1.0.0"
+__uninst_license="$(gettext "Licensed under the MIT license")"
 
 #===============================================================================
 # Functions section
 #===============================================================================
+function check_dir() {
+local dir=${1:-}
+
+  pathchk -P "${dir}" || emergency "$(eval_gettext "Uninstallation unsuccessful: unsupported foldername (\$dir)")"
+  # shellcheck disable=SC1001
+  [[ "${dir}" =~ [^\x00-\x1F]* ]] || emergency "$(eval_gettext "Uninstallation unsuccessful: Unsupported characters in foldername (\$dir)")"
+
+  [[ ! -e "${dir}" ]] || emergency "$(eval_gettext "Uninstallation unsuccessful: \${dir} does not exist")"
+  [[ ! -d "${dir}" ]] && emergency "$(eval_gettext "Uninstallation unsuccessful: \${dir} is not a directory")"
+  [[ ! -r "${dir}" ]] && emergency "$(eval_gettext "Uninstallation unsuccessful: \${dir} is not readable!")"
+  [[ ! -w "${dir}" ]] && emergency "$(eval_gettext "Uninstallation unsuccessful: \${dir} is not writable")"
+
+}
+
 function remove_dependencies(){
 local dependencies="${1:-}"
 local force=${2:-0}
@@ -166,13 +172,13 @@ local result
 #   exit 1, if any commands unsuccessful
 #-------------------------------------------------------------------------------
 function main() {
-local script="${__sr_arg_s}"
-local force="${__sr_arg_f}"
+local script="${__uninst_arg_s}"
+local force="${__uninst_arg_f}"
 local targetdir=$(dirname $(which "${script}") 2>&-)
 
   if [[ -z "${targetdir}" ]]; then
     debug "$(gettext "Assuming local install, trying to user's PATH")"
-    source "${__sr_user_home}/.profile"
+    source "${__uninst_user_home}/.profile"
     targetdir=$(dirname $(which "${script}") 2>&-)
   fi
 
@@ -205,7 +211,7 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
     #Remove script
     for script in ${scripts}; do
       [[ "$script" = *".."* ]] && emergency "$(eval_gettext "Removing script was unsuccessful: unsupported filename (\$script)")"
-      if [[ "${__sr_arg_f:?}" = "1" ]]; then
+      if [[ "${__uninst_arg_f:?}" = "1" ]]; then
         rm -f "${targetdir}/${script}" || emergency "$(eval_gettext "Removing script was unsuccessful: there was an error during removing file \${script}")"
         rm -f "${targetdir}/${script}.ini" || emergency "$(eval_gettext "Removing script was unsuccessful: there was an error during removing file \${script}")"
         find "${localetargetdir}" -name "${script}.mo" -exec rm -f {} \; || emergency "$(gettext "Removing unsuccessful: there was an error during removing files")"
@@ -220,7 +226,7 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
     # Remove payloads
     for payload in ${payloads}; do
       [[ "${payload}" = *".."* ]] && emergency "$(eval_gettext "Removing payloads was unsuccessful: unsupported filename (\${payload})")"
-      if [[ "${__sr_arg_f:?}" = "1" ]]; then
+      if [[ "${__uninst_arg_f:?}" = "1" ]]; then
         rm -f "${targetdir}/${payload}" || emergency "$(eval_gettext "Removing payloads was unsuccessful: there was an error during removing files: \${targetdir}/\${payload}")"
       else
         rm "${targetdir}/${payload}" || emergency "$(eval_gettext "Removing payloads was unsuccessful: there was an error during removing files: \${targetdir}/\${payload}")"
@@ -229,10 +235,10 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
     done 
 
     # Remove libraries
-    if [[ "${__sr_arg_l:?}" = "1" ]]; then
+    if [[ "${__uninst_arg_l:?}" = "1" ]]; then
       for lib in ${libraries}; do
         [[ "${lib}" = *".."* ]] && emergency "$(eval_gettext "Removing libraries was unsuccessful: unsupported filename (\$lib)")"
-        if [[ "${__sr_arg_f}" = "1" ]]; then
+        if [[ "${__uninst_arg_f}" = "1" ]]; then
 	  rm -f "${libtargetdir}/${lib}" || emergency "$(eval_gettext "Removing libraries was unsuccessful: there was an error during removing files \${libtargetdir}/\${lib}")"
 	  find "${localetargetdir}" -name "${lib}.mo" -exec rm -f {} \; || emergency "$(gettext "Removing libraries was unsuccessful: there was an error during removing files")"
         else
@@ -247,7 +253,7 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
     find "${localetargetdir}" -empty -type d -delete
 
     #Remove dependencies
-    if [[ "${__sr_arg_D}" = "1" ]]; then
+    if [[ "${__uninst_arg_D}" = "1" ]]; then
 
       if [[ -n "${dependencies}" ]]; then
         if ask "$(eval_gettext "Script use the following packages as dependencies: \${dependencies}.\nWould you like to remove them? It can effect to other softwares, don't do it if you don't understand!")" "N"; then
@@ -276,87 +282,92 @@ local targetdir=$(dirname $(which "${script}") 2>&-)
 #-------------------------------------------------------------------------------
 # Parse usage string
 #-------------------------------------------------------------------------------
-while read -r __sr_tmp_line; do
-  if [[ "${__sr_tmp_line}" =~ ^- ]]; then
+while read -r __uninst_tmp_line; do
+  if [[ "${__uninst_tmp_line}" =~ ^- ]]; then
     # fetch single character version of option string
-    __sr_tmp_opt="${__sr_tmp_line%% *}"
-    __sr_tmp_opt="${__sr_tmp_opt:1}"
+    __uninst_tmp_opt="${__uninst_tmp_line%% *}"
+    __uninst_tmp_opt="${__uninst_tmp_opt:1}"
 
     # fetch long version if present
-    __sr_tmp_long_opt=""
+    __uninst_tmp_long_opt=""
 
-    if [[ "${__sr_tmp_line}" = *"--"* ]]; then
-      __sr_tmp_long_opt="${__sr_tmp_line#*--}"
-      __sr_tmp_long_opt="${__sr_tmp_long_opt%% *}"
+    if [[ "${__uninst_tmp_line}" = *"--"* ]]; then
+      __uninst_tmp_long_opt="${__uninst_tmp_line#*--}"
+      __uninst_tmp_long_opt="${__uninst_tmp_long_opt%% *}"
     fi
 
     # map opt long name to+from opt short name
-    printf -v "__sr_tmp_opt_long2short_${__sr_tmp_long_opt//-/_}" '%s' "${__sr_tmp_opt}"
-    printf -v "__sr_tmp_opt_short2long_${__sr_tmp_opt}" '%s' "${__sr_tmp_long_opt//-/_}"
+    printf -v "__uninst_tmp_opt_long2short_${__uninst_tmp_long_opt//-/_}" '%s' "${__uninst_tmp_opt}"
+    printf -v "__uninst_tmp_opt_short2long_${__uninst_tmp_opt}" '%s' "${__uninst_tmp_long_opt//-/_}"
 
     # check if option takes an argument
-    if [[ "${__sr_tmp_line}" =~ \[.*\] ]]; then
-      __sr_tmp_opt="${__sr_tmp_opt}:" # add : if opt has arg
-      __sr_tmp_init=""  # it has an arg. init with ""
-      printf -v "__sr_tmp_has_arg_${__sr_tmp_opt:0:1}" '%s' "1"
-    elif [[ "${__sr_tmp_line}" =~ \{.*\} ]]; then
-      __sr_tmp_opt="${__sr_tmp_opt}:" # add : if opt has arg
-      __sr_tmp_init=""  # it has an arg. init with ""
+    if [[ "${__uninst_tmp_line}" =~ \[.*\] ]]; then
+      __uninst_tmp_opt="${__uninst_tmp_opt}:" # add : if opt has arg
+      __uninst_tmp_init=""  # it has an arg. init with ""
+      printf -v "__uninst_tmp_has_arg_${__uninst_tmp_opt:0:1}" '%s' "1"
+    elif [[ "${__uninst_tmp_line}" =~ \{.*\} ]]; then
+      __uninst_tmp_opt="${__uninst_tmp_opt}:" # add : if opt has arg
+      __uninst_tmp_init=""  # it has an arg. init with ""
       # remember that this option requires an argument
-      printf -v "__sr_tmp_has_arg_${__sr_tmp_opt:0:1}" '%s' "2"
+      printf -v "__uninst_tmp_has_arg_${__uninst_tmp_opt:0:1}" '%s' "2"
     else
-      __sr_tmp_init="0" # it's a flag. init with 0
-      printf -v "__sr_tmp_has_arg_${__sr_tmp_opt:0:1}" '%s' "0"
+      __uninst_tmp_init="0" # it's a flag. init with 0
+      printf -v "__uninst_tmp_has_arg_${__uninst_tmp_opt:0:1}" '%s' "0"
     fi
-    __sr_tmp_opts="${__sr_tmp_opts:-}${__sr_tmp_opt}"
+    __uninst_tmp_opts="${__uninst_tmp_opts:-}${__uninst_tmp_opt}"
   fi
 
-  [[ "${__sr_tmp_opt:-}" ]] || continue
+  [[ "${__uninst_tmp_opt:-}" ]] || continue
 
-  if [[ "${__sr_tmp_line}" =~ ^"${__sr_defaulttext}"= ]] || [[ "${__sr_tmp_line}" =~ \.\ *"${__sr_defaulttext}"= ]]; then
-    __sr_tmp_default="1"
-    __sr_tmp_defaulttext="${__sr_defaulttext}"
-  elif [[ "${__sr_tmp_line}" =~ ^Default= ]] || [[ "${__sr_tmp_line}" =~ \.\ *Default= ]]; then
-    __sr_tmp_default="1"
-    __sr_tmp_defaulttext=Default
+  if [[ "${__uninst_tmp_line}" =~ ^"${__uninst_defaulttext}"= ]] \
+  || [[ "${__uninst_tmp_line}" =~ \.\ *"${__uninst_defaulttext}"= ]]; then
+    __uninst_tmp_default="1"
+    __uninst_tmp_defaulttext="${__uninst_defaulttext}"
+  elif [[ "${__uninst_tmp_line}" =~ ^Default= ]] \
+    || [[ "${__uninst_tmp_line}" =~ \.\ *Default= ]]; then
+    __uninst_tmp_default="1"
+    __uninst_tmp_defaulttext=Default
   else
-    [[ ${__sr_tmp_default+x} ]] && unset __sr_tmp_default
-    [[ ${__sr_tmp_defaulttext+x} ]] && unset __sr_tmp_defaulttext
+    [[ ${__uninst_tmp_default+x} ]] && unset __uninst_tmp_default
+    [[ ${__uninst_tmp_defaulttext+x} ]] && unset __uninst_tmp_defaulttext
   fi
 
-  if [[ ${__sr_tmp_default:-} = "1" ]]; then
+  if [[ ${__uninst_tmp_default:-} = "1" ]]; then
     # ignore default value if option does not have an argument
-    __sr_tmp_varname="__sr_tmp_has_arg_${__sr_tmp_opt:0:1}"
+    __uninst_tmp_varname="__uninst_tmp_has_arg_${__uninst_tmp_opt:0:1}"
 
-    if [[ "${!__sr_tmp_varname}" != "0" ]]; then
-      __sr_tmp_init="${__sr_tmp_line##*${__sr_defaulttext}=}"
-      __sr_tmp_re='^"(.*)"$'
-      if [[ "${__sr_tmp_init}" =~ ${__sr_tmp_re} ]]; then
-        __sr_tmp_init="${BASH_REMATCH[1]}"
+    if [[ "${!__uninst_tmp_varname}" != "0" ]]; then
+      __uninst_tmp_init="${__uninst_tmp_line##*${__uninst_defaulttext}=}"
+      __uninst_tmp_re='^"(.*)"$'
+      if [[ "${__uninst_tmp_init}" =~ ${__uninst_tmp_re} ]]; then
+        __uninst_tmp_init="${BASH_REMATCH[1]}"
       else
-        __sr_tmp_re="^'(.*)'$"
-        if [[ "${__sr_tmp_init}" =~ ${__sr_tmp_re} ]]; then
-          __sr_tmp_init="${BASH_REMATCH[1]}"
+        __uninst_tmp_re="^'(.*)'$"
+        if [[ "${__uninst_tmp_init}" =~ ${__uninst_tmp_re} ]]; then
+          __uninst_tmp_init="${BASH_REMATCH[1]}"
         fi
       fi
     fi
   fi
 
-  if [[ "${__sr_tmp_line}" =~ ^"${__sr_requiredtext}"\. ]] || [[ "${__sr_tmp_line}" =~ \.\ *"${__sr_requiredtext}"\. ]] || [[ "${__sr_tmp_line}" =~ ^Required\. ]] || [[ "${__sr_tmp_line}" =~ \.\ *Required\. ]]; then
+  if [[ "${__uninst_tmp_line}" =~ ^"${__uninst_requiredtext}"\. ]] \
+  || [[ "${__uninst_tmp_line}" =~ \.\ *"${__uninst_requiredtext}"\. ]] \
+  || [[ "${__uninst_tmp_line}" =~ ^Required\. ]] \
+  || [[ "${__uninst_tmp_line}" =~ \.\ *Required\. ]]; then
     # remember that this option requires an argument
-    printf -v "__sr_tmp_has_arg_${__sr_tmp_opt:0:1}" '%s' "2"
+    printf -v "__uninst_tmp_has_arg_${__uninst_tmp_opt:0:1}" '%s' "2"
   fi
 
-  printf -v "__sr_arg_${__sr_tmp_opt:0:1}" '%s' "${__sr_tmp_init}"
-done <<< "${__sr_usage:-}"
+  printf -v "__uninst_arg_${__uninst_tmp_opt:0:1}" '%s' "${__uninst_tmp_init}"
+done <<< "${__uninst_usage:-}"
 
 #-------------------------------------------------------------------------------
 # Parse command-line arguments
 #-------------------------------------------------------------------------------
 # run getopts only if options were specified in __usage
-if [[ "${__sr_tmp_opts:-}" ]]; then
+if [[ "${__uninst_tmp_opts:-}" ]]; then
   # Allow long options like --this
-  __sr_tmp_opts="${__sr_tmp_opts}-:"
+  __uninst_tmp_opts="${__uninst_tmp_opts}-:"
 
   # Reset in case getopts has been used previously in the shell.
   OPTIND=1
@@ -365,41 +376,41 @@ if [[ "${__sr_tmp_opts:-}" ]]; then
   set +o nounset # unexpected arguments will cause unbound variables
                  # to be dereferenced
   # Overwrite $arg_<flag> defaults with the actual CLI options
-  while getopts "${__sr_tmp_opts}" __sr_tmp_opt; do
-    [[ "${__sr_tmp_opt}" = "?" ]] && (__sr_tmp_params="${*}"; display_info "$(eval_gettext "Invalid use of script: \${__sr_tmp_params}")" "${__sr_usage}" "${__sr_helptext}")
+  while getopts "${__uninst_tmp_opts}" __uninst_tmp_opt; do
+    [[ "${__uninst_tmp_opt}" = "?" ]] && (__uninst_tmp_params="${*}"; display_info "$(eval_gettext "Invalid use of script: \${__uninst_tmp_params}")" "${__uninst_usage}" "${__uninst_helptext}")
 
-    if [[ "${__sr_tmp_opt}" = "-" ]]; then
+    if [[ "${__uninst_tmp_opt}" = "-" ]]; then
       # OPTARG is long-option-name or long-option=value
       if [[ "${OPTARG}" =~ .*=.* ]]; then
         # --key=value format
-        __sr_tmp_long_opt=${OPTARG/=*/}
+        __uninst_tmp_long_opt=${OPTARG/=*/}
         # Set opt to the short option corresponding to the long option
-        __sr_tmp_varname="__sr_tmp_opt_long2short_${__sr_tmp_long_opt//-/_}"
-        printf -v "__sr_tmp_opt" '%s' "${!__sr_tmp_varname}"
+        __uninst_tmp_varname="__uninst_tmp_opt_long2short_${__uninst_tmp_long_opt//-/_}"
+        printf -v "__uninst_tmp_opt" '%s' "${!__uninst_tmp_varname}"
         OPTARG=${OPTARG#*=}
       else
         # --key value format
         # Map long name to short version of option
-        __sr_tmp_varname="__sr_tmp_opt_long2short_${OPTARG//-/_}"
-        printf -v "__sr_tmp_opt" '%s' "${!__sr_tmp_varname}"
+        __uninst_tmp_varname="__uninst_tmp_opt_long2short_${OPTARG//-/_}"
+        printf -v "__uninst_tmp_opt" '%s' "${!__uninst_tmp_varname}"
         # Only assign OPTARG if option takes an argument
-        __sr_tmp_varname="__sr_tmp_has_arg_${__sr_tmp_opt}"
-        printf -v "OPTARG" '%s' "${@:OPTIND:${!__sr_tmp_varname}}"
+        __uninst_tmp_varname="__uninst_tmp_has_arg_${__uninst_tmp_opt}"
+        printf -v "OPTARG" '%s' "${@:OPTIND:${!__uninst_tmp_varname}}"
         # shift over the argument if argument is expected
-        ((OPTIND+=__sr_tmp_has_arg_${__sr_tmp_opt}))
+        ((OPTIND+=__uninst_tmp_has_arg_${__uninst_tmp_opt}))
       fi
       # we have set opt/OPTARG to the short value and the argument as OPTARG if it exists
     fi
-    __sr_tmp_varname="__sr_arg_${__sr_tmp_opt:0:1}"
-    __sr_tmp_default="${!__sr_tmp_varname}"
+    __uninst_tmp_varname="__uninst_arg_${__uninst_tmp_opt:0:1}"
+    __uninst_tmp_default="${!__uninst_tmp_varname}"
 
-    __sr_tmp_value="${OPTARG}"
+    __uninst_tmp_value="${OPTARG}"
     if [[ -z "${OPTARG}" ]]; then
-      __sr_tmp_value=$((__sr_tmp_default + 1))
+      __uninst_tmp_value=$((__uninst_tmp_default + 1))
     fi
 
-    printf -v "${__sr_tmp_varname}" '%s' "${__sr_tmp_value}"
-    debug "cli arg ${__sr_tmp_varname} = (${__sr_tmp_default}) -> ${!__sr_tmp_varname}"
+    printf -v "${__uninst_tmp_varname}" '%s' "${__uninst_tmp_value}"
+    debug "cli arg ${__uninst_tmp_varname} = (${__uninst_tmp_default}) -> ${!__uninst_tmp_varname}"
   done
   set -o nounset # no more unbound variable references expected
 
@@ -413,105 +424,165 @@ fi
 #-------------------------------------------------------------------------------
 # Helper functions
 #-------------------------------------------------------------------------------
-if [[ "${__sr_arg_h:?}" = "1" ]]; then
+if [[ "${__uninst_arg_h:?}" = "1" ]]; then
   # Help exists with code 1
-  display_info "$(eval_gettext "Help using \${__sr_base}")" "${__sr_usage}" "${__sr_helptext}"
+  display_info "$(eval_gettext "Help using \${__uninst_base}")" "${__uninst_usage}" "${__uninst_helptext}"
 fi
 
-if [[ "${__sr_arg_V:?}" = "1" ]]; then
+if [[ "${__uninst_arg_V:?}" = "1" ]]; then
   # Version exists with code 1
-  display_info "${__sr_name}" "${__sr_version}" "${__sr_license}"
+  display_info "${__uninst_name}" "${__uninst_version}" "${__uninst_license}"
 fi
 
 #-------------------------------------------------------------------------------
 # Validate required arguments
 #-------------------------------------------------------------------------------
-[[ "${__sr_arg_s:-}" ]] || display_info "$(gettext "Setting a filename with -s or --source is required")" "${__sr_usage}" "${__sr_helptext}"
+[[ "${__uninst_arg_p:-}" ]] || display_info "$(gettext "Setting a packagename with -p or --package is required")" "${__uninst_usage}" "${__uninst_helptext}"
 [[ "${LOG_LEVEL:-}" ]] || emergency "$(gettext "Cannot continue without LOG_LEVEL.")"
 
 #-------------------------------------------------------------------------------
 # Validate required option arguments
 #-------------------------------------------------------------------------------
-for __sr_tmp_varname in ${!__sr_tmp_has_arg_*}; do
+for __uninst_tmp_varname in ${!__uninst_tmp_has_arg_*}; do
   # validate only options which required an argument
-  [[ "${!__sr_tmp_varname}" = "2" ]] || continue
+  [[ "${!__uninst_tmp_varname}" = "2" ]] || continue
 
-  __sr_tmp_opt_short="${__sr_tmp_varname##*_}"
-  __sr_tmp_varname="__sr_arg_${__sr_tmp_opt_short}"
-  [[ "${!__sr_tmp_varname}" ]] && continue
+  __uninst_tmp_opt_short="${__uninst_tmp_varname##*_}"
+  __uninst_tmp_varname="__uninst_arg_${__uninst_tmp_opt_short}"
+  [[ "${!__uninst_tmp_varname}" ]] && continue
 
-  __sr_tmp_varname="__sr_tmp_opt_short2long_${__sr_tmp_opt_short}"
-  printf -v "__sr_tmp_opt_long" '%s' "${!__sr_tmp_varname}"
-  [[ "${__sr_tmp_opt_long:-}" ]] && __sr_tmp_opt_long=" (--${__sr_tmp_opt_long//_/-})"
+  __uninst_tmp_varname="__uninst_tmp_opt_short2long_${__uninst_tmp_opt_short}"
+  printf -v "__uninst_tmp_opt_long" '%s' "${!__uninst_tmp_varname}"
+  [[ "${__uninst_tmp_opt_long:-}" ]] && __uninst_tmp_opt_long=" (--${__uninst_tmp_opt_long//_/-})"
 
-  display_info "$(eval_gettext "Option -\${__sr_tmp_opt_short}\${__sr_tmp_opt_long:-} requires an argument")" "${__sr_usage}" "${__sr_helptext}"
+  display_info "$(eval_gettext "Option -\${__uninst_tmp_opt_short}\${__uninst_tmp_opt_long:-} requires an argument")" "${__uninst_usage}" "${__uninst_helptext}"
 done
 
 #-------------------------------------------------------------------------------
 # Cleanup temporary variables 
 #-------------------------------------------------------------------------------
-for __tmp_varname in ${!__sr_tmp_*}; do
+for __tmp_varname in ${!__uninst_tmp_*}; do
   unset -v "${__tmp_varname}"
 done
 
 unset -v __tmp_varname
 
 #-------------------------------------------------------------------------------
-# Externally supplied __sr_usage. Nothing else to do here
+# Externally supplied __uninst_usage. Nothing else to do here
 #-------------------------------------------------------------------------------
-if [[ "${__sr_external_usage:-}" == 1 ]]; then
-  unset -v __sr_external_usage
+if [[ "${__uninst_external_usage:-}" == 1 ]]; then
+  unset -v __uninst_external_usage
   return
 fi
 
 #-------------------------------------------------------------------------------
 # Signal trapping and backtracing
 #-------------------------------------------------------------------------------
-function __sr_cleanup_before_exit () {
+function __uninst_cleanup_before_exit () {
   info "$(gettext "Cleaning up. Done")"
 }
-trap __sr_cleanup_before_exit EXIT
+trap __uninst_cleanup_before_exit EXIT
 
 # requires `set -o errtrace`
-__sr_err_report() {
+__uninst_err_report() {
   local error_code
   error_code=${?}
   function=${1}
   line=${2}
 
-  error "$(eval_gettext "Error in \${__sr_file} in function \${function} on line \${line}")"
+  error "$(eval_gettext "Error in \${__uninst_file} in function \${function} on line \${line}")"
   exit ${error_code}
 }
 # Uncomment the following line for always providing an error backtrace
-# trap '__sr_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+# trap '__uninst_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
 
 #-------------------------------------------------------------------------------
 # Call internal functions
 #-------------------------------------------------------------------------------
 # debug mode
-if [[ "${__sr_arg_d:?}" = "1" ]]; then
+if [[ "${__uninst_arg_d:?}" = "1" ]]; then
   set -o xtrace
   LOG_LEVEL="7"
   # Enable error backtracing
-  trap '__sr_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
+  trap '__uninst_err_report "${FUNCNAME:-.}" ${LINENO}' ERR
 fi
 
 # verbose mode
-if [[ "${__sr_arg_v:?}" = "1" ]]; then
+if [[ "${__uninst_arg_v:?}" = "1" ]]; then
   set -o verbose
 fi
 
 # no color mode
-if [[ "${__sr_arg_n:?}" = "1" ]]; then
+if [[ "${__uninst_arg_n:?}" = "1" ]]; then
   NO_COLOR="true"
 fi
 
 #-------------------------------------------------------------------------------
 # Runtime
 #-------------------------------------------------------------------------------
-if [[ "${__sr_srcd:-}" == 0 ]]; then
-  main
+if [[ "${__uninst_srcd:-}" != "0" ]]; then exit 0; fi
+
+
+# Check supported operating system
+if [[ "${__ostype}" = "unknown" ]] ; then
+  emergency "$(gettext "Unsupported operating system. Uninstallation is not possible.")"
+elif [[ "${__ostype}" != "linux-gnu" ]]; then
+  emergency "$(gettext "Untested operating system. Uninstallation is not possible.")" 
 fi
+
+# Set targetdir
+# Workaround for such cases: "~/path/to/file"
+__uninst_arg_t="$(sed "s|~|$HOME|g" <<< "${__uninst_arg_t:-}")"
+
+if [[ -n "${__uninst_arg_t}" ]]; then
+  targetdir="${__uninst_arg_t}"
+  controldir="${__uninst_arg_t}/var/lib/${__uninst_arg_s:-}"
+elif [[ -f "/var/lib/${__uninst_arg_s:-}/etc/control" ]]; then
+  targetdir="/usr/local"
+  controldir="/var/lib/${__uninst_arg_s:-}"
+elif [[ -f "${__uninst_user_home}/.var/lib/${__uninst_arg_s:-}/etc/control" ]]; then
+  targetdir="${__uninst_user_home}/.local"
+  controldir="${__uninst_user_home}/.var/lib/${__uninst_arg_s:-}"
+else
+  emergency "$(eval_gettext "Control file not found, \${__uninst_arg_s:-} is not removable!")"
+if
+
+# Check targetdir
+check_dir "${targetdir}"
+check_dir "${controldir}"
+
+# Set package
+controlfile="${controldir}/etc/control"
+filelist="${controldir}/etc/filelist"
+prerm="${controldir}/bin/prerm"
+postrm="${controldir}/bin/postrm"
+pkgname="$(ini_val "${controlfile}" package.name)"
+
+# Check package
+if [[ "${pkgname}" != "${__uninst_arg_s}" ]]; then 
+  emergency "$(eval_gettext "Uninstallation unsuccessful: control file does not belongs to \${__uninst_arg_s} package")"
+fi
+
+# Preremove
+if [[ -e "${prerm}" ]] && [[ -f "${prerm}" ]] && [[ -x "${prerm}" ]]; then
+  "${prerm}" ${args} || emergency "$(gettext "Uninstallation unsuccessful: preremove task was failed.")"
+fi
+__uninst_prerm="1"
+
+# Remove
+if [[ -e "${filelist}" ]] && [[ -f "${filelist}" ]] && [[ -r "${filelist}" ]]; then
+  remove_files "${filelist}" "${targetdir}"
+  __uninst_files="1"
+else
+  emergency "$(eval_gettext "\${filelist} is not exist or not readable")"
+fi
+
+# Postinstall
+if [[ -e "${postrm}" ]] && [[ -f "${postrm}" ]] && [[ -x "${postrm}" ]]; then
+  "${postrm}" ${args} || emergency "$(gettext "Uninstallation unsuccessful: postremove task was failed.")"
+fi
+__uninst_postrm="1"
+
 
 #===============================================================================
 # END OF FILE

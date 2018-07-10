@@ -55,8 +55,6 @@ fi
 __postinst_dir="$(cd "$(dirname "${BASH_SOURCE[${__postinst_tmp_source_idx:-0}]}")" && pwd)"
 __postinst_file="${__postinst_dir}/$(basename "${BASH_SOURCE[${__postinst_tmp_source_idx:-0}]}")"
 __postinst_base="$(basename "${__postinst_file}" .sh)"
-__postinst_setenv="0"
-__postinst_daemons="0"
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 LOG_TIMEZONE="${LOG_TIMEZONE:-1}" # 0 = UTC, otherwise local
@@ -117,8 +115,6 @@ function reset_daemons() {
   # EDIT THIS FUNCTION
   return 0
 }
-function revert_postinst() {
-}
 #-------------------------------------------------------------------------------
 # Parse usage string
 #-------------------------------------------------------------------------------
@@ -159,10 +155,12 @@ while read -r __postinst_tmp_line; do
 
   [[ "${__postinst_tmp_opt:-}" ]] || continue
 
-  if [[ "${__postinst_tmp_line}" =~ ^"${__postinst_defaulttext}"= ]] || [[ "${__postinst_tmp_line}" =~ \.\ *"${__postinst_defaulttext}"= ]]; then
+  if [[ "${__postinst_tmp_line}" =~ ^"${__postinst_defaulttext}"= ]] \
+  || [[ "${__postinst_tmp_line}" =~ \.\ *"${__postinst_defaulttext}"= ]]; then
     __postinst_tmp_default="1"
     __postinst_tmp_defaulttext="${__postinst_defaulttext}"
-  elif [[ "${__postinst_tmp_line}" =~ ^Default= ]] || [[ "${__postinst_tmp_line}" =~ \.\ *Default= ]]; then
+  elif [[ "${__postinst_tmp_line}" =~ ^Default= ]] \
+    || [[ "${__postinst_tmp_line}" =~ \.\ *Default= ]]; then
     __postinst_tmp_default="1"
     __postinst_tmp_defaulttext=Default
   else
@@ -188,7 +186,10 @@ while read -r __postinst_tmp_line; do
     fi
   fi
 
-  if [[ "${__postinst_tmp_line}" =~ ^"${__postinst_requiredtext}"\. ]] || [[ "${__postinst_tmp_line}" =~ \.\ *"${__postinst_requiredtext}"\. ]] || [[ "${__postinst_tmp_line}" =~ ^Required\. ]] || [[ "${__postinst_tmp_line}" =~ \.\ *Required\. ]]; then
+  if [[ "${__postinst_tmp_line}" =~ ^"${__postinst_requiredtext}"\. ]] \
+  || [[ "${__postinst_tmp_line}" =~ \.\ *"${__postinst_requiredtext}"\. ]] \
+  || [[ "${__postinst_tmp_line}" =~ ^Required\. ]] \
+  || [[ "${__postinst_tmp_line}" =~ \.\ *Required\. ]]; then
     # remember that this option requires an argument
     printf -v "__postinst_tmp_has_arg_${__postinst_tmp_opt:0:1}" '%s' "2"
   fi
@@ -272,7 +273,6 @@ fi
 #-------------------------------------------------------------------------------
 # Validate required arguments
 #-------------------------------------------------------------------------------
-[[ "${__postinst_arg_f:-}" ]] || display_info "$(gettext "Setting a filename with -f or --file is required")" "${__postinst_usage}" "${__postinst_helptext}"  
 [[ "${LOG_LEVEL:-}" ]] || emergency "$(gettext "Cannot continue without LOG_LEVEL.")"
 
 #-------------------------------------------------------------------------------
@@ -315,13 +315,15 @@ fi
 #-------------------------------------------------------------------------------
 function __postinst_cleanup_before_exit () {
 
-  if [[ "${__postinst_daemons}" = "0" ]]; then
+  if [[ "${__postinst_daemons}" != "1" ]]; then
     error "$(gettext "Revert changes.")"
     reset_daemons || error "$(gettext "Revert changes was unsuccessful: there was an error during controlling daemons")"
     reset_env || error "$(gettext "Revert changes was unsuccessful: there was an error during resetting environment variables")"
-  elif [[ "${__postinst_setenv}" = "0" ]]; then
+
+  elif [[ "${__postinst_setenv}" != "1" ]]; then
     error "$(gettext "Revert changes.")"
     reset_env || error "$(gettext "Revert changes was unsuccessful: there was an error during resetting environment variables")"
+
   fi
 
 }

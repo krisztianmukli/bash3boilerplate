@@ -457,21 +457,33 @@ fi
 
 # Set sourcedir
 sourcedir="${__inst_arg_s:-}"
-pkgname="$(basename "${sourcedir}")"
 
 # Check sourcedir
 check_dir "${sourcedir}/CONTENTS" "r"
 check_dir "${sourcedir}/CONTROL" "r"
-md5sum --status --check "${sourcedir}/md5sums" 2>/dev/null || emergency "$(eval_gettext "Installation unsuccessful: checksum error")"
+md5sum --status --check "${sourcedir}/md5sums" 2>/dev/null || emergency "$(gettext "Installation unsuccessful: checksum error")"
+
+# Set source variables
+controlfile="${sourcedir}/CONTROL/etc/control"
+preinst="${sourcedir}/CONTROL/bin/preinst"
+postinst="${sourcedir}/CONTROL/bin/postinst"
+
+pkgname="$(ini_val "${controlfile}" package.name)"
+pkgversion="$(ini_val "${controlfile}" package.version)"
+if [[ "${__inst_arg_f}" = "0" ]]; then
+  args="--mode install"
+else
+  args="--mode install --force"
+fi
 
 # Set targetdir
-__inst_arg_t=$(sed "s|~|$HOME|g" <<< "${__inst_arg_t:-}") # Workaround for such cases: "~/path/to/file"
-__inst_arg_t=$(tr "[:upper:]" "[:lower:]" <<< "${__inst_arg_t}")
+# Workaround for such cases: "~/path/to/file"
+__inst_arg_t="$(sed "s|~|$HOME|g" <<< "${__inst_arg_t:-}")"
 
-if [[ "${__inst_arg_t}" =~ ^sys(tem)?(-wide)?$ ]]; then
+if [[ "${__inst_arg_t}" =~ ^[sS][yY][sS]([tT][eE][mM])?(-[wW][iI][dD][eE])?$ ]]; then
   targetdir="/usr/local"
   controldir="/var/lib/${pkgname}"
-elif [[ "${__inst_arg_t}" =~ ^us(e)?r(-wide)?$ ]]; then 
+elif [[ "${__inst_arg_t}" =~ ^[uU][sS]([eE])?[rR](-[wW][iI][dD][eE])?$ ]]; then 
   targetdir="${__inst_user_home}/.local"
   controldir="${__inst_user_home}/.var/lib/${pkgname}"
 else 
@@ -484,45 +496,39 @@ check_dir "${targetdir}" "w"
 check_dir "${controldir}" "w"
 
 # Preinstall
-if [[ -e "${sourcedir}/CONTROL/preinst" ]] && [[ -f "${sourcedir}/CONTROL/preinst" ]] && [[ -x "${sourcedir}/CONTROL/preinst" ]]; then
-  if "${__inst_arg_f}" = "1" ]]; then
-    "${sourcedir}/CONTROL/preinst" --mode install --force || emergency "$(eval_gettext "Installation unsuccessful: preinstall task was failed.")"
-  else
-    "${sourcedir}/CONTROL/preinst" --mode install || emergency "$(eval_gettext "Installation unsuccessful: preinstall task was failed.")"
-  fi
+if [[ -e "${preinst}" ]] && [[ -f "${preinst}" ]] && [[ -x "${preinst}" ]]; then
+  "${preinst}" ${args} || emergency "$(gettext "Installation unsuccessful: preinstall task was failed.")"
 fi
 __inst_preinst="1"
 
 # Install
-[[ -e "${sourcedir}/CONTENTS/bin" ]] && install_dir "${sourcedir}/CONTENTS/bin" "${targetdir}/bin"; __inst_bin="1"
-[[ -e "${sourcedir}/CONTENTS/etc" ]] && install_dir "${sourcedir}/CONTENTS/etc" "${targetdir}/etc"; __inst_etc="1"
-[[ -e "${sourcedir}/CONTENTS/lib" ]] && install_dir "${sourcedir}/CONTENTS/lib" "${targetdir}/lib"; __inst_lib="1"
-[[ -e "${sourcedir}/CONTENTS/share" ]] && install_dir "${sourcedir}/CONTENTS/share" "${targetdir}/share"; __inst_share="1"
+install_dir "${sourcedir}/CONTENTS" "${targetdir}"
+find "${sourcedir}/CONTENTS" -type f -print0 | xargs -0 -I {} echo "{}" > "${sourcedir}/CONTROL/etc/filelist" && sed -i "s|${sourcedir}\/CONTENTS\/||g" "${sourcedir}/CONTROL/etc/filelist"
+__inst_files="1"
 
 # Postinstall
-if [[ -e "${sourcedir}/CONTROL/postinst" ]] && [[ -f "${sourcedir}/CONTROL/postinst" ]] && [[ -x "${sourcedir}/CONTROL/postinst" ]]; then
-  if [[ "${__inst_arg_f}" = "1" ]]; then
-    "${sourcedir}/CONTROL/postinst" --mode install --force || emergency "$(eval_gettext "Installation unsuccessful: postinstall task was failed.")"
-  else
-    "${sourcedir}/CONTROL/postinst" --mode install || emergency "$(eval_gettext "Installation unsuccessful: postinstall task was failed.")"
-  fi
+if [[ -e "${postinst}" ]] && [[ -f "${postinst}" ]] && [[ -x "${postinst}" ]]; then
+  "${postinst}" ${args} || emergency "$(gettext "Installation unsuccessful: postinstall task was failed.")"
 fi
 __inst_postinst="1"
 
 # Edit ~/.profile
 if grep -q "${__inst_user_home}" <<< "${targetdir}"; then 
+
   if edit_profile "${targetdir}/bin"; then
     source "${__si_user_home}/.profile"
     export PATH
   else
     warning "$(gettext "Edit ~/.profile file was unsuccessful")"
   fi
+
 fi
 
 # Install control-files
-install_dir "${sourcedir}/CONTROL" "${controldir}"; __inst_control="1"
+install_dir "${sourcedir}/CONTROL" "${controldir}"
+__inst_control="1"
 
-info "$(gettext "Installation was succesful")"
+info "$(gettext "Installation was successful")"
 #===============================================================================
 # END OF FILE
 #===============================================================================

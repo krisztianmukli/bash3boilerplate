@@ -55,11 +55,6 @@ fi
 __preinst_dir="$(cd "$(dirname "${BASH_SOURCE[${__preinst_tmp_source_idx:-0}]}")" && pwd)"
 __preinst_file="${__preinst_dir}/$(basename "${BASH_SOURCE[${__preinst_tmp_source_idx:-0}]}")"
 __preinst_base="$(basename "${__preinst_file}" .sh)"
-__preinst_setenv="0"
-__preinst_daemons="0"
-__preinst_dependencies="0"
-__preinst_thirdparties="0"
-__preinst_packages=""
 
 LOG_LEVEL="${LOG_LEVEL:-6}" # 7 = debug -> 0 = emergency
 LOG_TIMEZONE="${LOG_TIMEZONE:-1}" # 0 = UTC, otherwise local
@@ -259,10 +254,12 @@ while read -r __preinst_tmp_line; do
 
   [[ "${__preinst_tmp_opt:-}" ]] || continue
 
-  if [[ "${__preinst_tmp_line}" =~ ^"${__preinst_defaulttext}"= ]] || [[ "${__preinst_tmp_line}" =~ \.\ *"${__preinst_defaulttext}"= ]]; then
+  if [[ "${__preinst_tmp_line}" =~ ^"${__preinst_defaulttext}"= ]] \
+  || [[ "${__preinst_tmp_line}" =~ \.\ *"${__preinst_defaulttext}"= ]]; then
     __preinst_tmp_default="1"
     __preinst_tmp_defaulttext="${__preinst_defaulttext}"
-  elif [[ "${__preinst_tmp_line}" =~ ^Default= ]] || [[ "${__preinst_tmp_line}" =~ \.\ *Default= ]]; then
+  elif [[ "${__preinst_tmp_line}" =~ ^Default= ]] \
+    || [[ "${__preinst_tmp_line}" =~ \.\ *Default= ]]; then
     __preinst_tmp_default="1"
     __preinst_tmp_defaulttext=Default
   else
@@ -288,7 +285,10 @@ while read -r __preinst_tmp_line; do
     fi
   fi
 
-  if [[ "${__preinst_tmp_line}" =~ ^"${__preinst_requiredtext}"\. ]] || [[ "${__preinst_tmp_line}" =~ \.\ *"${__preinst_requiredtext}"\. ]] || [[ "${__preinst_tmp_line}" =~ ^Required\. ]] || [[ "${__preinst_tmp_line}" =~ \.\ *Required\. ]]; then
+  if [[ "${__preinst_tmp_line}" =~ ^"${__preinst_requiredtext}"\. ]] \
+  || [[ "${__preinst_tmp_line}" =~ \.\ *"${__preinst_requiredtext}"\. ]] \
+  || [[ "${__preinst_tmp_line}" =~ ^Required\. ]] \
+  || [[ "${__preinst_tmp_line}" =~ \.\ *Required\. ]]; then
     # remember that this option requires an argument
     printf -v "__preinst_tmp_has_arg_${__preinst_tmp_opt:0:1}" '%s' "2"
   fi
@@ -376,7 +376,6 @@ fi
 #-------------------------------------------------------------------------------
 # Validate required arguments
 #-------------------------------------------------------------------------------
-[[ "${__preinst_arg_f:-}" ]] || display_info "$(gettext "Setting a filename with -f or --file is required")" "${__preinst_usage}" "${__preinst_helptext}"  
 [[ "${LOG_LEVEL:-}" ]] || emergency "$(gettext "Cannot continue without LOG_LEVEL.")"
 
 #-------------------------------------------------------------------------------
@@ -418,25 +417,31 @@ fi
 # Signal trapping and backtracing
 #-------------------------------------------------------------------------------
 function __preinst_cleanup_before_exit () {
-  if [[ "${__preinst_thirdparties}" = "0" ]]; then
+
+  if [[ "${__preinst_thirdparties}" != "1" ]]; then
     error "$(gettext "Revert changes.")"
     remove_thirdparties || error "$(gettext "Revert changes was unsuccessful: there was errors during remove thirdparty dependencies.")"
     remove_dependencies "${__preinst_packages}" "1" || error "$(eval_gettext "Revert changes was unsuccessful: there was an error during installing dependencies: \${__preinst_packages}")" 
     reset_daemons || error "$(gettext "Revert changes was unsuccessful: there was an error during controlling daemons")"
     reset_env || error "$(gettext "Revert changes was unsuccessful: there was an error during resetting environment variables")"
-  elif [[ "${__preinst_dependencies}" = "0" ]]; then
+
+  elif [[ "${__preinst_dependencies}" != "1" ]]; then
     error "$(gettext "Revert changes.")"
     remove_dependencies "${__preinst_packages}" "1" || error "$(eval_gettext "Revert changes was unsuccessful: there was an error during installing dependencies: \${__preinst_packages}")" 
     reset_daemons || error "$(gettext "Revert changes was unsuccessful: there was an error during controlling daemons")"
     reset_env || error "$(gettext "Revert changes was unsuccessful: there was an error during resetting environment variables")"
-  elif [[ "${__preinst_daemons}" = "0" ]]; then
+
+  elif [[ "${__preinst_daemons}" != "1" ]]; then
     error "$(gettext "Revert changes.")"
     reset_daemons || error "$(gettext "Revert changes was unsuccessful: there was an error during controlling daemons")"
     reset_env || error "$(gettext "Revert changes was unsuccessful: there was an error during resetting environment variables")"
-  elif [[ "${__preinst_setenv}" = "0" ]]; then
+
+  elif [[ "${__preinst_setenv}" != "1" ]]; then
     error "$(gettext "Revert changes.")"
     reset_env || error "$(gettext "Revert changes was unsuccessful: there was an error during resetting environment variables")"
+
   fi
+
 }
 trap __preinst_cleanup_before_exit EXIT
 
@@ -478,7 +483,8 @@ fi
 #-------------------------------------------------------------------------------
 # Runtime
 #-------------------------------------------------------------------------------
-if [[ "${__preinst_srcd:-}" != "0" ]]; then exit 0; fi 
+if [[ "${__preinst_srcd:-}" != "0" ]]; then exit 0; fi
+
 if [[ "${__preinst_arg_m}" = "install" ]]; then
 
   # Settings environmental variables - EDIT THIS SECTION
@@ -490,10 +496,10 @@ if [[ "${__preinst_arg_m}" = "install" ]]; then
   __preinst_daemons="1" # flag for set daemons was success
 
   # Install dependencies
-  local dependencies=$( os_ini_val "control" "dependencies" )
-  __preinst_packages=$(check_pkgs "${dependencies}")
+  __preinst_packages=$( os_ini_val "${__preinst_dir}/etc/control" "install.dependencies" )
+  __preinst_packages=$(check_pkgs "${__preinst_packages}")
   if [[ -n "${__preinst_packages}" ]]; then 
-    debug "$(eval_gettext "Missing dependencies: \${missingpkgs}")"
+    debug "$(eval_gettext "Missing dependencies: \${__preinst_packages}")"
     install_dependencies "${__preinst_packages}" "${__preinst_arg_f}" || emergency "$(eval_gettext "Installation unsuccessful: there was an error during installing dependencies: \${__preinst_packages}")"
   fi
   __preinst_dependencies="1" # flag for package install was success
